@@ -33,9 +33,14 @@ const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
     const renderSaleItem = (sale: GroupBuySale, index: number) => (
         <div key={index} className={styles.saleItem}>
             <h3 className={styles.saleTitle}>
-                {sale.Vendor} - {sale.Compound}
+                {sale.Compound} {sale.Dose}
+                {sale.Unit}
             </h3>
-            <p className={styles.salePrice}>Price: {sale.Price}</p>
+            <div className={styles.compactDetails}>
+                <p>Price: {sale.Price}</p>
+                <p>Format: {sale.Format}</p>
+                <p>Quantity: {sale.Quantity}</p>
+            </div>
             <div className={styles.expandedDetails}>
                 <div className={styles.detailsGrid}>
                     {renderDetailItem("Type", sale.Type)}

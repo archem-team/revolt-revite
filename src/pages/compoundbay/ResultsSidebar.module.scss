@@ -75,6 +75,10 @@ a {
     }
 }
 
+.compactDetails {
+    display: none;
+}
+
 @media (max-width: 768px) {
     .results {
         padding: 15px;
@@ -96,6 +100,14 @@ a {
     .notes,
     .linkItem {
         font-size: 13px;
+    }
+
+    .compactDetails {
+        display: block;
+    }
+
+    .expandedDetails {
+        display: none;
     }
 }
 
