@@ -24,7 +24,6 @@ import placeholderSVG from "../items/placeholder.svg";
 
 import { useClient } from "../../../controllers/client/ClientController";
 import { modalController } from "../../../controllers/modals/ModalController";
-import CompoundBay from "../../../pages/compoundbay/CompoundBay";
 import { GenericSidebarBase, GenericSidebarList } from "../SidebarBase";
 import ButtonItem, { ChannelButton } from "../items/ButtonItem";
 import ConnectionStatus from "../items/ConnectionStatus";
@@ -89,9 +88,7 @@ export default observer(() => {
                 <Link to="/compoundbay">
                     <ButtonItem active={pathname === "/compoundbay"}>
                         <Wrench size={20} />
-                        <span>
-                            <Text id="app.navigation.tabs.compoundbay" />
-                        </span>
+                        <span>{`CompoundBay`}</span>
                     </ButtonItem>
                 </Link>
                 {!isTouchscreenDevice && (
