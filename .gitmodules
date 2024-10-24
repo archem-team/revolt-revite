@@ -7,3 +7,6 @@
 [submodule "external/revolt.js"]
 	path = external/revolt.js
 	url = https://github.com/revoltchat/revolt.js
+[submodule "external/compoundbay"]
+	path = external/compoundbay
+	url = https://github.com/archem-team/compoundbay
