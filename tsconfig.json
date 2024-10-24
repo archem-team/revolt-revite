@@ -20,5 +20,10 @@
         "types": ["vite-plugin-pwa/client"],
         "experimentalDecorators": true
     },
-    "include": ["src", "external/lang/Languages.ts"]
+    "include": [
+        "src",
+        "external/lang/Languages.ts",
+        "external/compoundbay/groupBuySale.ts",
+        "external/compoundbay/ResultsSidebar.tsx"
+    ]
 }

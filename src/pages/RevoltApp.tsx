@@ -7,6 +7,7 @@ import { useEffect, useState } from "preact/hooks";
 import ContextMenus from "../lib/ContextMenus";
 import { isTouchscreenDevice } from "../lib/isTouchscreenDevice";
 
+import CompoundBay from "../../external/compoundbay/CompoundBay";
 import { Titlebar } from "../components/native/Titlebar";
 import BottomNavigation from "../components/navigation/BottomNavigation";
 import LeftSidebar from "../components/navigation/LeftSidebar";
@@ -14,7 +15,6 @@ import RightSidebar from "../components/navigation/RightSidebar";
 import { useSystemAlert } from "../updateWorker";
 import Open from "./Open";
 import Channel from "./channels/Channel";
-import CompoundBay from "./compoundbay/CompoundBay";
 import Developer from "./developer/Developer";
 import Discover from "./discover/Discover";
 import Friends from "./friends/Friends";
