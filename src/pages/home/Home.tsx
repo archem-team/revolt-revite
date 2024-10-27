@@ -52,20 +52,11 @@ interface Server {
 
 // Add a styled component for the new text color
 const NewServerWrapper = styled.div`
-    color: yellow;
+    color: #fadf4f;
 
-    // Make all text yellow, including description
-    * {
-        color: yellow !important;
-    }
-
+    // Preserve all other styles
     a {
-        color: yellow;
-    }
-
-    // Target the description specifically if needed
-    [class*="description"] {
-        color: yellow !important;
+        color: #fadf4f;
     }
 `;
 
