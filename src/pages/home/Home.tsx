@@ -47,7 +47,8 @@ interface Server {
     description: string;
     inviteCode: string;
     disabled: boolean;
-    new: boolean; // Add the new field
+    new: boolean;
+    sortorder: number;
 }
 
 // Add a styled component for the new text color
@@ -108,13 +109,18 @@ const Home: React.FC = () => {
                         return;
                     }
 
+                    // Sort the servers by sortorder before caching
+                    const sortedData = [...result.data].sort(
+                        (a, b) => (a.sortorder || 0) - (b.sortorder || 0),
+                    );
+
                     const cacheData: CachedData = {
                         timestamp: Date.now(),
-                        data: result.data,
+                        data: sortedData,
                     };
 
                     safeStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-                    setServers(result.data);
+                    setServers(sortedData);
                     setLoading(false);
                 },
                 error: (err) => {
@@ -217,7 +223,7 @@ const Home: React.FC = () => {
                         <Text id="app.navigation.tabs.home" />
                     </PageHeader>
                     <div className={styles.homeScreen}>
-                        <h3>Welcome to PepChat</h3>
+                        <h3>PepChat</h3>
                         <div className={styles.actions}>
                             {servers.map(renderServerButton)}
                         </div>
