@@ -36,7 +36,7 @@ const Overlay = styled.div`
     }
 `;
 
-const DisabledButtonWrapper = styled.div`
+const DisabledStyle = styled.div`
     opacity: 0.5;
     pointer-events: none;
 `;
@@ -54,8 +54,8 @@ interface Server {
 // Add a styled component for the new text color
 const NewServerWrapper = styled.div`
     color: #fadf4f;
+    display: contents;
 
-    // Preserve all other styles
     a {
         color: #fadf4f;
     }
@@ -173,7 +173,6 @@ const Home: React.FC = () => {
 
         const buttonContent = (
             <CategoryButton
-                key={server.id}
                 action={server.disabled ? undefined : "chevron"}
                 icon={
                     server.disabled ? (
@@ -189,19 +188,15 @@ const Home: React.FC = () => {
             </CategoryButton>
         );
 
-        const content = server.disabled ? (
-            <DisabledButtonWrapper key={server.id}>
-                {buttonContent}
-            </DisabledButtonWrapper>
+        // Remove the extra div wrapper for disabled state
+        let content = server.disabled ? (
+            <DisabledStyle>{buttonContent}</DisabledStyle>
         ) : (
-            <Link to={linkTo} key={server.id}>
-                {buttonContent}
-            </Link>
+            <Link to={linkTo}>{buttonContent}</Link>
         );
 
-        // Wrap with NewServerWrapper if server is new
         return server.new ? (
-            <NewServerWrapper key={server.id}>{content}</NewServerWrapper>
+            <NewServerWrapper>{content}</NewServerWrapper>
         ) : (
             content
         );
