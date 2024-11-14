@@ -36,9 +36,10 @@ const Overlay = styled.div`
     }
 `;
 
-const DisabledStyle = styled.div`
+const DisabledWrapper = styled.div`
     opacity: 0.5;
     pointer-events: none;
+    margin-bottom: -10px;
 `;
 
 interface Server {
@@ -188,9 +189,8 @@ const Home: React.FC = () => {
             </CategoryButton>
         );
 
-        // Remove the extra div wrapper for disabled state
         let content = server.disabled ? (
-            <DisabledStyle>{buttonContent}</DisabledStyle>
+            <DisabledWrapper>{buttonContent}</DisabledWrapper>
         ) : (
             <Link to={linkTo}>{buttonContent}</Link>
         );
@@ -218,7 +218,6 @@ const Home: React.FC = () => {
                         <Text id="app.navigation.tabs.home" />
                     </PageHeader>
                     <div className={styles.homeScreen}>
-                        <h3>PepChat</h3>
                         <div className={styles.actions}>
                             {servers.map(renderServerButton)}
                         </div>
