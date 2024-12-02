@@ -6,15 +6,15 @@ import { Localizer, Text } from "preact-i18n";
 import Tooltip from "../Tooltip";
 
 enum Badges {
-    Developer = 1,
-    Translator = 2,
-    Supporter = 4,
-    ResponsibleDisclosure = 8,
-    Founder = 16,
-    PlatformModeration = 32,
+    Developer = 1, //Developer
+    Translator = 2, //Clown
+    Supporter = 4, //Supporter
+    ResponsibleDisclosure = 8, //Top Contributor
+    Founder = 16, //Administrator
+    PlatformModeration = 32, //Verified Manufacturer
     ActiveSupporter = 64,
-    Paw = 128,
-    EarlyAdopter = 256,
+    Paw = 128, //🦊
+    EarlyAdopter = 256, //Trusted Seller
     ReservedRelevantJokeBadge1 = 512,
     ReservedRelevantJokeBadge2 = 1024,
 }
@@ -40,118 +40,93 @@ export default function UserBadges({ badges, uid }: Props) {
         <BadgesBase>
             <Localizer>
                 {badges & Badges.Founder ? (
-                    <Tooltip
-                        content={
-                            <Text id="app.special.popovers.user_profile.badges.founder" />
-                        }>
-                        <img src="/assets/badges/founder.svg" />
+                    <Tooltip content="Administrator">
+                        <img src="/assets/badges/administrator.png" />
                     </Tooltip>
                 ) : (
                     <></>
                 )}
                 {badges & Badges.Developer ? (
-                    <Tooltip content={<Text id="app.navigation.tabs.dev" />}>
-                        <img src="/assets/badges/developer.svg" />
+                    <Tooltip content="Developer">
+                        <img src="/assets/badges/developer.png" />
                     </Tooltip>
                 ) : (
                     <></>
                 )}
                 {badges & Badges.Translator ? (
-                    <Tooltip
-                        content={
-                            <Text id="app.special.popovers.user_profile.badges.translator" />
-                        }>
+                    <Tooltip content="Clown">
                         <img
-                            src="/assets/badges/translator.svg"
+                            src="/assets/badges/clown.png"
                             style={{
                                 cursor: "pointer",
                             }}
-                            onClick={() => {
-                                window.open(
-                                    "https://weblate.insrt.uk/projects/revolt/web-app/",
-                                    "_blank",
-                                );
-                            }}
+                            // onClick={() => {
+                            //     window.open(
+                            //         "https://weblate.insrt.uk/projects/revolt/web-app/",
+                            //         "_blank",
+                            //     );
+                            // }}
                         />
                     </Tooltip>
                 ) : (
                     <></>
                 )}
                 {badges & Badges.EarlyAdopter ? (
-                    <Tooltip
-                        content={
-                            <Text id="app.special.popovers.user_profile.badges.early_adopter" />
-                        }>
-                        <img src="/assets/badges/early_adopter.svg" />
+                    <Tooltip content="Trusted Seller">
+                        <img src="/assets/badges/trusted-seller.png" />
                     </Tooltip>
                 ) : (
                     <></>
                 )}
                 {badges & Badges.PlatformModeration ? (
-                    <Tooltip
-                        content={
-                            <Text id="app.special.popovers.user_profile.badges.moderation" />
-                        }>
-                        <img src="/assets/badges/moderation.svg" />
+                    <Tooltip content="Verified Manufacturer">
+                        <img src="/assets/badges/verified-manufacturer.png" />
                     </Tooltip>
                 ) : (
                     <></>
                 )}
                 {badges & Badges.ResponsibleDisclosure ? (
-                    <Tooltip
-                        content={
-                            <Text id="app.special.popovers.user_profile.badges.responsible_disclosure" />
-                        }>
-                        <Shield size={24} color="gray" />
+                    <Tooltip content="Top Contributor">
+                        <img src="/assets/badges/top-contributor.png" />
                     </Tooltip>
                 ) : (
                     <></>
                 )}
                 {badges & Badges.Supporter ? (
-                    <Tooltip
-                        content={
-                            <Text id="app.special.popovers.user_profile.badges.supporter" />
-                        }>
+                    <Tooltip content="Supporter">
                         <img
-                            src="/assets/badges/supporter.svg"
+                            src="/assets/badges/supporter.png"
                             style={{
                                 cursor: "pointer",
                             }}
-                            onClick={() => {
-                                window.open(
-                                    "https://insrt.uk/donate",
-                                    "_blank",
-                                );
-                            }}
+                            // onClick={() => {
+                            //     window.open(
+                            //         "https://insrt.uk/donate",
+                            //         "_blank",
+                            //     );
+                            // }}
                         />
                     </Tooltip>
                 ) : (
                     <></>
                 )}
                 {badges & Badges.ReservedRelevantJokeBadge1 ? (
-                    <Tooltip content="sus">
-                        <img src="/assets/badges/amog.svg" />
+                    <Tooltip content="Karen">
+                        <img src="/assets/badges/karen.png" />
                     </Tooltip>
                 ) : (
                     <></>
                 )}
                 {badges & Badges.ReservedRelevantJokeBadge2 ? (
-                    <Tooltip content="It's Morbin Time">
-                        <img src="/assets/badges/amorbus.svg" />
+                    <Tooltip content="Verified GB">
+                        <img src="/assets/badges/verified-GB.png" />
                     </Tooltip>
                 ) : (
                     <></>
                 )}
                 {badges & Badges.Paw ? (
-                    <Tooltip content="🦊">
-                        <img src="/assets/badges/paw.svg" />
-                    </Tooltip>
-                ) : (
-                    <></>
-                )}
-                {uid === "01EX2NCWQ0CHS3QJF0FEQS1GR4" ? (
-                    <Tooltip content="🦝">
-                        <img src="/assets/badges/raccoon.svg" />
+                    <Tooltip content="Verified Vendor">
+                        <img src="/assets/badges/verified-vendor.png" />
                     </Tooltip>
                 ) : (
                     <></>
