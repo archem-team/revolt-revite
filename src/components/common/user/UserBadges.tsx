@@ -6,17 +6,17 @@ import { Localizer, Text } from "preact-i18n";
 import Tooltip from "../Tooltip";
 
 enum Badges {
-    Developer = 1, //Developer
-    Translator = 2, //Clown
-    Supporter = 4, //Supporter
-    ResponsibleDisclosure = 8, //Top Contributor
-    Founder = 16, //Administrator
-    PlatformModeration = 32, //Verified Manufacturer
+    Developer = 1, // Developer
+    Translator = 2, // Translator
+    Supporter = 4, // Supporter
+    ResponsibleDisclosure = 8, // Trusted Seller
+    Founder = 16, // Founder
+    PlatformModeration = 32, // Administrator
     ActiveSupporter = 64,
-    Paw = 128, //🦊
-    EarlyAdopter = 256, //Trusted Seller
-    ReservedRelevantJokeBadge1 = 512,
-    ReservedRelevantJokeBadge2 = 1024,
+    Paw = 128, // Clown
+    EarlyAdopter = 256, // Top Contributor
+    ReservedRelevantJokeBadge1 = 512, // Karen
+    ReservedRelevantJokeBadge2 = 1024, // Gump
 }
 
 const BadgesBase = styled.div`
@@ -39,97 +39,60 @@ export default function UserBadges({ badges, uid }: Props) {
     return (
         <BadgesBase>
             <Localizer>
-                {badges & Badges.Founder ? (
-                    <Tooltip content="Administrator">
-                        <img src="/assets/badges/administrator.png" />
+                {badges & Badges.Founder && (
+                    <Tooltip content="Founder">
+                        <img src="/assets/badges/founder.svg" />
                     </Tooltip>
-                ) : (
-                    <></>
                 )}
-                {badges & Badges.Developer ? (
+                {badges & Badges.Developer && (
                     <Tooltip content="Developer">
                         <img src="/assets/badges/developer.png" />
                     </Tooltip>
-                ) : (
-                    <></>
                 )}
-                {badges & Badges.Translator ? (
-                    <Tooltip content="Clown">
-                        <img
-                            src="/assets/badges/clown.png"
-                            style={{
-                                cursor: "pointer",
-                            }}
-                            // onClick={() => {
-                            //     window.open(
-                            //         "https://weblate.insrt.uk/projects/revolt/web-app/",
-                            //         "_blank",
-                            //     );
-                            // }}
-                        />
+                {badges & Badges.Translator && (
+                    <Tooltip content="Translator">
+                        <img src="/assets/badges/translator.svg" />
                     </Tooltip>
-                ) : (
-                    <></>
                 )}
-                {badges & Badges.EarlyAdopter ? (
-                    <Tooltip content="Trusted Seller">
-                        <img src="/assets/badges/trusted-seller.png" />
-                    </Tooltip>
-                ) : (
-                    <></>
-                )}
-                {badges & Badges.PlatformModeration ? (
-                    <Tooltip content="Verified Manufacturer">
-                        <img src="/assets/badges/verified-manufacturer.png" />
-                    </Tooltip>
-                ) : (
-                    <></>
-                )}
-                {badges & Badges.ResponsibleDisclosure ? (
+                {badges & Badges.EarlyAdopter && (
                     <Tooltip content="Top Contributor">
                         <img src="/assets/badges/top-contributor.png" />
                     </Tooltip>
-                ) : (
-                    <></>
                 )}
-                {badges & Badges.Supporter ? (
+                {badges & Badges.PlatformModeration && (
+                    <Tooltip content="Administrator">
+                        <img src="/assets/badges/administrator.png" />
+                    </Tooltip>
+                )}
+                {badges & Badges.ResponsibleDisclosure && (
+                    <Tooltip content="Trusted Seller">
+                        <img src="/assets/badges/trusted-seller.png" />
+                    </Tooltip>
+                )}
+                {badges & Badges.Supporter && (
                     <Tooltip content="Supporter">
                         <img
                             src="/assets/badges/supporter.png"
                             style={{
                                 cursor: "pointer",
                             }}
-                            // onClick={() => {
-                            //     window.open(
-                            //         "https://insrt.uk/donate",
-                            //         "_blank",
-                            //     );
-                            // }}
                         />
                     </Tooltip>
-                ) : (
-                    <></>
                 )}
-                {badges & Badges.ReservedRelevantJokeBadge1 ? (
+                {badges & Badges.ReservedRelevantJokeBadge1 && (
                     <Tooltip content="Karen">
                         <img src="/assets/badges/karen.png" />
                     </Tooltip>
-                ) : (
-                    <></>
                 )}
-                {badges & Badges.ReservedRelevantJokeBadge2 ? (
-                    <Tooltip content="Verified GB">
-                        <img src="/assets/badges/verified-GB.png" />
+                {badges & Badges.ReservedRelevantJokeBadge2 && (
+                    <Tooltip content="Gump">
+                        <img src="/assets/badges/gump.png" />
                     </Tooltip>
-                ) : (
-                    <></>
                 )}
-                {badges & Badges.Paw ? (
-                    <Tooltip content="Verified Vendor">
-                        <img src="/assets/badges/verified-vendor.png" />
+                {badges & Badges.Paw && (
+                    <Tooltip content="Clown">
+                        <img src="/assets/badges/clown.png" />
                     </Tooltip>
-                ) : (
-                    <></>
                 )}
             </Localizer>
         </BadgesBase>
