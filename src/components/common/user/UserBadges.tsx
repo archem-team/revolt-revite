@@ -50,7 +50,7 @@ export default function UserBadges({ badges, uid }: Props) {
                     </Tooltip>
                 )}
                 {badges & Badges.Translator && (
-                    <Tooltip content="Translator">
+                    <Tooltip content="First 100 Members">
                         <img src="/assets/badges/first_100_members.svg" />
                     </Tooltip>
                 )}
