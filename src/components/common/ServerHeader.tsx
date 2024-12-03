@@ -79,20 +79,20 @@ export default observer(({ server }: Props) => {
             }}>
             <div className="container">
                 {server.flags && server.flags & 1 ? (
-                    <Tooltip
-                        content="Verified Vendor"
-                        placement={"bottom-start"}>
+                    <Tooltip content="Verified GB" placement={"bottom-start"}>
                         <img
-                            src="/assets/badges/verified-vendor.png"
+                            src="/assets/badges/verified-GB.png"
                             width="20"
                             height="20"
                         />
                     </Tooltip>
                 ) : undefined}
                 {server.flags && server.flags & 2 ? (
-                    <Tooltip content="Verified GB" placement={"bottom-start"}>
+                    <Tooltip
+                        content="Verified Vendor"
+                        placement={"bottom-start"}>
                         <img
-                            src="/assets/badges/verified-GB.png"
+                            src="/assets/badges/verified-vendor.png"
                             width="20"
                             height="20"
                         />
