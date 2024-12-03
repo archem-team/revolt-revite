@@ -7,7 +7,7 @@ import Tooltip from "../Tooltip";
 
 enum Badges {
     Developer = 1, // Developer
-    Translator = 2, // Translator
+    Translator = 2, // First 100 Members
     Supporter = 4, // Supporter
     ResponsibleDisclosure = 8, // Trusted Seller
     Founder = 16, // Founder
@@ -51,7 +51,7 @@ export default function UserBadges({ badges, uid }: Props) {
                 )}
                 {badges & Badges.Translator && (
                     <Tooltip content="Translator">
-                        <img src="/assets/badges/translator.svg" />
+                        <img src="/assets/badges/first_100_members.svg" />
                     </Tooltip>
                 )}
                 {badges & Badges.EarlyAdopter && (
