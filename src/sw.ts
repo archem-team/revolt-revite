@@ -29,7 +29,7 @@ precacheAndRoute(
                 }
 
                 for (const key of locale_keys) {
-                    if (fn.startsWith(`${key  }.`)) {
+                    if (fn.startsWith(`${key}.`)) {
                         return false;
                     }
                 }
@@ -46,10 +46,22 @@ self.addEventListener("push", (event) => {
     async function process() {
         if (event.data) {
             const data = event.data.json();
+
+            // Format mentions if they exist in the body
+            const body = data.body.replace(
+                /<@([A-z0-9]{26})>/g,
+                (match, id) => {
+                    const userInfo = data.mentions?.[id];
+                    return userInfo
+                        ? `@${userInfo.displayName ?? userInfo.username}`
+                        : match;
+                },
+            );
+
             await self.registration.showNotification(data.author, {
                 icon: data.icon,
                 image: data.image,
-                body: data.body,
+                body,
                 timestamp: data.timestamp * 1000,
                 tag: data.tag,
                 badge: "https://app.revolt.chat/assets/icons/monochrome.svg",
