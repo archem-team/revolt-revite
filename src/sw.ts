@@ -47,7 +47,11 @@ self.addEventListener("push", (event) => {
         if (event.data) {
             const data = event.data.json();
 
-            // Format mentions if they exist in the body
+            // Replace mention tags (e.g. <@userId>) with user display names
+            // Example: "<@123456>" becomes "@Username"
+            // - Matches tags in format <@[26 alphanumeric characters]>
+            // - Looks up user info from data.mentions using the ID
+            // - Replaces with @displayName or @username, or keeps original if user not found
             const body = data.body.replace(
                 /<@([A-z0-9]{26})>/g,
                 (match, id) => {
