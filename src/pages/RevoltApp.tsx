@@ -7,7 +7,7 @@ import { useEffect, useState } from "preact/hooks";
 import ContextMenus from "../lib/ContextMenus";
 import { isTouchscreenDevice } from "../lib/isTouchscreenDevice";
 
-import CompoundBay from "../../external/compoundbay/CompoundBay";
+import CompoundBay from "./compoundbay/CompoundBay";
 import { Titlebar } from "../components/native/Titlebar";
 import BottomNavigation from "../components/navigation/BottomNavigation";
 import LeftSidebar from "../components/navigation/LeftSidebar";
