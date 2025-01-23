@@ -301,7 +301,7 @@ export default observer(
         //         } catch (err) { }
         //     }
         // }, [last_id]);
-
+        channel.pinned_messages = true
         const renderer = getRenderer(channel);
         const history = useHistory();
         if (renderer.state !== "RENDER") return null;

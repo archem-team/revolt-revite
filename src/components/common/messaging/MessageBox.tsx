@@ -257,7 +257,6 @@ export default observer(({ channel }: Props) => {
             </Base>
         );
     }
-    console.log(channel) //||  channel.channel_type != "DirectMessage"
     if (channel.channel_type != "SavedMessages")
         if (!channel.havePermission("SendMessage") && channel.channel_type == "TextChannel" || channel.recipient?.relationship == "Blocked" || channel.recipient?.relationship == "BlockedOther") {
 

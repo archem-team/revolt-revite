@@ -4,45 +4,56 @@ import { SMOOTH_SCROLL_ON_RECEIVE } from "../Singleton";
 import { RendererRoutines } from "../types";
 
 export const SimpleRenderer: RendererRoutines = {
-    init: async (renderer, nearby, smooth) => {
+    init: async (renderer, nearby, smooth, pinned_messages = false) => {
         if (renderer.channel.client.websocket.connected) {
             if (nearby)
-                renderer.channel
-                    .fetchMessagesWithUsers({ nearby, limit: 100 })
-                    .then(({ messages }) => {
-                        messages.sort((a, b) => a._id.localeCompare(b._id));
+                (renderer.channel.pinned_messages
+                    ? renderer.channel.fetchPinnedMessagesWithUsers({ nearby, limit: 100 })
+                    : renderer.channel.fetchMessagesWithUsers({ nearby, limit: 100 })
+                ).then(({ messages }) => {
+                    console.log("renderer.channel.pinned")
+                    console.log(renderer.channel.pinned_messages)
 
-                        runInAction(() => {
-                            renderer.state = "RENDER";
-                            renderer.messages = messages;
-                            renderer.atTop = false;
-                            renderer.atBottom = false;
+                    messages.sort((a, b) => a._id.localeCompare(b._id));
 
-                            renderer.emitScroll({
-                                type: "ScrollToView",
-                                id: nearby,
-                            });
+                    runInAction(() => {
+                        renderer.state = "RENDER";
+                        renderer.messages = messages;
+                        renderer.atTop = false;
+                        renderer.atBottom = false;
+
+                        renderer.emitScroll({
+                            type: "ScrollToView",
+                            id: nearby,
                         });
                     });
+                });
             else
-                renderer.channel
-                    .fetchMessagesWithUsers({})
-                    .then(({ messages }) => {
-                        console.log(messages, 9090);
-                        messages.reverse();
+                // (renderer.channel.pinned_messages
+                    // ? renderer.channel.fetchPinnedMessagesWithUsers({})
+                    // : renderer.channel.fetchMessagesWithUsers({})
+               
+                // ).then(({ messages }) => {
+                renderer.channel.fetchPinnedMessagesWithUsers({}).then(({ messages }) => {
+                    console.log("ELSE renderer.channel.pinned")
+                    console.log(renderer.channel.pinned_messages)
 
-                        runInAction(() => {
-                            renderer.state = "RENDER";
-                            renderer.messages = messages;
-                            renderer.atTop = messages.length < 50;
-                            renderer.atBottom = true;
+                    messages.reverse();
+                    console.log("REVERSE")
+                    console.log(messages)
+                    
+                    runInAction(() => {
+                        renderer.state = "RENDER";
+                        renderer.messages = messages;
+                        renderer.atTop = messages.length < 50;
+                        renderer.atBottom = true;
 
-                            renderer.emitScroll({
-                                type: "ScrollToBottom",
-                                smooth,
-                            });
+                        renderer.emitScroll({
+                            type: "ScrollToBottom",
+                            smooth,
                         });
                     });
+                });
         } else {
             runInAction(() => {
                 renderer.state = "WAITING_FOR_NETWORK";
@@ -92,7 +103,7 @@ export const SimpleRenderer: RendererRoutines = {
             });
         }
     },
-    loadTop: async (renderer, generateScroll) => {
+    loadTop: async (renderer, generateScroll, pinned_messages = false) => {
         const channel = renderer.channel;
         if (!channel) return true;
 
@@ -100,9 +111,13 @@ export const SimpleRenderer: RendererRoutines = {
         if (renderer.atTop) return true;
 
         const { messages: data } =
-            await renderer.channel.fetchMessagesWithUsers({
-                before: renderer.messages[0]._id,
-            });
+            await (pinned_messages
+                ? renderer.channel.fetchPinnedMessagesWithUsers({
+                      before: renderer.messages[0]._id,
+                  })
+                : renderer.channel.fetchMessagesWithUsers({
+                      before: renderer.messages[0]._id,
+                  }));
 
         runInAction(() => {
             if (data.length === 0) {
@@ -129,7 +144,7 @@ export const SimpleRenderer: RendererRoutines = {
             );
         });
     },
-    loadBottom: async (renderer, generateScroll) => {
+    loadBottom: async (renderer, generateScroll, pinned_messages = false) => {
         const channel = renderer.channel;
         if (!channel) return true;
 
@@ -137,10 +152,15 @@ export const SimpleRenderer: RendererRoutines = {
         if (renderer.atBottom) return true;
 
         const { messages: data } =
-            await renderer.channel.fetchMessagesWithUsers({
-                after: renderer.messages[renderer.messages.length - 1]._id,
-                sort: "Oldest",
-            });
+            await (pinned_messages
+                ? renderer.channel.fetchPinnedMessagesWithUsers({
+                      after: renderer.messages[renderer.messages.length - 1]._id,
+                      sort: "Oldest",
+                  })
+                : renderer.channel.fetchMessagesWithUsers({
+                      after: renderer.messages[renderer.messages.length - 1]._id,
+                      sort: "Oldest",
+                  }));
 
         runInAction(() => {
             if (data.length === 0) {
