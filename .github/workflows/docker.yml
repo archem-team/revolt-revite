@@ -3,7 +3,7 @@ name: Docker
 on:
     push:
         branches:
-            - "master"
+            - "stage"
         tags:
             - "*"
         paths-ignore:
@@ -17,7 +17,7 @@ on:
             - "README"
     pull_request:
         branches:
-            - "master"
+            - "stage"
         paths-ignore:
             - ".github/**"
             - "!.github/workflows/docker.yml"
@@ -28,6 +28,7 @@ on:
             - "LICENSE"
             - "README"
     workflow_dispatch:
+
 
 jobs:
     test:
@@ -54,13 +55,13 @@ jobs:
               with:
                   context: .
                   platforms: ${{ matrix.architecture }}
-                  cache-from: type=local,src=/tmp/.buildx-cache/${{ matrix.architecture }}
-                  cache-to: type=local,dest=/tmp/.buildx-cache-new/${{ matrix.architecture }},mode=max
-            - name: Move cache
-              run: |
-                  rm -rf /tmp/.buildx-cache/${{ matrix.architecture }}
-                  mv /tmp/.buildx-cache-new/${{ matrix.architecture }} /tmp/.buildx-cache/${{ matrix.architecture }}
-
+            #       cache-from: type=local,src=/tmp/.buildx-cache/${{ matrix.architecture }}
+            #       cache-to: type=local,dest=/tmp/.buildx-cache-new/${{ matrix.architecture }},mode=max
+            # - name: Move cache
+            #   run: |
+            #       rm -rf /tmp/.buildx-cache/${{ matrix.architecture }}
+            #       mv /tmp/.buildx-cache-new/${{ matrix.architecture }} /tmp/.buildx-cache/${{ matrix.architecture }}
+    
     publish:
         needs: [test]
         runs-on: ubuntu-latest
@@ -83,12 +84,14 @@ jobs:
               id: meta
               uses: docker/metadata-action@v3
               with:
-                  images: revoltchat/client, ghcr.io/revoltchat/client
-            - name: Login to DockerHub
-              uses: docker/login-action@v1
-              with:
-                  username: ${{ secrets.DOCKERHUB_USERNAME }}
-                  password: ${{ secrets.DOCKERHUB_TOKEN }}
+                  images: ghcr.io/abronstudio/revite/client/stage
+                  tags: |
+                    type=raw,value=${{ github.sha }}
+            # - name: Login to DockerHub
+            #   uses: docker/login-action@v1
+            #   with:
+            #       username: ${{ secrets.DOCKERHUB_USERNAME }}
+            #       password: ${{ secrets.DOCKERHUB_TOKEN }}
             - name: Login to Github Container Registry
               uses: docker/login-action@v1
               with:
@@ -103,9 +106,47 @@ jobs:
                   platforms: linux/amd64
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
-                  cache-from: type=local,src=/tmp/.buildx-cache/linux/amd64
-                  cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-            - name: Move cache
+                  # cache-from: type=local,src=/tmp/.buildx-cache/linux/amd64
+                  # cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+            # - name: Move cache
+            #   run: |
+            #       rm -rf /tmp/.buildx-cache
+            #       mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+    deploy:
+        needs: [publish]
+        runs-on: ubuntu-latest
+        env:
+          CONFIG_BRANCH: admin-dev
+          CLONE_DIR: $GITHUB_WORKSPACE/config
+          CONFIG_FILE: $GITHUB_WORKSPACE/config/apps/pepchat/kustomization.yaml
+        if: github.event_name != 'pull_request'
+        steps:
+            - name: Checkout Configuration Repository
               run: |
-                  rm -rf /tmp/.buildx-cache
-                  mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+                  echo "Cloning configuration repository"
+                  mkdir -p $CLONE_DIR
+                  git clone -b $CONFIG_BRANCH ${{ secrets.K8_CONFIG_REPO }} $CLONE_DIR
+            
+            - name: Set Up Git Identity
+              run: |
+                  cd $CLONE_DIR
+                  git config user.email "ci@example.com"
+                  git config user.name "CI Bot"
+
+
+            - name: Update Image Tag in kustomization.yaml
+              run: |
+                  awk -v value="  newTag: ${{ github.sha }}" '{sub(/^  newTag: .*/, value); print}' $CONFIG_FILE > temp.yml && mv temp.yml $CONFIG_FILE
+                  awk -v value="  newName: ghcr.io/abronstudio/revite/client/stage" '{sub(/^  newName: .*/, value); print}' $CONFIG_FILE > temp.yml && mv temp.yml $CONFIG_FILE
+
+
+            - name: Commit & Push Changes
+              run: |
+                  cd $CLONE_DIR
+                  git add .
+                  git commit -am "Update image tag to ${{ github.sha }}"
+                  git push origin $CONFIG_BRANCH  
+                  
+          
+                  
+    
