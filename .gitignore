@@ -7,7 +7,7 @@ dist-ssr
 *.log
 /.idea
 .env
-
+.env.build
 .yarn/cache
 .yarn/install-state.gz
 
