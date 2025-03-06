@@ -204,6 +204,8 @@ export default function ContextMenus() {
                         internalEmit("NewMessages", "mark", unread_id);
                         data.message.channel?.ack(unread_id, true);
                     }
+                    break;
+
                 case "pin_message":
                     {
 
@@ -858,7 +860,7 @@ export default function ContextMenus() {
                             message,
                         });
                         if (channelPermissions & Permission.ManageMessages) {
-                            if (message.is_pinned && channel?.channel_type != "DirectMessage") {
+                            if (message.is_pinned) {
                                 generateAction({
                                     action: "unpin_message",
                                     channel,
@@ -871,7 +873,20 @@ export default function ContextMenus() {
                                     message
                                 });
                             }
-
+                        } else if (message.channel?.channel_type == "DirectMessage" || message.channel?.channel_type == "Group") {
+                            if (message.is_pinned) {
+                                generateAction({
+                                    action: "unpin_message",
+                                    channel,
+                                    message
+                                });
+                            } else {
+                                generateAction({
+                                    action: "pin_message",
+                                    channel,
+                                    message
+                                });
+                            }
                         }
 
                         if (
