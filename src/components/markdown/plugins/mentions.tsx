@@ -38,6 +38,16 @@ const Mention = styled.a`
 `;
 
 export function RenderMention({ match }: CustomComponentProps) {
+    // Special handling for @everyone mentions
+    if (match === "everyone") {
+        return (
+            <Mention>
+                @everyone
+            </Mention>
+        );
+    }
+
+    // Normal user mention
     return (
         <Mention>
             <UserShort
@@ -49,5 +59,6 @@ export function RenderMention({ match }: CustomComponentProps) {
 }
 
 export const remarkMention = createComponent("mention", RE_MENTIONS, (match) =>
-    clientController.getAvailableClient().users.has(match),
+    match === "everyone" || clientController.getAvailableClient().users.has(match),
 );
+
