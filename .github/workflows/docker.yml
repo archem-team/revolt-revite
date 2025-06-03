@@ -3,6 +3,7 @@ name: Docker
 on:
     push:
         branches:
+
             - "stage"
         tags:
             - "*"
@@ -28,6 +29,7 @@ on:
             - "LICENSE"
             - "README"
     workflow_dispatch:
+
 
 
 jobs:
@@ -137,6 +139,7 @@ jobs:
             - name: Update Image Tag in kustomization.yaml
               run: |
                   awk -v value="  newTag: ${{ github.sha }}" '{sub(/^  newTag: .*/, value); print}' $CONFIG_FILE > temp.yml && mv temp.yml $CONFIG_FILE
+
                   awk -v value="  newName: ghcr.io/abronstudio/revolt-revite-stage" '{sub(/^  newName: .*/, value); print}' $CONFIG_FILE > temp.yml && mv temp.yml $CONFIG_FILE
 
 
@@ -145,6 +148,7 @@ jobs:
                   cd $CLONE_DIR
                   git add .
                   git commit -am "Update image tag to ${{ github.sha }}"
+         
                   git push origin $CONFIG_BRANCH  
                   
           

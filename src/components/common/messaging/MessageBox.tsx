@@ -329,6 +329,22 @@ export default observer(({ channel }: Props) => {
         if (uploadState.type !== "none") return sendFile(content);
         if (content.length === 0) return;
 
+        // Check for @everyone mentions first
+        if (content.includes("@everyone")) {
+            // Check if user has permission to mention everyone
+            if (channel.havePermission("MentionEveryone")) {
+                // Replace @everyone with <@everyone>
+                content = content.replace(/@everyone/g, "<@everyone>");
+            } else {
+                // Display error toast when no permission
+                modalController.push({
+                    type: "error",
+                    error: client.i18n.t("app.main.channel.misc.no_everyone_mention"),
+                });
+                // We don't replace @everyone - it will remain as plain text
+            }
+        }
+
         // Convert @username mentions to <@USER_ID> format
         const mentionRegex = /@([a-zA-Z0-9_]+)/g;
         const mentionMatches = content.match(mentionRegex);
@@ -336,14 +352,17 @@ export default observer(({ channel }: Props) => {
         if (mentionMatches) {
             for (const mention of mentionMatches) {
                 const username = mention.substring(1); // Remove the @ symbol
-                // Find the user with this username
-                const user = Array.from(client.users.values()).find(
-                    (u) => u.username.toLowerCase() === username.toLowerCase()
-                );
+                // Make sure it's not 'everyone' (already handled)
+                if (username.toLowerCase() !== "everyone") {
+                    // Find the user with this username
+                    const user = Array.from(client.users.values()).find(
+                        (u) => u.username.toLowerCase() === username.toLowerCase()
+                    );
 
-                if (user) {
-                    // Replace @username with <@USER_ID>
-                    content = content.replace(mention, `<@${user._id}>`);
+                    if (user) {
+                        // Replace @username with <@USER_ID>
+                        content = content.replace(mention, `<@${user._id}>`);
+                    }
                 }
             }
         }
