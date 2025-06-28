@@ -46,6 +46,7 @@ import { PermissionTooltip } from "../Tooltip";
 import FilePreview from "./bars/FilePreview";
 import ReplyBar from "./bars/ReplyBar";
 import { User } from "@styled-icons/boxicons-regular";
+import { MessageFlags } from "../../../lib/messageFlags";
 
 type Props = {
     channel: Channel;
@@ -257,7 +258,7 @@ export default observer(({ channel }: Props) => {
             </Base>
         );
     }
-    console.log(channel) //||  channel.channel_type != "DirectMessage"
+    //||  channel.channel_type != "DirectMessage"
     if (channel.channel_type != "SavedMessages")
         if (!channel.havePermission("SendMessage") && channel.channel_type == "TextChannel" || channel.recipient?.relationship == "Blocked" || channel.recipient?.relationship == "BlockedOther") {
 
@@ -329,41 +330,109 @@ export default observer(({ channel }: Props) => {
         if (uploadState.type !== "none") return sendFile(content);
         if (content.length === 0) return;
 
+        // Initialize message flags
+        let flags = 0;
+
         // Check for @everyone mentions first
         if (content.includes("@everyone")) {
-            // Check if user has permission to mention everyone
-            if (channel.havePermission("MentionEveryone")) {
-                // Replace @everyone with <@everyone>
-                content = content.replace(/@everyone/g, "<@everyone>");
-            } else {
-                // Display error toast when no permission
-                modalController.push({
-                    type: "error",
-                    error: client.i18n.t("app.main.channel.misc.no_everyone_mention"),
-                });
-                // We don't replace @everyone - it will remain as plain text
+            // Always transform @everyone to <@everyone> for consistent rendering
+            content = content.replace(/@everyone/g, "<@everyone>");
+            
+            // Try permission check with type casting to work around TypeScript issues
+            try {
+                // Use type casting since TypeScript doesn't recognize the new permission
+                const hasMentionEveryonePermission = (channel as any).havePermission("MentionEveryone");
+                if (hasMentionEveryonePermission) {
+                    flags |= MessageFlags.MentionsEveryone;
+                }
+            } catch (error) {
+                console.warn("Error checking MentionEveryone permission:", error);
+                // Don't set flag if permission check fails
             }
+            // Without permission: <@everyone> renders as mention but no notifications sent
         }
 
-        // Convert @username mentions to <@USER_ID> format
-        const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-        const mentionMatches = content.match(mentionRegex);
+        // Check for @online mentions
+        if (content.includes("@online")) {
+            // Always transform @online to <@online> for consistent rendering
+            content = content.replace(/@online/g, "<@online>");
+            
+            // Use same permission as @everyone since @online is just filtered @everyone
+            try {
+                // Use type casting since TypeScript doesn't recognize the new permission
+                const hasMentionEveryonePermission = (channel as any).havePermission("MentionEveryone");
+                if (hasMentionEveryonePermission) {
+                    flags |= MessageFlags.MentionsOnline;
+                }
+            } catch (error) {
+                console.warn("Error checking MentionEveryone permission for @online:", error);
+                // Don't set flag if permission check fails
+            }
+            // Without permission: <@online> renders as mention but no notifications sent
+        }
 
-        if (mentionMatches) {
-            for (const mention of mentionMatches) {
-                const username = mention.substring(1); // Remove the @ symbol
-                // Make sure it's not 'everyone' (already handled)
-                if (username.toLowerCase() !== "everyone") {
-                    // Find the user with this username
-                    const user = Array.from(client.users.values()).find(
-                        (u) => u.username.toLowerCase() === username.toLowerCase()
+        // Process @mentions: Handle roles (server only) and users (all channels)
+        const server = channel.server;
+        const allMentionMatches = content.match(/@([a-zA-Z0-9_\s-]+)/g);
+        let hasRoleMentions = false;
+        
+        if (allMentionMatches) {
+            const processedMatches = new Set(); // Track what we've processed
+            
+            for (const match of allMentionMatches) {
+                const mentionName = match.substring(1).trim(); // Remove @ and trim
+                
+                // Skip if already processed or is @everyone (handled earlier)
+                if (processedMatches.has(mentionName) || mentionName.toLowerCase() === "everyone") {
+                    continue;
+                }
+                
+                // First, try to find a role (only in server channels)
+                if (server && channel.channel_type === "TextChannel") {
+                    const role = server.orderedRoles.find(
+                        (r) => r.name.toLowerCase() === mentionName.toLowerCase()
                     );
-
-                    if (user) {
-                        // Replace @username with <@USER_ID>
-                        content = content.replace(mention, `<@${user._id}>`);
+                    
+                    if (role) {
+                        // Transform @RoleName to <%ROLE_ID>
+                        const roleRegex = new RegExp(`@${mentionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi');
+                        content = content.replace(roleRegex, `<%${role.id}>`);
+                        hasRoleMentions = true;
+                        processedMatches.add(mentionName);
+                        continue; // Skip user search if role found
                     }
                 }
+                
+                // Try to find a user (works in all channel types)
+                if (/^[a-zA-Z0-9_]+$/.test(mentionName)) {
+                    const user = Array.from(client.users.values()).find(
+                        (u) => u.username.toLowerCase() === mentionName.toLowerCase()
+                    );
+                    
+                    if (user) {
+                        // Replace @username with <@USER_ID>
+                        const userRegex = new RegExp(`@${mentionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi');
+                        content = content.replace(userRegex, `<@${user._id}>`);
+                        processedMatches.add(mentionName);
+                    }
+                }
+                // If neither role nor user found, leave as plain @mentionName
+            }
+            
+            // Set role mention flag if we found any role mentions and user has permission  
+            if (hasRoleMentions) {
+                // Try permission check with type casting to work around TypeScript issues (COPIED FROM @everyone)
+                try {
+                    // Use type casting since TypeScript doesn't recognize the new permission
+                    const hasMentionRolePermission = (channel as any).havePermission("MentionRole");
+                    if (hasMentionRolePermission) {
+                        flags |= MessageFlags.MentionsRole;
+                    }
+                } catch (error) {
+                    console.warn("Error checking MentionRole permission:", error);
+                    // Don't set flag if permission check fails
+                }
+                // Without permission: <%ROLE_ID> renders as role mention but no notifications sent
             }
         }
 
@@ -430,11 +499,19 @@ export default observer(({ channel }: Props) => {
             chainedDefer(() => renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE));
 
             try {
-                await channel.sendMessage({
+                // Create message data with flags support
+                const messageData: any = {
                     content,
                     nonce,
                     replies,
-                });
+                };
+                
+                // Add flags if any are set (critical for @everyone to work!)
+                if (flags > 0) {
+                    messageData.flags = flags;
+                }
+                
+                await channel.sendMessage(messageData);
 
                 // Add another scroll to bottom after the message is sent
                 chainedDefer(() => renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE));
@@ -452,6 +529,104 @@ export default observer(({ channel }: Props) => {
     async function sendFile(content: string) {
         if (uploadState.type !== "attached" && uploadState.type !== "failed")
             return;
+
+        // Initialize message flags for file uploads too
+        let flags = 0;
+
+        // Check for @everyone mentions in file uploads
+        if (content.includes("@everyone")) {
+            // Always transform @everyone to <@everyone> for consistent rendering
+            content = content.replace(/@everyone/g, "<@everyone>");
+            
+            // Only set the flag if user has permission for backend notification processing
+            const hasMentionEveryonePermission = (channel as any).havePermission("MentionEveryone");
+            if (hasMentionEveryonePermission) {
+                flags |= MessageFlags.MentionsEveryone;
+            }
+            // Without permission: <@everyone> renders as mention but no notifications sent
+        }
+
+        // Check for @online mentions in file uploads
+        if (content.includes("@online")) {
+            // Always transform @online to <@online> for consistent rendering
+            content = content.replace(/@online/g, "<@online>");
+            
+            // Use same permission as @everyone since @online is just filtered @everyone
+            try {
+                const hasMentionEveryonePermission = (channel as any).havePermission("MentionEveryone");
+                if (hasMentionEveryonePermission) {
+                    flags |= MessageFlags.MentionsOnline;
+                }
+            } catch (error) {
+                console.warn("Error checking MentionEveryone permission for @online (file upload):", error);
+            }
+            // Without permission: <@online> renders as mention but no notifications sent
+        }
+
+        // Process @mentions in file uploads: Handle roles (server only) and users (all channels)
+        const server = channel.server;
+        const allMentionMatches = content.match(/@([a-zA-Z0-9_\s-]+)/g);
+        let hasRoleMentions = false;
+        
+        if (allMentionMatches) {
+            const processedMatches = new Set(); // Track what we've processed
+            
+            for (const match of allMentionMatches) {
+                const mentionName = match.substring(1).trim(); // Remove @ and trim
+                
+                // Skip if already processed or is @everyone (handled earlier)
+                if (processedMatches.has(mentionName) || mentionName.toLowerCase() === "everyone") {
+                    continue;
+                }
+                
+                // First, try to find a role (only in server channels)
+                if (server && channel.channel_type === "TextChannel") {
+                    const role = server.orderedRoles.find(
+                        (r) => r.name.toLowerCase() === mentionName.toLowerCase()
+                    );
+                    
+                    if (role) {
+                        // Transform @RoleName to <%ROLE_ID>
+                        const roleRegex = new RegExp(`@${mentionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi');
+                        content = content.replace(roleRegex, `<%${role.id}>`);
+                        hasRoleMentions = true;
+                        processedMatches.add(mentionName);
+                        continue; // Skip user search if role found
+                    }
+                }
+                
+                // Try to find a user (works in all channel types)
+                if (/^[a-zA-Z0-9_]+$/.test(mentionName)) {
+                    const user = Array.from(client.users.values()).find(
+                        (u) => u.username.toLowerCase() === mentionName.toLowerCase()
+                    );
+                    
+                    if (user) {
+                        // Replace @username with <@USER_ID>
+                        const userRegex = new RegExp(`@${mentionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi');
+                        content = content.replace(userRegex, `<@${user._id}>`);
+                        processedMatches.add(mentionName);
+                    }
+                }
+                // If neither role nor user found, leave as plain @mentionName
+            }
+            
+            // Set role mention flag if we found any role mentions and user has permission
+            if (hasRoleMentions) {
+                // Try permission check with type casting to work around TypeScript issues (COPIED FROM @everyone)
+                try {
+                    // Use type casting since TypeScript doesn't recognize the new permission
+                    const hasMentionRolePermission = (channel as any).havePermission("MentionRole");
+                    if (hasMentionRolePermission) {
+                        flags |= MessageFlags.MentionsRole;
+                    }
+                } catch (error) {
+                    console.warn("Error checking MentionRole permission (file upload):", error);
+                    // Don't set flag if permission check fails
+                }
+                // Without permission: <%ROLE_ID> renders as role mention but no notifications sent
+            }
+        }
 
         const attachments: string[] = [];
         setMessage;
@@ -513,12 +688,20 @@ export default observer(({ channel }: Props) => {
 
         const nonce = ulid();
         try {
-            await channel.sendMessage({
+            // Create message data with flags support for file uploads
+            const messageData: any = {
                 content,
                 nonce,
                 replies,
                 attachments,
-            });
+            };
+            
+            // Add flags if any are set
+            if (flags > 0) {
+                messageData.flags = flags;
+            }
+            
+            await channel.sendMessage(messageData);
         } catch (err) {
             setUploadState({
                 type: "failed",
@@ -608,6 +791,10 @@ export default observer(({ channel }: Props) => {
     } = useAutoComplete(setMessage, {
         users: { type: "channel", id: channel._id },
         channels:
+            channel.channel_type === "TextChannel"
+                ? { server: channel.server_id! }
+                : undefined,
+        roles:
             channel.channel_type === "TextChannel"
                 ? { server: channel.server_id! }
                 : undefined,

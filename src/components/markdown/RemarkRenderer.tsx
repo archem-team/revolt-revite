@@ -23,7 +23,7 @@ import { RenderAnchor } from "./plugins/anchors";
 import { remarkChannels, RenderChannel } from "./plugins/channels";
 import { isOnlyEmoji, remarkEmoji, RenderEmoji } from "./plugins/emoji";
 import { remarkHtmlToText } from "./plugins/htmlToText";
-import { remarkMention, RenderMention } from "./plugins/mentions";
+import { remarkMention, RenderMention, remarkRoleMention, RenderRoleMention } from "./plugins/mentions";
 import { remarkSpoiler, RenderSpoiler } from "./plugins/spoiler";
 import { remarkTimestamps } from "./plugins/timestamps";
 import "./prism";
@@ -39,6 +39,7 @@ const Null: React.FC = () => null;
 const components = {
     emoji: RenderEmoji,
     mention: RenderMention,
+    roleMention: RenderRoleMention,
     spoiler: RenderSpoiler,
     channel: RenderChannel,
     a: RenderAnchor,
@@ -143,6 +144,7 @@ const render = unified()
     .use(remarkTimestamps)
     .use(remarkEmoji)
     .use(remarkMention)
+    .use(remarkRoleMention)
     .use(remarkHtmlToText)
     .use(remarkRehype, {
         handlers,

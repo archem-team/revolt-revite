@@ -29,11 +29,16 @@ export type AutoCompleteState =
             type: "channel";
             matches: Channel[];
         }
+        | {
+            type: "role";
+            matches: any[]; // Role objects from server.orderedRoles
+        }
     ));
 
 export type SearchClues = {
     users?: { type: "channel"; id: string } | { type: "all" };
     channels?: { server: string };
+    roles?: { server: string };
 };
 
 export type AutoCompleteProps = {
@@ -174,7 +179,7 @@ export function useAutoComplete(
                     (x) => x._id !== "00000000000000000000000000",
                 );
 
-                const matches = (
+                let matches = (
                     search.length > 0
                         ? users.filter((user) =>
                             user.username.toLowerCase().match(regex),
@@ -183,6 +188,51 @@ export function useAutoComplete(
                 )
                     .splice(0, 5)
                     .filter((x) => typeof x !== "undefined");
+
+                // Add @everyone to suggestions if it matches the search
+                if ("everyone".toLowerCase().includes(search.toLowerCase())) {
+                    // Create a fake user object for @everyone
+                    const everyoneUser = {
+                        _id: "everyone",
+                        username: "everyone",
+                        discriminator: "",
+                        display_name: "everyone",
+                        avatar: null,
+                        badges: null,
+                        status: null,
+                        relationship: null,
+                        online: false,
+                        flags: 0,
+                        privileged: false,
+                        bot: null,
+                    } as User;
+                    
+                    matches = [everyoneUser, ...matches];
+                }
+
+                // Add @online to suggestions if it matches the search
+                if ("online".toLowerCase().includes(search.toLowerCase())) {
+                    // Create a fake user object for @online
+                    const onlineUser = {
+                        _id: "online",
+                        username: "online",
+                        discriminator: "",
+                        display_name: "online",
+                        avatar: null,
+                        badges: null,
+                        status: null,
+                        relationship: null,
+                        online: true,
+                        flags: 0,
+                        privileged: false,
+                        bot: null,
+                    } as User;
+                    
+                    matches = [onlineUser, ...matches];
+                }
+
+                // Limit to 5 suggestions
+                matches = matches.slice(0, 5);
 
                 if (matches.length > 0) {
                     const currentPosition =
@@ -196,6 +246,36 @@ export function useAutoComplete(
                     });
 
                     return;
+                }
+            }
+
+            if (type === "user" && searchClues?.roles) {
+                // Also check for role matches when looking for users
+                const server = client.servers.get(searchClues.roles.server);
+                if (server) {
+                    const roles = server.orderedRoles || [];
+                    
+                    let roleMatches = search.length > 0
+                        ? roles.filter((role) =>
+                            role.name.toLowerCase().includes(search.toLowerCase())
+                        )
+                        : roles;
+                    
+                    roleMatches = roleMatches.slice(0, 5);
+                    
+                    if (roleMatches.length > 0) {
+                        const currentPosition =
+                            state.type !== "none" ? state.selected : 0;
+
+                        setState({
+                            type: "role",
+                            matches: roleMatches,
+                            selected: Math.min(currentPosition, roleMatches.length - 1),
+                            within: false,
+                        });
+
+                        return;
+                    }
                 }
             }
 
@@ -261,6 +341,15 @@ export function useAutoComplete(
                         search.length + 1,
                         "@",
                         selectedUser.username,
+                        " ",
+                    );
+                } else if (state.type === "role") {
+                    const selectedRole = state.matches[state.selected];
+                    content.splice(
+                        index,
+                        search.length + 1,
+                        "@",
+                        selectedRole.name,
                         " ",
                     );
                 } else {
@@ -510,7 +599,39 @@ export default function AutoComplete({
                                 })
                             }
                             onClick={onClick}>
-                            <UserIcon size={24} target={match} status={true} />
+                            {match._id === "everyone" ? (
+                                <div style={{ 
+                                    width: "24px", 
+                                    height: "24px", 
+                                    borderRadius: "50%", 
+                                    backgroundColor: "var(--accent)", 
+                                    display: "flex", 
+                                    alignItems: "center", 
+                                    justifyContent: "center", 
+                                    fontSize: "12px", 
+                                    fontWeight: "bold",
+                                    color: "white"
+                                }}>
+                                    @
+                                </div>
+                            ) : match._id === "online" ? (
+                                <div style={{ 
+                                    width: "24px", 
+                                    height: "24px", 
+                                    borderRadius: "50%", 
+                                    backgroundColor: "var(--success)", 
+                                    display: "flex", 
+                                    alignItems: "center", 
+                                    justifyContent: "center", 
+                                    fontSize: "12px", 
+                                    fontWeight: "bold",
+                                    color: "white"
+                                }}>
+                                    ●
+                                </div>
+                            ) : (
+                                <UserIcon size={24} target={match} status={true} />
+                            )}
                             {match.username}
                         </button>
                     ))}
@@ -536,6 +657,44 @@ export default function AutoComplete({
                             }
                             onClick={onClick}>
                             <ChannelIcon size={24} target={match} />
+                            {match.name}
+                        </button>
+                    ))}
+                {state.type === "role" &&
+                    state.matches.map((match, i) => (
+                        <button
+                            key={match.id}
+                            className={i === state.selected ? "active" : ""}
+                            onMouseEnter={() =>
+                                (i !== state.selected || !state.within) &&
+                                setState({
+                                    ...state,
+                                    selected: i,
+                                    within: true,
+                                })
+                            }
+                            onMouseLeave={() =>
+                                state.within &&
+                                setState({
+                                    ...state,
+                                    within: false,
+                                })
+                            }
+                            onClick={onClick}>
+                            <div style={{ 
+                                width: "24px", 
+                                height: "24px", 
+                                borderRadius: "4px", 
+                                backgroundColor: match.colour || "var(--secondary-background)", 
+                                display: "flex", 
+                                alignItems: "center", 
+                                justifyContent: "center", 
+                                fontSize: "12px", 
+                                fontWeight: "bold",
+                                color: match.colour ? "white" : "var(--foreground)"
+                            }}>
+                                R
+                            </div>
                             {match.name}
                         </button>
                     ))}
