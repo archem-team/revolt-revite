@@ -23,24 +23,6 @@ import { PermissionList } from "../../../components/settings/roles/PermissionLis
 import { RoleOrDefault } from "../../../components/settings/roles/RoleSelection";
 import { modalController } from "../../../controllers/modals/ModalController";
 
-const RoleId = styled.div`
-    gap: 4px;
-    display: flex;
-    align-items: center;
-
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--tertiary-foreground);
-
-    a {
-        color: var(--tertiary-foreground);
-    }
-`;
-
-const DeleteRoleButton = styled(Button)`
-    margin: 16px 0;
-`;
-
 interface Props {
     server: Server;
 }
@@ -73,6 +55,24 @@ export function useRoles(server: Server) {
 export const Roles = observer(({ server }: Props) => {
     // Consolidate all permissions that we can change right now.
     const currentRoles = useRoles(server);
+
+    const RoleId = styled.div`
+        gap: 4px;
+        display: flex;
+        align-items: center;
+
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--tertiary-foreground);
+
+        a {
+            color: var(--tertiary-foreground);
+        }
+    `;
+
+    const DeleteRoleButton = styled(Button)`
+        margin: 16px 0;
+    `;
 
     return (
         <PermissionsLayout
