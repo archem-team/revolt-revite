@@ -109,8 +109,6 @@ export default observer(({ channel }: Props) => {
                                 "UploadFiles",
                                 "Masquerade",
                                 "React",
-                                "MentionEveryone",
-                                "MentionRole",
                                 "ManageChannel",
                                 "ManagePermissions",
                             ]}
