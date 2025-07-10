@@ -1,4 +1,7 @@
-import { RE_MENTIONS, RE_EVERYONE } from "revolt.js";
+import { RE_MENTIONS } from "revolt.js";
+
+// RE_EVERYONE is not exported in the ESM build, define it locally
+const RE_EVERYONE = /@everyone/g;
 import styled from "styled-components";
 import { clientController } from "../../../controllers/client/ClientController";
 import UserShort from "../../common/user/UserShort";
@@ -37,16 +40,6 @@ const Mention = styled.a`
 `;
 
 export function RenderMention({ match }: CustomComponentProps) {
-    // Special handling for @everyone mentions
-    if (match === "everyone") {
-        return (
-            <Mention>
-                @everyone
-            </Mention>
-        );
-    }
-
-    // Normal user mention
     return (
         <Mention>
             <UserShort
@@ -83,7 +76,7 @@ export function RenderEveryoneMention() {
 }
 
 export const remarkMention = createComponent("mention", RE_MENTIONS, (match) =>
-    match === "everyone" || clientController.getAvailableClient().users.has(match),
+    clientController.getAvailableClient().users.has(match),
 );
 
 export const remarkEveryone = createComponent("everyone", RE_EVERYONE, () => true);
