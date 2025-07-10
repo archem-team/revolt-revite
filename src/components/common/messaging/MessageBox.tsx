@@ -332,17 +332,16 @@ export default observer(({ channel }: Props) => {
         // Check for @everyone mentions first
         if (content.includes("@everyone")) {
             // Check if user has permission to mention everyone
-            if (channel.havePermission("MentionEveryone")) {
-                // Replace @everyone with <@everyone>
-                content = content.replace(/@everyone/g, "<@everyone>");
-            } else {
+            if (!channel.havePermission("MentionEveryone")) {
                 // Display error toast when no permission
                 modalController.push({
                     type: "error",
                     error: client.i18n.t("app.main.channel.misc.no_everyone_mention"),
                 });
-                // We don't replace @everyone - it will remain as plain text
+                // Remove @everyone from the message when no permission
+                content = content.replace(/@everyone/g, "everyone");
             }
+            // If user has permission, keep @everyone as is (don't wrap in <>)
         }
 
         // Convert @username mentions to <@USER_ID> format
