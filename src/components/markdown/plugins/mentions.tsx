@@ -1,6 +1,5 @@
-import { RE_MENTIONS } from "revolt.js";
+import { RE_MENTIONS, RE_EVERYONE } from "revolt.js";
 import styled from "styled-components";
-
 import { clientController } from "../../../controllers/client/ClientController";
 import UserShort from "../../common/user/UserShort";
 import { createComponent, CustomComponentProps } from "./remarkRegexComponent";
@@ -58,7 +57,33 @@ export function RenderMention({ match }: CustomComponentProps) {
     );
 }
 
+const EveryoneMention = styled.span`
+    padding: 0 6px;
+    flex-shrink: 0;
+    
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--accent);
+    background: var(--secondary-background);
+    border-radius: calc(var(--border-radius) * 2);
+    
+    transition: 0.1s ease filter;
+    
+    &:hover {
+        filter: brightness(0.75);
+    }
+`;
+
+export function RenderEveryoneMention() {
+    return (
+        <EveryoneMention>
+            @everyone
+        </EveryoneMention>
+    );
+}
+
 export const remarkMention = createComponent("mention", RE_MENTIONS, (match) =>
     match === "everyone" || clientController.getAvailableClient().users.has(match),
 );
 
+export const remarkEveryone = createComponent("everyone", RE_EVERYONE, () => true);
