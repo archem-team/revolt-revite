@@ -2,7 +2,6 @@ import { Search, X } from "@styled-icons/boxicons-regular";
 import { HelpCircle } from "@styled-icons/boxicons-solid";
 import styled from "styled-components/macro";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { Tooltip } from "@revoltchat/ui";
 import { internalEmit } from "../../lib/eventEmitter";
 import { useSearchAutoComplete, transformSearchQuery, UserMapping } from "../../lib/hooks/useSearchAutoComplete";
 import SearchAutoComplete from "./SearchAutoComplete";
@@ -10,6 +9,7 @@ import SearchDatePicker from "./SearchDatePicker";
 import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
 import { useApplicationState } from "../../mobx/State";
 import { SIDEBAR_MEMBERS } from "../../mobx/stores/Layout";
+import Tooltip from "../common/Tooltip";
 
 const Container = styled.div`
     position: relative;
@@ -964,6 +964,7 @@ export function SearchBar() {
         }, 0);
     };
     
+    
     // Global keyboard shortcut
     useEffect(() => {
         const handleGlobalKeydown = (e: KeyboardEvent) => {
@@ -1008,31 +1009,28 @@ export function SearchBar() {
                 onKeyDown={handleKeyDown}
                 onKeyUp={onKeyUp}
             />
-            <Tooltip 
-                content={
-                    showServerWideError 
-                        ? "Server-wide search requires at least one other filter or search term"
-                        : showDateRangeError
-                        ? "Only one date range filter is allowed"
-                        : showMultipleHasError
-                        ? "Only one attachment type filter is allowed"
-                        : showDuplicateFilterError
-                        ? "Only one of each filter type is allowed"
-                        : ""
-                }
-                visible={!isSearching && (showServerWideError || showDateRangeError || showMultipleHasError || showDuplicateFilterError)}
-                placement="bottom"
-            >
-                {isSearching ? (
-                    <IconButton onClick={handleClear}>
-                        <X size={18} />
-                    </IconButton>
-                ) : (
-                    <IconButton onClick={handleSearch}>
-                        <Search size={18} />
-                    </IconButton>
-                )}
-            </Tooltip>
+            {isSearching ? (
+                <IconButton onClick={handleClear}>
+                    <X size={18} />
+                </IconButton>
+            ) : (
+                <IconButton 
+                    onClick={handleSearch}
+                    title={
+                        showServerWideError 
+                            ? "Server-wide search requires at least one other filter or search term"
+                            : showDateRangeError
+                            ? "Only one date range filter is allowed"
+                            : showMultipleHasError
+                            ? "Only one attachment type filter is allowed"
+                            : showDuplicateFilterError
+                            ? "Only one of each filter type is allowed"
+                            : undefined
+                    }
+                >
+                    <Search size={18} />
+                </IconButton>
+            )}
             {autocompleteState.type !== "none" && (
                 <SearchAutoComplete
                     state={autocompleteState}
@@ -1050,7 +1048,7 @@ export function SearchBar() {
                         >
                             <OptionLabel>{option.label}</OptionLabel>
                             <OptionDesc>{option.description}</OptionDesc>
-                            <Tooltip content={option.tooltip} placement="right">
+                            <Tooltip content={option.tooltip} placement="top">
                                 <HelpIcon size={16} />
                             </Tooltip>
                         </Option>
