@@ -41,7 +41,7 @@ export default function UserBadges({ badges, uid }: Props) {
             <Localizer>
                 {badges & Badges.Founder ? (
                     <Tooltip content="Founder">
-                        <img src="/assets/badges/founder.svg" />
+                        <img src="/assets/badges/founder.png" />
                     </Tooltip>
                 ) : (
                     <></>
@@ -55,7 +55,7 @@ export default function UserBadges({ badges, uid }: Props) {
                 )}
                 {badges & Badges.Translator ? (
                     <Tooltip content="First 100 Members">
-                        <img src="/assets/badges/first_100_members.svg" />
+                        <img src="/assets/badges/first_100_members.png" />
                     </Tooltip>
                 ) : (
                     <></>
