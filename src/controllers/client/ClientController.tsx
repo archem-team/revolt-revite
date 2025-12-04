@@ -189,7 +189,7 @@ class ClientController {
             const { os } = browser;
             let isiPad;
             if (window.isNative) {
-                friendly_name = `Revolt Desktop on ${os}`;
+                friendly_name = `Pepchat Desktop on ${os}`;
             } else {
                 if (name === "ios") {
                     name = "safari";

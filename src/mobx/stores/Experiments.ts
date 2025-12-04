@@ -35,7 +35,7 @@ export const EXPERIMENTS: {
     offline_users: {
         title: "Re-enable offline users in large servers (>10k members)",
         description:
-            "If you can take the performance hit - for example, if you're on desktop - you can re-enable offline users for big servers such as the Revolt Lounge.",
+            "If you can take the performance hit - for example, if you're on desktop - you can re-enable offline users for big servers such as the Pepchat Lounge.",
     },
     plugins: {
         title: "Experimental Plugin API",
@@ -45,7 +45,7 @@ export const EXPERIMENTS: {
     admin_beta: {
         title: "Admin Panel Shortcuts",
         description:
-            "Adds context menu entries to quickly jump to Revolt Admin Panel. This is intended for use by the team.",
+            "Adds context menu entries to quickly jump to Pepchat Admin Panel. This is intended for use by the team.",
     },
 };
 
