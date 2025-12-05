@@ -47,7 +47,7 @@ export const changelogEntries: Record<number, ChangelogPost> = {
                 src: "https://autumn.revolt.chat/attachments/ZuDVIjGiCl61Pk9XGk5qfc8-idN9EnFAk55DUQp713/the.png",
                 shadow: true,
             },
-            "If you want to learn more about how we're making Revolt safer for you, check out our new blog post :point_right: [https://revolt.chat/posts/improving-user-safety](https://revolt.chat/posts/improving-user-safety)",
+            "If you want to learn more about how we're making Pepchat safer for you, check out our new blog post :point_right: [https://revolt.chat/posts/improving-user-safety](https://revolt.chat/posts/improving-user-safety)",
         ],
     },
     3: {
@@ -66,7 +66,7 @@ export const changelogEntries: Record<number, ChangelogPost> = {
                     />
                 ),
             },
-            "Revolt has undergone a significant change to its username system, transitioning from unique username handles to a new system of display names and usernames with four-digit number tags called discriminators. The four-digit number tags serve as identifiers to differentiate users with the same username, allowing individuals to select desired usernames that reflect their identity.",
+            "Pepchat has undergone a significant change to its username system, transitioning from unique username handles to a new system of display names and usernames with four-digit number tags called discriminators. The four-digit number tags serve as identifiers to differentiate users with the same username, allowing individuals to select desired usernames that reflect their identity.",
             {
                 type: "element",
                 element: (
