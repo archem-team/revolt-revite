@@ -31,8 +31,8 @@ export default function ConfirmDelete() {
                         Your account will be deleted in 7 days.
                         <br />
                         You may contact{" "}
-                        <a href="mailto:contact@revolt.chat">
-                            Revolt support
+                        <a href="mailto:contact@pepchat.com">
+                            Pepchat support
                         </a>{" "}
                         to cancel the request if you wish.
                     </>

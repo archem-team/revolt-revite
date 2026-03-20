@@ -70,7 +70,7 @@ export function Feedback() {
                             action="chevron"
                             icon={<Group size={24} />}
                             description="You can report issues and discuss improvements with us directly here.">
-                            {"Join the Revolt Lounge"}
+                            {"Join the Pepchat Lounge"}
                         </CategoryButton>
                     </a>
                 </Link>

@@ -29,7 +29,7 @@ precacheAndRoute(
                 }
 
                 for (const key of locale_keys) {
-                    if (fn.startsWith(`${key  }.`)) {
+                    if (fn.startsWith(`${key}.`)) {
                         return false;
                     }
                 }
@@ -41,6 +41,21 @@ precacheAndRoute(
         }
     }),
 );
+
+// Ensure HTML is always fetched fresh to prevent stale asset references
+// This prevents 404 errors when HTML is cached with old hashed filenames
+self.addEventListener("fetch", (event) => {
+    // Only handle navigation requests (HTML page loads)
+    if (event.request.mode === "navigate") {
+        event.respondWith(
+            fetch(event.request, { cache: "no-store" }).catch(async () => {
+                // Fallback to cache if network fails (offline support)
+                const cached = await caches.match(event.request);
+                return cached || new Response("Offline", { status: 503 });
+            }),
+        );
+    }
+});
 
 self.addEventListener("push", (event) => {
     async function process() {

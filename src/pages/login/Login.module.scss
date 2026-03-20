@@ -82,12 +82,72 @@
     .middle {
         display: flex;
         gap: 50px;
+        align-items: flex-start;
+        background: transparent;
+        isolation: isolate;
 
         .loginQR {
             background-color: rgba(36, 36, 36, 0.75);
             border: 2px solid rgba(128, 128, 128, 0.15);
             border-radius: 8px;
             width: 330px;
+        }
+    }
+
+    .appLinks {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(128, 128, 128, 0.2);
+
+        .appLinksDivider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+
+            span {
+                font-size: 12px;
+                color: var(--secondary-foreground);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+        }
+
+        .appDividerIcon {
+            width: 24px;
+            height: auto;
+            border-radius: 4px;
+            object-fit: contain;
+        }
+
+        .appLinksButtons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .appButton {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 14px;
+            background: var(--secondary-background);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+
+            &:hover {
+                filter: brightness(1.2);
+                text-decoration: none;
+            }
+
+            &:active {
+                filter: brightness(0.9);
+            }
         }
     }
 
@@ -312,6 +372,15 @@
                 .attribution {
                     display: none;
                 }
+            }
+        }
+
+        .appLinks {
+            margin-top: 15px;
+            padding-top: 15px;
+
+            .appLinksButtons {
+                gap: 10px;
             }
         }
 
