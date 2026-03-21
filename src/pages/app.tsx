@@ -14,6 +14,7 @@ import Invite from "./invite/Invite";
 const Login = lazy(() => import("./login/Login"));
 const ConfirmDelete = lazy(() => import("./login/ConfirmDelete"));
 const RevoltApp = lazy(() => import("./RevoltApp"));
+const Directory = lazy(() => import("./directory/Directory"));
 
 const LoadSuspense: React.FC = ({ children }) => (
     // @ts-expect-error Typing issue between Preact and Preact.
@@ -49,6 +50,11 @@ export function App() {
                             <Invite />
                         </CheckAuth>
                     </Route>
+                    <Route path="/directory">
+                        <LoadSuspense>
+                            <Directory />
+                        </LoadSuspense>
+                    </Route>
                     <Route path="/login">
                         <CheckAuth>
                             <LoadSuspense>
@@ -57,9 +63,16 @@ export function App() {
                         </CheckAuth>
                     </Route>
                     <Route path="/">
-                        <CheckAuth auth>
+                        {/* Authenticated users see the chat app */}
+                        <CheckAuth auth blockRender>
                             <LoadSuspense>
                                 <RevoltApp />
+                            </LoadSuspense>
+                        </CheckAuth>
+                        {/* Unauthenticated users see the public directory homepage */}
+                        <CheckAuth blockRender>
+                            <LoadSuspense>
+                                <Directory />
                             </LoadSuspense>
                         </CheckAuth>
                     </Route>

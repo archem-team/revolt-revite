@@ -1,0 +1,42 @@
+// Desktop (wide): data table. Tablet & phone: card grid + bottom chrome.
+// Breakpoint aligns with common "lg" tablet widths (e.g. iPad portrait).
+
+$home-compact: 992px;
+
+.desktopTable {
+    display: block;
+
+    @media (max-width: $home-compact) {
+        display: none !important;
+    }
+}
+
+.mobileCards {
+    display: none !important;
+
+    @media (max-width: $home-compact) {
+        display: grid !important;
+    }
+}
+
+.fab {
+    display: none !important;
+
+    @media (max-width: $home-compact) {
+        display: flex !important;
+    }
+}
+
+.mobileNav {
+    display: none !important;
+
+    @media (max-width: $home-compact) {
+        display: flex !important;
+    }
+}
+
+.desktopSubmit {
+    @media (max-width: $home-compact) {
+        display: none !important;
+    }
+}
