@@ -1,7 +1,7 @@
-// Desktop (wide): data table. Tablet & phone: card grid + bottom chrome.
-// Breakpoint aligns with common "lg" tablet widths (e.g. iPad portrait).
+// Desktop + tablet (incl. iPad): data table. Phones only: card grid + bottom chrome.
+// 767px max = standard sub-iPad width so 768px+ viewports keep the table.
 
-$home-compact: 992px;
+$home-compact: 767px;
 
 .desktopTable {
     display: block;

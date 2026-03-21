@@ -528,7 +528,7 @@ const Main = styled.main`
     width: 100%;
     box-sizing: border-box;
 
-    @media (max-width: 992px) {
+    @media (max-width: 767px) {
         padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
     }
 
@@ -572,7 +572,7 @@ const FilterWrap = styled.div`
     flex-wrap: wrap;
     align-items: center;
 
-    @media (max-width: 992px) {
+    @media (max-width: 767px) {
         gap: 8px;
     }
 `;
@@ -607,7 +607,7 @@ const SearchWrap = styled.label`
         max-width: min(360px, 100%);
     }
 
-    @media (max-width: 992px) {
+    @media (max-width: 767px) {
         flex: 1 1 100%;
         width: 100%;
         max-width: none;
@@ -635,7 +635,7 @@ const FilterPills = styled.div`
     flex: 1;
     min-width: 0;
 
-    @media (max-width: 992px) {
+    @media (max-width: 767px) {
         flex: 1 1 100%;
     }
 `;
@@ -690,7 +690,7 @@ const LegendToggle = styled.button`
     transition: all 0.12s;
     &:hover { border-color: var(--secondary-foreground); color: var(--foreground); }
 
-    @media (max-width: 992px) {
+    @media (max-width: 767px) {
         flex: 0 0 auto;
         align-self: flex-start;
     }
@@ -708,7 +708,7 @@ const LegendBox = styled.div`
     gap: 16px;
     animation: ${fadeUp} 0.18s ease both;
 
-    @media (max-width: 992px) {
+    @media (max-width: 767px) {
         padding: 14px 16px;
         grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
         gap: 12px;
@@ -785,7 +785,7 @@ const CardGrid = styled.div`
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
     gap: 12px;
 
-    @media (min-width: 481px) and (max-width: 992px) {
+    @media (min-width: 481px) and (max-width: 767px) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -912,7 +912,7 @@ const TableWrap = styled.div`
     background: var(--dir-surface-table);
     box-shadow: 0 2px 16px ${ac(0.07)};
 
-    @media (min-width: 993px) {
+    @media (min-width: 768px) {
         scrollbar-width: thin;
         scrollbar-color: ${cy(0.4)} transparent;
         &::-webkit-scrollbar { height: 4px; }
@@ -1300,7 +1300,7 @@ const Footer = styled.footer`
         margin-left: calc(var(--footer-logo-h) * 157 / 240);
     }
 
-    @media (max-width: 992px) {
+    @media (max-width: 767px) {
         flex-direction: column;
         align-items: flex-start;
         padding: 20px clamp(12px, 3.5vw, 18px);
