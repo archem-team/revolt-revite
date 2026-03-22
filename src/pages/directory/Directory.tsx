@@ -5,7 +5,6 @@ import styled, { css, keyframes } from "styled-components/macro";
 import { clientController } from "../../controllers/client/ClientController";
 
 import wideSVG from "/assets/wide.svg";
-import rawData from "./data.json";
 import styles from "./Directory.module.scss";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -149,6 +148,112 @@ const LEGEND = [
         ],
     },
 ];
+
+// ─── Sheet URLs ───────────────────────────────────────────────────────────────
+
+const SHEET_COMMUNITIES = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRIOkigL7Zu8jsYMF0AKu8CAw1az-8EFiAhHCrXBzSASrhQDocU-U5mezf2u08uO_imVvWvmi3rH-NX/pub?gid=0&single=true&output=csv";
+const SHEET_REVIEWS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRIOkigL7Zu8jsYMF0AKu8CAw1az-8EFiAhHCrXBzSASrhQDocU-U5mezf2u08uO_imVvWvmi3rH-NX/pub?gid=1967322747&single=true&output=csv";
+
+// ─── CSV Parser ───────────────────────────────────────────────────────────────
+
+function parseCSV(text: string): Record<string, string>[] {
+    const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+    if (lines.length < 2) return [];
+    const headers = splitCSVRow(lines[0]);
+    const rows: Record<string, string>[] = [];
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const values = splitCSVRow(line);
+        const row: Record<string, string> = {};
+        headers.forEach((h, idx) => { row[h.trim()] = values[idx]?.trim() ?? ""; });
+        rows.push(row);
+    }
+    return rows;
+}
+
+function splitCSVRow(line: string): string[] {
+    const result: string[] = [];
+    let cur = "";
+    let inQuote = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+            if (inQuote && line[i + 1] === '"') { cur += '"'; i++; }
+            else inQuote = !inQuote;
+        } else if (ch === "," && !inQuote) {
+            result.push(cur); cur = "";
+        } else {
+            cur += ch;
+        }
+    }
+    result.push(cur);
+    return result;
+}
+
+function toBool(v: string): boolean { return v === "TRUE" || v === "true" || v === "1"; }
+function toNum(v: string): number { return parseFloat(v) || 0; }
+
+function rowToCommunity(r: Record<string, string>): Community | null {
+    const type = r["type"] as "vendor" | "reseller" | "other";
+    if (!type || !r["id"]) return null;
+    const base: CommunityBase = {
+        id: r["id"],
+        type,
+        name: r["name"] || "",
+        logo: r["logo"] || null,
+        inviteLink: r["inviteLink"] || "",
+        serverId: r["serverId"] || null,
+        ageDays: toNum(r["ageDays"]),
+        verified: toBool(r["verified"]),
+        memberCount: toNum(r["memberCount"]),
+        onlineCount: toNum(r["onlineCount"]),
+        rating: toNum(r["rating"]),
+        notes: r["notes"] || "",
+    };
+    if (type === "other") return base as OtherCommunity;
+    const commerce = {
+        ...base,
+        url: r["url"] || undefined,
+        payment: {
+            cc: toBool(r["cc"]), btc: toBool(r["btc"]), pp: toBool(r["pp"]),
+            zelle: toBool(r["zelle"]), venmo: toBool(r["venmo"]), bt: toBool(r["bt"]), chk: toBool(r["chk"]),
+        },
+        warehouses: { us: toBool(r["us"]), eu: toBool(r["eu"]), aus: toBool(r["aus"]) },
+        products: {
+            pep: toBool(r["pep"]), oil: toBool(r["oil"]), tabs: toBool(r["tabs"]),
+            raw: toBool(r["raw"]), amn: toBool(r["amn"]), sup: toBool(r["sup"]), aas: toBool(r["aas"]),
+        },
+        shippingTime: r["shippingTime"] || "",
+        freeShipping: toBool(r["freeShipping"]),
+        freeShippingThreshold: r["freeShippingThreshold"] || "",
+    };
+    if (type === "reseller") {
+        return {
+            ...commerce,
+            type: "reseller",
+            orderTypes: {
+                single: toBool(r["orderSingle"]),
+                halfkit: toBool(r["orderHalfkit"]),
+                fullkit: toBool(r["orderFullkit"]),
+            },
+        } as ResellerCommunity;
+    }
+    return { ...commerce, type: "vendor", orderTypes: null } as VendorCommunity;
+}
+
+function rowToReview(r: Record<string, string>): Review | null {
+    if (!r["id"] || !r["vendorId"]) return null;
+    return {
+        id: r["id"],
+        vendorId: r["vendorId"],
+        vendorType: r["vendorType"] || "vendor",
+        reviewerName: r["reviewerName"] || "Anonymous",
+        rating: toNum(r["rating"]) || 5,
+        text: r["text"] || "",
+        date: r["date"] || "",
+    };
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1817,14 +1922,41 @@ function Directory() {
     const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set());
     const [sortCol, setSortCol] = useState<"rating" | "name">("rating");
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-    const [reviews, setReviews] = useState<Review[]>([...(rawData.reviews as Review[])]);
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [allCommunities, setAllCommunities] = useState<Community[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [showLegend, setShowLegend] = useState(false);
     const [reviewModal, setReviewModal] = useState<Community | null>(null);
     const [submitOpen, setSubmitOpen] = useState(false);
     const [submitInitialType, setSubmitInitialType] = useState<"vendor" | "reseller" | "other">("vendor");
     const [darkMode, setDarkMode] = useState(false);
 
-    const allCommunities = rawData.communities as Community[];
+    useEffect(() => {
+        let cancelled = false;
+        setLoading(true);
+        setLoadError(null);
+        Promise.all([
+            fetch(SHEET_COMMUNITIES).then((r) => r.text()),
+            fetch(SHEET_REVIEWS).then((r) => r.text()),
+        ])
+            .then(([commCSV, revCSV]) => {
+                if (cancelled) return;
+                const communities = parseCSV(commCSV)
+                    .map(rowToCommunity)
+                    .filter(Boolean) as Community[];
+                const reviewList = parseCSV(revCSV)
+                    .map(rowToReview)
+                    .filter(Boolean) as Review[];
+                setAllCommunities(communities);
+                setReviews(reviewList);
+            })
+            .catch((err) => {
+                if (!cancelled) setLoadError(String(err));
+            })
+            .finally(() => { if (!cancelled) setLoading(false); });
+        return () => { cancelled = true; };
+    }, []);
 
     function openSubmit(type: "vendor" | "reseller" | "other") {
         setSubmitInitialType(type);
@@ -1868,7 +2000,7 @@ function Directory() {
                 const cmp = sortCol === "rating" ? a.rating - b.rating : a.name.localeCompare(b.name);
                 return sortDir === "asc" ? cmp : -cmp;
             });
-    }, [tab, search, activeFilters, sortCol, sortDir]);
+    }, [allCommunities, tab, search, activeFilters, sortCol, sortDir]);
 
     const reviewCount = (id: string, type: string) =>
         reviews.filter((r) => r.vendorId === id && r.vendorType === type).length;
@@ -1951,7 +2083,9 @@ function Directory() {
             <Main>
                 <SectionHeader>
                     <h2>{sectionTitle}</h2>
-                    <span className="count">{filtered.length} listing{filtered.length !== 1 ? "s" : ""}</span>
+                    {!loading && !loadError && (
+                        <span className="count">{filtered.length} listing{filtered.length !== 1 ? "s" : ""}</span>
+                    )}
                 </SectionHeader>
 
                 {/* Filters — commerce tabs only */}
@@ -1999,7 +2133,18 @@ function Directory() {
                 )}
 
                 {/* Listings */}
-                {filtered.length === 0 ? (
+                {loading ? (
+                    <EmptyState>
+                        <span className="icon" style={{ fontSize: "2rem", animation: "spin 1s linear infinite" }}>⟳</span>
+                        Loading directory…
+                        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                    </EmptyState>
+                ) : loadError ? (
+                    <EmptyState>
+                        <span className="icon">⚠️</span>
+                        Failed to load directory data. Please refresh and try again.
+                    </EmptyState>
+                ) : filtered.length === 0 ? (
                     <EmptyState>
                         <span className="icon">🔍</span>
                         No communities match your search or filters.
