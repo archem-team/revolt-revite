@@ -1,4 +1,4 @@
-import { useState, useMemo } from "preact/hooks";
+import { useState, useMemo, useEffect } from "preact/hooks";
 import { observer } from "mobx-react-lite";
 import styled, { css, keyframes } from "styled-components/macro";
 
@@ -17,24 +17,71 @@ interface Payment {
 interface Warehouses { us: boolean; eu: boolean; aus: boolean; }
 interface Products {
     pep: boolean; oil: boolean; tabs: boolean;
-    raw: boolean; amn: boolean; sup: boolean;
+    raw: boolean; amn: boolean; sup: boolean; aas: boolean;
 }
 interface OrderTypes { single: boolean; halfkit: boolean; fullkit: boolean; }
-interface Vendor {
-    id: string; name: string; url: string; rating: number;
-    payment: Payment; warehouses: Warehouses; products: Products;
-    shippingRoutes: string; shippingTime: string;
-    freeShipping: boolean; freeShippingThreshold: string; notes: string;
+
+interface CommunityBase {
+    id: string;
+    type: "vendor" | "reseller" | "other";
+    name: string;
+    logo?: string | null;
+    inviteLink: string;
+    serverId?: string | null;
+    ageDays: number;
+    verified: boolean;
+    memberCount: number;
+    onlineCount: number;
+    rating: number;
+    notes: string;
 }
-interface Reseller extends Vendor { orderTypes: OrderTypes; }
+
+interface VendorCommunity extends CommunityBase {
+    type: "vendor";
+    url?: string;
+    payment: Payment;
+    warehouses: Warehouses;
+    products: Products;
+    orderTypes: null;
+    shippingTime: string;
+    freeShipping: boolean;
+    freeShippingThreshold: string;
+}
+
+interface ResellerCommunity extends CommunityBase {
+    type: "reseller";
+    url?: string;
+    payment: Payment;
+    warehouses: Warehouses;
+    products: Products;
+    orderTypes: OrderTypes;
+    shippingTime: string;
+    freeShipping: boolean;
+    freeShippingThreshold: string;
+}
+
+interface OtherCommunity extends CommunityBase {
+    type: "other";
+}
+
+type Community = VendorCommunity | ResellerCommunity | OtherCommunity;
+type CommerceCommunity = VendorCommunity | ResellerCommunity;
+
 interface Review {
     id: string; vendorId: string; vendorType: string;
     reviewerName: string; rating: number; text: string; date: string;
 }
 interface SubmitForm {
-    type: "vendor" | "reseller"; name: string; url: string;
-    payment: Payment; warehouses: Warehouses; products: Products;
-    orderTypes: OrderTypes; notes: string;
+    type: "vendor" | "reseller" | "other";
+    name: string;
+    inviteLink: string;
+    serverId: string;
+    url: string;
+    payment: Payment;
+    warehouses: Warehouses;
+    products: Products;
+    orderTypes: OrderTypes;
+    notes: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -44,15 +91,15 @@ const PAYMENT_LABELS: Record<keyof Payment, string> = {
 };
 const WAREHOUSE_LABELS: Record<keyof Warehouses, string> = { us: "US", eu: "EU", aus: "AUS" };
 const PRODUCT_LABELS: Record<keyof Products, string> = {
-    pep: "PEP", oil: "OIL", tabs: "TABS", raw: "RAW", amn: "AMN", sup: "SUP",
+    pep: "PEP", oil: "OIL", tabs: "TABS", raw: "RAW", amn: "AMN", sup: "SUP", aas: "AAS",
 };
 const ORDER_LABELS: Record<keyof OrderTypes, string> = {
     single: "1V", halfkit: "½K", fullkit: "FK",
 };
 
-type FilterKey = "us" | "eu" | "aus" | "cc" | "crypto" | "freeShipping" | "raw" | "oil" | "amn" | "sup";
+type FilterKey = "us" | "eu" | "aus" | "cc" | "crypto" | "freeShipping" | "raw" | "oil" | "aas" | "amn" | "sup";
 
-const FILTERS: { key: FilterKey; label: string; emoji: string }[] = [
+const COMMERCE_FILTERS: { key: FilterKey; label: string; emoji: string }[] = [
     { key: "us", label: "US", emoji: "🇺🇸" },
     { key: "eu", label: "EU", emoji: "🇪🇺" },
     { key: "aus", label: "AU", emoji: "🇦🇺" },
@@ -61,7 +108,8 @@ const FILTERS: { key: FilterKey; label: string; emoji: string }[] = [
     { key: "freeShipping", label: "Free Ship", emoji: "📦" },
     { key: "raw", label: "Raws", emoji: "🧪" },
     { key: "oil", label: "Oils", emoji: "💧" },
-    { key: "amn", label: "Aminos", emoji: "⚗️" },
+    { key: "aas", label: "AAS", emoji: "⚗️" },
+    { key: "amn", label: "Aminos", emoji: "🔬" },
     { key: "sup", label: "Supplies", emoji: "🛒" },
 ];
 
@@ -76,7 +124,7 @@ const LEGEND = [
         ],
     },
     {
-        category: "Warehouses",
+        category: "Countries",
         items: [
             { abbr: "US", label: "United States" },
             { abbr: "EU", label: "Europe" },
@@ -89,6 +137,7 @@ const LEGEND = [
             { abbr: "PEP", label: "Peptides" }, { abbr: "OIL", label: "Oils" },
             { abbr: "TABS", label: "Tablets" }, { abbr: "RAW", label: "Raw Powder" },
             { abbr: "AMN", label: "Amino Acids" }, { abbr: "SUP", label: "Supplies" },
+            { abbr: "AAS", label: "Anabolic-Androgenic Steroids" },
         ],
     },
     {
@@ -103,19 +152,25 @@ const LEGEND = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function matchesFilters(v: Vendor, active: Set<FilterKey>): boolean {
+function formatCount(n: number): string {
+    if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
+    return String(n);
+}
+
+function matchesFilters(c: CommerceCommunity, active: Set<FilterKey>): boolean {
     if (active.size === 0) return true;
     for (const f of active) {
-        if (f === "us" && !v.warehouses.us) return false;
-        if (f === "eu" && !v.warehouses.eu) return false;
-        if (f === "aus" && !v.warehouses.aus) return false;
-        if (f === "cc" && !v.payment.cc) return false;
-        if (f === "crypto" && !v.payment.btc) return false;
-        if (f === "freeShipping" && !v.freeShipping) return false;
-        if (f === "raw" && !v.products.raw) return false;
-        if (f === "oil" && !v.products.oil) return false;
-        if (f === "amn" && !v.products.amn) return false;
-        if (f === "sup" && !v.products.sup) return false;
+        if (f === "us" && !c.warehouses.us) return false;
+        if (f === "eu" && !c.warehouses.eu) return false;
+        if (f === "aus" && !c.warehouses.aus) return false;
+        if (f === "cc" && !c.payment.cc) return false;
+        if (f === "crypto" && !c.payment.btc) return false;
+        if (f === "freeShipping" && !c.freeShipping) return false;
+        if (f === "raw" && !c.products.raw) return false;
+        if (f === "oil" && !c.products.oil) return false;
+        if (f === "aas" && !c.products.aas) return false;
+        if (f === "amn" && !c.products.amn) return false;
+        if (f === "sup" && !c.products.sup) return false;
     }
     return true;
 }
@@ -132,22 +187,17 @@ const fadeUp = keyframes`
 `;
 
 // ─── Color helpers ────────────────────────────────────────────────────────────
-// Palette: #03045e · #0077b6 · #00b4d8 · #90e0ef · #caf0f8
-// Accent  = #0077b6 (ocean blue)   Cyan  = #00b4d8
-// Success = #10B981 (emerald)      Warning = #F59E0B
 
-const ac = (a: number) => `rgba(0,119,182,${a})`;     // primary accent  — #0077b6
-const cy = (a: number) => `rgba(0,180,216,${a})`;     // secondary cyan  — #00b4d8
-const gr = (a: number) => `rgba(16,185,129,${a})`;    // success / emerald
-const pu = (a: number) => `rgba(144,224,239,${a})`;   // sky blue        — #90e0ef
-const or = (a: number) => `rgba(250,163,82,${a})`;    // warning / orange
-const bk = (a: number) => `rgba(0,0,0,${a})`;         // black alpha (light surface borders)
+const ac = (a: number) => `rgba(0,119,182,${a})`;
+const cy = (a: number) => `rgba(0,180,216,${a})`;
+const gr = (a: number) => `rgba(16,185,129,${a})`;
+const pu = (a: number) => `rgba(144,224,239,${a})`;
+const or = (a: number) => `rgba(250,163,82,${a})`;
+const bk = (a: number) => `rgba(0,0,0,${a})`;
 
-// Directory-scoped accent (ocean blue)
 const DIR_ACCENT = "#0077b6";
 
 // ─── Page wrapper ─────────────────────────────────────────────────────────────
-// Must be scrollable inside the global `#app { position:fixed; height:100% }`
 
 const Page = styled.div<{ $dark?: boolean }>`
     height: 100%;
@@ -160,7 +210,6 @@ const Page = styled.div<{ $dark?: boolean }>`
     font-size: 14px;
     -webkit-tap-highlight-color: transparent;
 
-    /* ── Light mode — palette: #03045e · #0077b6 · #00b4d8 · #90e0ef · #caf0f8 ── */
     --dir-accent:          #0077b6;
     --background:          #caf0f8;
     --primary-background:  #FFFFFF;
@@ -173,7 +222,6 @@ const Page = styled.div<{ $dark?: boolean }>`
     --warning:             #F59E0B;
     --error:               #EF4444;
 
-    /* Surface tokens (light) */
     --dir-surface-nav:    #03045e;
     --dir-surface-card:   #FFFFFF;
     --dir-surface-modal:  rgba(255,255,255,0.97);
@@ -192,7 +240,6 @@ const Page = styled.div<{ $dark?: boolean }>`
     --dir-overlay-lg:     rgba(0,0,0,0.12);
     --dir-modal-shadow:   0 8px 40px rgba(0,119,182,0.18), 0 2px 8px rgba(0,0,0,0.08);
 
-    /* ── Dark mode overrides ── */
     ${(p) => p.$dark && css`
         --background:          #01060f;
         --primary-background:  #031d33;
@@ -251,29 +298,16 @@ const Header = styled.header`
     z-index: 100;
     min-width: 0;
 
-    @media (max-width: 1024px) {
-        padding: 0 18px;
-    }
-
-    @media (max-width: 768px) {
-        padding: 0 14px;
-        gap: 10px;
-    }
-
-    @media (max-width: 480px) {
-        padding: 0 12px;
-        gap: 8px;
-    }
+    @media (max-width: 1024px) { padding: 0 18px; }
+    @media (max-width: 768px) { padding: 0 14px; gap: 10px; }
+    @media (max-width: 480px) { padding: 0 12px; gap: 8px; }
 `;
 
 const LogoImg = styled.img`
     height: 22px;
     display: block;
     flex-shrink: 0;
-
-    @media (max-width: 360px) {
-        height: 19px;
-    }
+    @media (max-width: 360px) { height: 19px; }
 `;
 
 const DirectoryBadge = styled.span`
@@ -287,29 +321,18 @@ const DirectoryBadge = styled.span`
     color: #90e0ef;
     border: 1px solid ${cy(0.3)};
     flex-shrink: 0;
-
-    @media (max-width: 500px) {
-        display: none;
-    }
+    @media (max-width: 500px) { display: none; }
 `;
 
-const HeaderSpacer = styled.div`
-    flex: 1;
-    min-width: 8px;
-`;
+const HeaderSpacer = styled.div`flex: 1; min-width: 8px;`;
 
 const HeaderNav = styled.nav`
     display: flex;
     align-items: center;
     gap: 8px;
-
-    @media (max-width: 500px) {
-        gap: 6px;
-    }
+    @media (max-width: 500px) { gap: 6px; }
 `;
 
-// Use styled.a — styled(Link) drops children in the Preact/React-router setup.
-// Use && to beat global `a { color: var(--accent) }` specificity.
 const NavBtn = styled.a<{ $primary?: boolean }>`
     && {
         padding: 7px 16px;
@@ -327,35 +350,22 @@ const NavBtn = styled.a<{ $primary?: boolean }>`
         ${(p) =>
         p.$primary
             ? css`
-                      background: var(--dir-accent);
-                      color: #fff !important;
-                      border: 1px solid var(--dir-accent);
-                      &:hover {
-                          filter: brightness(1.1);
-                          box-shadow: 0 4px 14px ${ac(0.4)};
-                          text-decoration: none !important;
-                      }
-                  `
+                background: var(--dir-accent);
+                color: #fff !important;
+                border: 1px solid var(--dir-accent);
+                &:hover { filter: brightness(1.1); box-shadow: 0 4px 14px ${ac(0.4)}; text-decoration: none !important; }
+            `
             : css`
-                      background: transparent;
-                      color: rgba(202,240,248,0.8) !important;
-                      border: 1px solid rgba(255,255,255,0.15);
-                      &:hover {
-                          background: rgba(255,255,255,0.08);
-                          color: #ffffff !important;
-                          border-color: rgba(255,255,255,0.3);
-                          text-decoration: none !important;
-                      }
-                  `}
+                background: transparent;
+                color: rgba(202,240,248,0.8) !important;
+                border: 1px solid rgba(255,255,255,0.15);
+                &:hover { background: rgba(255,255,255,0.08); color: #ffffff !important; border-color: rgba(255,255,255,0.3); text-decoration: none !important; }
+            `}
 
-        @media (max-width: 380px) {
-            padding: 6px 12px;
-            font-size: 12px;
-        }
+        @media (max-width: 380px) { padding: 6px 12px; font-size: 12px; }
     }
 `;
 
-// Wrapper that hides desktop auth pair on mobile
 const DesktopAuthGroup = styled.div`
     display: flex;
     align-items: center;
@@ -363,7 +373,6 @@ const DesktopAuthGroup = styled.div`
     @media (max-width: 500px) { display: none; }
 `;
 
-// Single combined auth button shown only on mobile
 const MobileAuthBtn = styled.a`
     && {
         display: none;
@@ -379,7 +388,6 @@ const MobileAuthBtn = styled.a`
         border: 1px solid var(--dir-accent);
         transition: all 0.15s;
         &:hover { filter: brightness(1.1); }
-
         @media (max-width: 500px) { display: inline-flex; align-items: center; }
     }
 `;
@@ -404,7 +412,6 @@ const Hero = styled.section`
         padding-bottom: 20px;
     }
 
-    /* Dot grid — white on dark, covers entire section */
     &::before {
         content: '';
         position: absolute;
@@ -415,7 +422,6 @@ const Hero = styled.section`
         z-index: 0;
     }
 
-    /* Cyan radial bloom */
     &::after {
         content: '';
         position: absolute;
@@ -442,14 +448,8 @@ const HeroInner = styled.div`
     margin: 0 auto;
     box-sizing: border-box;
     padding: 0 clamp(0px, 2vw, 4px);
-
-    @media (max-width: 480px) {
-        gap: 14px;
-        padding: 0;
-    }
+    @media (max-width: 480px) { gap: 14px; padding: 0; }
 `;
-
-// HeroTag removed — too much visual noise
 
 const HeroTitle = styled.h1`
     font-size: clamp(1.1875rem, 0.5rem + 4.2vw, 1.75rem);
@@ -458,12 +458,8 @@ const HeroTitle = styled.h1`
     line-height: 1.2;
     margin: 0;
     color: #ffffff;
-
     span { color: #90e0ef; }
-
-    @media (max-width: 480px) {
-        letter-spacing: -0.35px;
-    }
+    @media (max-width: 480px) { letter-spacing: -0.35px; }
 `;
 
 const HeroSub = styled.p`
@@ -487,11 +483,7 @@ const TabToggle = styled.div`
     box-sizing: border-box;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-
-    @media (max-width: 400px) {
-        width: 100%;
-        justify-content: stretch;
-    }
+    @media (max-width: 400px) { width: 100%; justify-content: stretch; }
 `;
 
 const ToggleTab = styled.button<{ $active: boolean }>`
@@ -511,12 +503,8 @@ const ToggleTab = styled.button<{ $active: boolean }>`
         color: ${(p) => (p.$active ? "#03045e" : "#ffffff")};
     }
 
-    @media (max-width: 480px) { padding: 7px 16px; font-size: 13px; }
-
-    @media (max-width: 400px) {
-        flex: 1;
-        padding: 8px 12px;
-    }
+    @media (max-width: 480px) { padding: 7px 14px; font-size: 13px; }
+    @media (max-width: 400px) { flex: 1; padding: 8px 8px; font-size: 12px; }
 `;
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -552,15 +540,9 @@ const SectionHeader = styled.div`
         letter-spacing: -0.2px;
         color: var(--foreground);
     }
-    .count {
-        font-size: 13px;
-        color: var(--tertiary-foreground);
-    }
+    .count { font-size: 13px; color: var(--tertiary-foreground); }
 
-    @media (max-width: 480px) {
-        margin-bottom: 14px;
-        h2 { font-size: 16px; }
-    }
+    @media (max-width: 480px) { margin-bottom: 14px; h2 { font-size: 16px; } }
 `;
 
 // ─── Filter ───────────────────────────────────────────────────────────────────
@@ -571,10 +553,7 @@ const FilterWrap = styled.div`
     margin-bottom: 16px;
     flex-wrap: wrap;
     align-items: center;
-
-    @media (max-width: 767px) {
-        gap: 8px;
-    }
+    @media (max-width: 767px) { gap: 8px; }
 `;
 
 const SearchWrap = styled.label`
@@ -589,29 +568,11 @@ const SearchWrap = styled.label`
     flex-shrink: 0;
     box-sizing: border-box;
     transition: border-color 0.14s;
+    &:focus-within { border-color: var(--dir-accent); }
+    .icon { font-size: 13px; opacity: 0.45; flex-shrink: 0; }
 
-    &:focus-within {
-        border-color: var(--dir-accent);
-    }
-
-    .icon {
-        font-size: 13px;
-        opacity: 0.45;
-        flex-shrink: 0;
-    }
-
-    @media (max-width: 1024px) {
-        flex: 1 1 200px;
-        width: auto;
-        min-width: 0;
-        max-width: min(360px, 100%);
-    }
-
-    @media (max-width: 767px) {
-        flex: 1 1 100%;
-        width: 100%;
-        max-width: none;
-    }
+    @media (max-width: 1024px) { flex: 1 1 200px; width: auto; min-width: 0; max-width: min(360px, 100%); }
+    @media (max-width: 767px) { flex: 1 1 100%; width: 100%; max-width: none; }
 `;
 
 const SearchInput = styled.input`
@@ -622,7 +583,6 @@ const SearchInput = styled.input`
     color: var(--foreground);
     font-size: 13px;
     font-family: inherit;
-
     &::placeholder { color: var(--tertiary-foreground); }
     &:focus { outline: none; }
 `;
@@ -634,10 +594,7 @@ const FilterPills = styled.div`
     align-items: center;
     flex: 1;
     min-width: 0;
-
-    @media (max-width: 767px) {
-        flex: 1 1 100%;
-    }
+    @media (max-width: 767px) { flex: 1 1 100%; }
 `;
 
 const Pill = styled.button<{ $active: boolean }>`
@@ -654,17 +611,8 @@ const Pill = styled.button<{ $active: boolean }>`
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.12s;
-
-    &:hover {
-        border-color: var(--dir-accent);
-        color: var(--dir-accent);
-        background: ${ac(0.07)};
-    }
-
-    @media (max-width: 480px) {
-        min-height: 36px;
-        padding: 6px 12px;
-    }
+    &:hover { border-color: var(--dir-accent); color: var(--dir-accent); background: ${ac(0.07)}; }
+    @media (max-width: 480px) { min-height: 36px; padding: 6px 12px; }
 `;
 
 const ClearBtn = styled.button`
@@ -689,11 +637,7 @@ const LegendToggle = styled.button`
     white-space: nowrap;
     transition: all 0.12s;
     &:hover { border-color: var(--secondary-foreground); color: var(--foreground); }
-
-    @media (max-width: 767px) {
-        flex: 0 0 auto;
-        align-self: flex-start;
-    }
+    @media (max-width: 767px) { flex: 0 0 auto; align-self: flex-start; }
 `;
 
 const LegendBox = styled.div`
@@ -708,26 +652,12 @@ const LegendBox = styled.div`
     gap: 16px;
     animation: ${fadeUp} 0.18s ease both;
 
-    @media (max-width: 767px) {
-        padding: 14px 16px;
-        grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
-        gap: 12px;
-    }
-
-    @media (max-width: 380px) {
-        grid-template-columns: 1fr;
-    }
+    @media (max-width: 767px) { padding: 14px 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 12px; }
+    @media (max-width: 380px) { grid-template-columns: 1fr; }
 `;
 
 const LegendCat = styled.div`
-    h4 {
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--dir-accent);
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        margin: 0 0 8px;
-    }
+    h4 { font-size: 10px; font-weight: 700; color: var(--dir-accent); text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 8px; }
     ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
     li {
         font-size: 12px;
@@ -740,7 +670,7 @@ const LegendCat = styled.div`
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
 
-type BV = "accent" | "green" | "purple" | "orange" | "dim";
+type BV = "accent" | "green" | "purple" | "orange" | "dim" | "teal" | "red";
 
 const bv: Record<BV, ReturnType<typeof css>> = {
     accent: css`background:${ac(0.12)};color:var(--dir-accent);border-color:${ac(0.28)};`,
@@ -748,6 +678,8 @@ const bv: Record<BV, ReturnType<typeof css>> = {
     purple: css`background:${cy(0.1)};color:#00b4d8;border-color:${cy(0.25)};`,
     orange: css`background:${or(0.1)};color:var(--warning);border-color:${or(0.25)};`,
     dim: css`background:var(--dir-overlay-sm);color:var(--tertiary-foreground);border-color:var(--block);`,
+    teal: css`background:rgba(0,180,216,0.15);color:#00b4d8;border-color:rgba(0,180,216,0.4);`,
+    red: css`background:rgba(239,68,68,0.1);color:#ef4444;border-color:rgba(239,68,68,0.3);`,
 };
 
 const Badge = styled.span<{ $v?: BV }>`
@@ -766,23 +698,53 @@ const BadgeRow = styled.div`display: flex; gap: 4px; flex-wrap: wrap;`;
 
 // ─── Stars ────────────────────────────────────────────────────────────────────
 
-const Stars = styled.span`
-    color: var(--warning);
-    font-size: 12px;
-    letter-spacing: 0.5px;
+const Stars = styled.span`color: var(--warning); font-size: 12px; letter-spacing: 0.5px;`;
+const StarNum = styled.span`font-size: 12px; font-weight: 700; color: var(--warning); margin-left: 3px;`;
+
+// ─── Community Card header row ────────────────────────────────────────────────
+
+const CommunityMeta = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 5px;
+    font-size: 11.5px;
+    color: var(--secondary-foreground);
 `;
-const StarNum = styled.span`
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--warning);
-    margin-left: 3px;
+
+const MetaItem = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+`;
+
+const JoinBtn = styled.a`
+    && {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 700;
+        background: var(--dir-accent);
+        color: #fff !important;
+        text-decoration: none !important;
+        border: none;
+        transition: filter 0.13s;
+        white-space: nowrap;
+        cursor: pointer;
+        &:hover { filter: brightness(1.15); }
+    }
 `;
 
 // ─── Cards ────────────────────────────────────────────────────────────────────
 
 const CardGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
     gap: 12px;
 
     @media (min-width: 481px) and (max-width: 767px) {
@@ -802,12 +764,7 @@ const Card = styled.div`
     overflow: hidden;
     transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
     box-shadow: 0 2px 8px ${ac(0.06)};
-
-    &:hover {
-        border-color: ${cy(0.6)};
-        transform: translateY(-3px);
-        box-shadow: 0 10px 32px ${ac(0.12)};
-    }
+    &:hover { border-color: ${cy(0.6)}; transform: translateY(-3px); box-shadow: 0 10px 32px ${ac(0.12)}; }
 `;
 
 const CardHead = styled.div`
@@ -818,10 +775,7 @@ const CardHead = styled.div`
     gap: 12px;
     cursor: pointer;
     user-select: none;
-
-    &:hover {
-        background: var(--dir-overlay-sm);
-    }
+    &:hover { background: var(--dir-overlay-sm); }
 `;
 
 const CardLeft = styled.div`flex: 1; min-width: 0;`;
@@ -829,18 +783,10 @@ const CardLeft = styled.div`flex: 1; min-width: 0;`;
 const CardName = styled.div`
     font-weight: 700;
     font-size: 14px;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-`;
-
-const CardUrl = styled.a`
-    font-size: 11px;
-    color: var(--tertiary-foreground) !important;
-    text-decoration: none !important;
-    transition: color 0.12s;
-    &:hover { color: var(--dir-accent) !important; }
 `;
 
 const CardRight = styled.div`
@@ -885,21 +831,6 @@ const InfoLine = styled.div`
     strong { color: var(--foreground); font-weight: 600; }
 `;
 
-const ReviewBtn = styled.button`
-    margin-top: 12px;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 6px 14px;
-    border-radius: 6px;
-    border: 1px solid var(--block);
-    background: var(--secondary-background);
-    color: var(--secondary-foreground);
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.12s;
-    &:hover { border-color: var(--dir-accent); color: var(--dir-accent); background: ${ac(0.06)}; }
-`;
 
 // ─── Desktop Table ────────────────────────────────────────────────────────────
 
@@ -922,14 +853,11 @@ const TableWrap = styled.div`
 
 const Table = styled.table`
     width: 100%;
-    min-width: 880px;
+    min-width: 900px;
     border-collapse: collapse;
     font-size: 13px;
 
-    @media (max-width: 1200px) {
-        font-size: 12px;
-        th, td { padding: 9px 10px; }
-    }
+    @media (max-width: 1200px) { font-size: 12px; th, td { padding: 9px 10px; } }
 
     th {
         padding: 11px 13px;
@@ -955,29 +883,44 @@ const Table = styled.table`
         background: var(--dir-surface-table);
     }
 
-    tbody tr:hover td {
-        background: var(--dir-row-hover);
-    }
+    tbody tr:hover td { background: var(--dir-row-hover); }
 `;
 
-const TableName = styled.div`font-weight: 600; font-size: 13px; margin-bottom: 2px;`;
+const TableName = styled.div`
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--foreground);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 1px;
+
+    .verified {
+        font-size: 11px;
+        color: #00b4d8;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+`;
 const TableUrl = styled.a`
+    display: block;
     font-size: 11px;
     color: var(--tertiary-foreground) !important;
     text-decoration: none !important;
+    margin-bottom: 5px;
     &:hover { color: var(--dir-accent) !important; }
 `;
-const TableRevBtn = styled.button`
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: 1px solid var(--block);
-    background: transparent;
-    color: var(--secondary-foreground);
+const TableMeta = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
     font-size: 11px;
-    cursor: pointer;
+    color: var(--secondary-foreground);
+    flex-wrap: nowrap;
     white-space: nowrap;
-    transition: all 0.12s;
-    &:hover { border-color: var(--dir-accent); color: var(--dir-accent); }
+
+    .sep { color: var(--block); user-select: none; }
+    .online { color: var(--success); }
 `;
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
@@ -1004,12 +947,7 @@ const Overlay = styled.div`
     padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px))
         max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
     box-sizing: border-box;
-
-    @media (max-width: 768px) {
-        align-items: flex-end;
-        padding: 0;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
+    @media (max-width: 768px) { align-items: flex-end; padding: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
 `;
 
 const ModalBox = styled.div<{ $wide?: boolean }>`
@@ -1024,17 +962,8 @@ const ModalBox = styled.div<{ $wide?: boolean }>`
     overflow-y: auto;
     box-shadow: var(--dir-modal-shadow);
     animation: ${fadeUp} 0.18s ease both;
-
-    @media (max-width: 768px) {
-        border-radius: 12px 12px 0 0;
-        max-height: 92vh;
-        border-bottom: none;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-
-    @media (max-width: 480px) {
-        max-height: 92vh;
-    }
+    @media (max-width: 768px) { border-radius: 12px 12px 0 0; max-height: 92vh; border-bottom: none; padding-bottom: env(safe-area-inset-bottom, 0px); }
+    @media (max-width: 480px) { max-height: 92vh; }
 `;
 
 const DragHandle = styled.div`
@@ -1053,13 +982,8 @@ const ModalHead = styled.div`
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
-
     h2 { font-size: 16px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.2px; }
-
-    @media (max-width: 480px) {
-        padding: 14px 16px 12px;
-        h2 { font-size: 15px; }
-    }
+    @media (max-width: 480px) { padding: 14px 16px 12px; h2 { font-size: 15px; } }
 `;
 
 const ModalClose = styled.button`
@@ -1078,10 +1002,7 @@ const ModalClose = styled.button`
 
 const ModalBody = styled.div`
     padding: 18px 22px;
-
-    @media (max-width: 480px) {
-        padding: 14px 16px 18px;
-    }
+    @media (max-width: 480px) { padding: 14px 16px 18px; }
 `;
 
 const FormGroup = styled.div`
@@ -1108,7 +1029,6 @@ const FormGroup = styled.div`
         font-family: inherit;
         box-sizing: border-box;
         transition: border-color 0.12s;
-
         &::placeholder { color: var(--tertiary-foreground); }
         &:focus { outline: none; border-color: var(--dir-accent); }
     }
@@ -1140,11 +1060,9 @@ const TypeToggle = styled.div`
     gap: 8px;
     margin-bottom: 18px;
     flex-wrap: wrap;
-
-    @media (max-width: 380px) {
-        flex-direction: column;
-    }
+    @media (max-width: 380px) { flex-direction: column; }
 `;
+
 const TypeBtn = styled.button<{ $active: boolean }>`
     flex: 1;
     padding: 9px;
@@ -1231,7 +1149,7 @@ const BottomTab = styled.button<{ $active: boolean }>`
     border: none;
     background: transparent;
     color: ${(p) => (p.$active ? "#90e0ef" : "rgba(202,240,248,0.45)")};
-    font-size: 13px;
+    font-size: 12px;
     font-weight: ${(p) => (p.$active ? 700 : 400)};
     cursor: pointer;
     transition: color 0.14s;
@@ -1278,7 +1196,6 @@ const FAB = styled.button`
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
 const Footer = styled.footer`
-    /* Matches LogoImg height in footer — used to inset disclaimer with SVG wordmark (wide.svg has left padding in viewBox). */
     --footer-logo-h: 22px;
     background: var(--dir-surface-nav);
     border-top: 1px solid var(--dir-border-nav);
@@ -1296,7 +1213,6 @@ const Footer = styled.footer`
         max-width: 480px;
         line-height: 1.5;
         margin: 0;
-        /* Inset = rendered logo width × (glyph start / viewBox width); simplifies to h × 157/240 for uniform scale. */
         margin-left: calc(var(--footer-logo-h) * 157 / 240);
     }
 
@@ -1304,10 +1220,7 @@ const Footer = styled.footer`
         flex-direction: column;
         align-items: flex-start;
         padding: 20px clamp(12px, 3.5vw, 18px);
-
-        .disclaimer {
-            max-width: 100%;
-        }
+        .disclaimer { max-width: 100%; }
     }
 
     @media (max-width: 480px) {
@@ -1346,17 +1259,8 @@ const ThemeToggle = styled.button`
     transition: all 0.15s;
     flex-shrink: 0;
     line-height: 1;
-    &:hover {
-        background: rgba(255,255,255,0.16);
-        border-color: rgba(255,255,255,0.35);
-        transform: rotate(20deg);
-    }
-
-    @media (max-width: 500px) {
-        width: 30px;
-        height: 30px;
-        font-size: 14px;
-    }
+    &:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.35); transform: rotate(20deg); }
+    @media (max-width: 500px) { width: 30px; height: 30px; font-size: 14px; }
 `;
 
 const NavDivider = styled.div`
@@ -1364,7 +1268,6 @@ const NavDivider = styled.div`
     height: 20px;
     background: rgba(255,255,255,0.15);
     flex-shrink: 0;
-
     @media (max-width: 560px) { display: none; }
 `;
 
@@ -1372,7 +1275,6 @@ const NavSubmitGroup = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-
     @media (max-width: 560px) { display: none; }
 `;
 
@@ -1387,11 +1289,7 @@ const NavSubmitBtn = styled.button`
     border: 1px solid rgba(0,180,216,0.45);
     background: rgba(0,180,216,0.12);
     color: #90e0ef;
-    &:hover {
-        background: rgba(0,180,216,0.22);
-        border-color: #00b4d8;
-        color: #caf0f8;
-    }
+    &:hover { background: rgba(0,180,216,0.22); border-color: #00b4d8; color: #caf0f8; }
 `;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -1436,7 +1334,7 @@ function PaymentBadges({ payment }: { payment: Payment }) {
     );
 }
 
-function WarehouseBadges({ warehouses }: { warehouses: Warehouses }) {
+function CountryBadges({ warehouses }: { warehouses: Warehouses }) {
     return (
         <BadgeRow>
             {(Object.keys(WAREHOUSE_LABELS) as (keyof Warehouses)[]).map((k) =>
@@ -1466,31 +1364,90 @@ function OrderBadges({ orderTypes }: { orderTypes: OrderTypes }) {
     );
 }
 
-// ─── Vendor Card ──────────────────────────────────────────────────────────────
+// ─── Community stats (live + fallback) ───────────────────────────────────────
 
-function VendorCard({
-    vendor, reviewCount, isReseller, onReview,
+function useLiveStats(community: Community): { memberCount: number; onlineCount: number } {
+    const [live, setLive] = useState<{ memberCount: number; onlineCount: number } | null>(null);
+
+    useEffect(() => {
+        if (!community.serverId) return;
+        const client = clientController.getReadyClient();
+        if (!client) return;
+        let cancelled = false;
+        client.api.get(`/servers/${community.serverId}` as any)
+            .then((server: any) => {
+                if (cancelled) return;
+                const memberCount = server?.members ?? server?.member_count ?? null;
+                const onlineCount = server?.online ?? null;
+                if (memberCount !== null) {
+                    setLive({ memberCount, onlineCount: onlineCount ?? community.onlineCount });
+                }
+            })
+            .catch(() => {/* fall through to stored fallback */});
+        return () => { cancelled = true; };
+    }, [community.serverId]);
+
+    return live ?? { memberCount: community.memberCount, onlineCount: community.onlineCount };
+}
+
+// ─── Community Card ───────────────────────────────────────────────────────────
+
+function CommunityCard({
+    community, reviewCount, onReview,
 }: {
-    vendor: Vendor | Reseller; reviewCount: number; isReseller: boolean; onReview: () => void;
+    community: Community; reviewCount: number; onReview: () => void;
 }) {
     const [open, setOpen] = useState(false);
+    const stats = useLiveStats(community);
+    const isCommerce = community.type === "vendor" || community.type === "reseller";
+    const c = community as CommerceCommunity;
 
     return (
         <Card>
             <CardHead onClick={() => setOpen((o) => !o)}>
                 <CardLeft>
-                    <CardName>{vendor.name}</CardName>
-                    <CardUrl
-                        href={`https://${vendor.url}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(e) => e.stopPropagation()}>
-                        {vendor.url} ↗
-                    </CardUrl>
+                    <CardName>
+                        {community.name}
+                        {community.verified && (
+                            <span style={{ fontSize: 11, color: "#00b4d8", fontWeight: 700, marginLeft: 5 }}>✓</span>
+                        )}
+                    </CardName>
+                    {isCommerce && c.url && (
+                        <a
+                            href={`https://${c.url}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e: MouseEvent) => e.stopPropagation()}
+                            style={{ fontSize: 11, color: "var(--tertiary-foreground)", textDecoration: "none" }}>
+                            {c.url} ↗
+                        </a>
+                    )}
+                    <CommunityMeta>
+                        <MetaItem>{community.ageDays}d</MetaItem>
+                        <MetaItem style={{ color: "var(--secondary-foreground)" }}>·</MetaItem>
+                        <MetaItem>{formatCount(stats.memberCount)}</MetaItem>
+                        <MetaItem style={{ color: "var(--secondary-foreground)" }}>·</MetaItem>
+                        <MetaItem style={{ color: "var(--success)" }}>● {formatCount(stats.onlineCount)}</MetaItem>
+                        <JoinBtn
+                            href={community.inviteLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}>
+                            Join →
+                        </JoinBtn>
+                    </CommunityMeta>
                 </CardLeft>
                 <CardRight>
-                    <div><StarRating rating={vendor.rating} /></div>
-                    <WarehouseBadges warehouses={vendor.warehouses} />
+                    <div
+                        onClick={(e) => { e.stopPropagation(); onReview(); }}
+                        style={{ cursor: "pointer" }}
+                        title="Open reviews">
+                        <StarRating rating={community.rating} />
+                        <div style={{ fontSize: 10, color: "var(--tertiary-foreground)", textAlign: "right", marginTop: 1 }}>
+                            {reviewCount} review{reviewCount !== 1 ? "s" : ""}
+                        </div>
+                    </div>
+                    {isCommerce && <CountryBadges warehouses={c.warehouses} />}
                     <Chevron $open={open}>▾</Chevron>
                 </CardRight>
             </CardHead>
@@ -1498,74 +1455,111 @@ function VendorCard({
             {open && <CardDivider />}
 
             <CardBody $open={open}>
-                <SectionLabel>Payment</SectionLabel>
-                <PaymentBadges payment={vendor.payment} />
-
-                <SectionLabel>Products</SectionLabel>
-                <ProductBadges products={vendor.products} />
-
-                {isReseller && (
+                {isCommerce && (
                     <>
-                        <SectionLabel>Order Types</SectionLabel>
-                        <OrderBadges orderTypes={(vendor as Reseller).orderTypes} />
+                        <SectionLabel>Payment</SectionLabel>
+                        <PaymentBadges payment={c.payment} />
+
+                        <SectionLabel>Products</SectionLabel>
+                        <ProductBadges products={c.products} />
+
+                        {community.type === "reseller" && c.orderTypes && (
+                            <>
+                                <SectionLabel>Order Types</SectionLabel>
+                                <OrderBadges orderTypes={c.orderTypes} />
+                            </>
+                        )}
+
+                        <SectionLabel>Shipping</SectionLabel>
+                        <InfoLine><strong>Time</strong> · {c.shippingTime}</InfoLine>
+                        {c.freeShipping && (
+                            <InfoLine>
+                                <Badge $v="green">Free Shipping</Badge>
+                                {c.freeShippingThreshold && (
+                                    <span style={{ fontSize: 11, marginLeft: 6, color: "var(--tertiary-foreground)" }}>
+                                        over {c.freeShippingThreshold}
+                                    </span>
+                                )}
+                            </InfoLine>
+                        )}
                     </>
                 )}
 
-                <SectionLabel>Shipping</SectionLabel>
-                <InfoLine><strong>Routes</strong> · {vendor.shippingRoutes}</InfoLine>
-                <InfoLine><strong>Time</strong> · {vendor.shippingTime}</InfoLine>
-                {vendor.freeShipping && (
-                    <InfoLine>
-                        <Badge $v="green">Free Shipping</Badge>
-                        {vendor.freeShippingThreshold && (
-                            <span style={{ fontSize: 11, marginLeft: 6, color: "var(--tertiary-foreground)" }}>
-                                over {vendor.freeShippingThreshold}
-                            </span>
-                        )}
-                    </InfoLine>
-                )}
-
-                {vendor.notes && (
+                {community.notes && (
                     <>
                         <SectionLabel>Notes</SectionLabel>
-                        <InfoLine>{vendor.notes}</InfoLine>
+                        <InfoLine>{community.notes}</InfoLine>
                     </>
                 )}
 
-                <ReviewBtn onClick={onReview}>
-                    ⭐ {reviewCount} Review{reviewCount !== 1 ? "s" : ""}
-                </ReviewBtn>
             </CardBody>
         </Card>
     );
 }
 
-// ─── Table Row ────────────────────────────────────────────────────────────────
+// ─── Community Table Row ──────────────────────────────────────────────────────
 
-function VendorRow({
-    vendor, reviewCount, isReseller, onReview,
+function CommunityRow({
+    community, reviewCount, isReseller, onReview,
 }: {
-    vendor: Vendor | Reseller; reviewCount: number; isReseller: boolean; onReview: () => void;
+    community: Community; reviewCount: number; isReseller: boolean; onReview: () => void;
 }) {
+    const stats = useLiveStats(community);
+    const isCommerce = community.type === "vendor" || community.type === "reseller";
+    const c = community as CommerceCommunity;
+
     return (
         <tr>
-            <td><StarRating rating={vendor.rating} /></td>
-            <td>
-                <TableName>{vendor.name}</TableName>
-                <TableUrl href={`https://${vendor.url}`} target="_blank" rel="noreferrer">{vendor.url}</TableUrl>
+            <td
+                onClick={onReview}
+                style={{ cursor: "pointer", whiteSpace: "nowrap" }}
+                title="Open reviews">
+                <StarRating rating={community.rating} />
+                <div style={{ fontSize: 10, color: "var(--tertiary-foreground)", marginTop: 3 }}>
+                    {reviewCount} review{reviewCount !== 1 ? "s" : ""}
+                </div>
             </td>
-            <td><PaymentBadges payment={vendor.payment} /></td>
-            <td><WarehouseBadges warehouses={vendor.warehouses} /></td>
-            <td><ProductBadges products={vendor.products} /></td>
-            {isReseller && <td><OrderBadges orderTypes={(vendor as Reseller).orderTypes} /></td>}
-            <td>
-                {vendor.freeShipping
-                    ? <Badge $v="green">✓ {vendor.freeShippingThreshold || "Yes"}</Badge>
-                    : <span style={{ color: "var(--tertiary-foreground)" }}>—</span>}
+            <td style={{ minWidth: 180 }}>
+                <TableName>
+                    {community.name}
+                    {community.verified && <span className="verified">✓</span>}
+                </TableName>
+                {isCommerce && c.url && (
+                    <TableUrl href={`https://${c.url}`} target="_blank" rel="noreferrer">{c.url} ↗</TableUrl>
+                )}
+                <TableMeta>
+                    <span>{community.ageDays}d</span>
+                    <span className="sep">·</span>
+                    <span>{formatCount(stats.memberCount)} members</span>
+                    <span className="sep">·</span>
+                    <span className="online">● {formatCount(stats.onlineCount)}</span>
+                    <JoinBtn
+                        href={community.inviteLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ fontSize: 10, padding: "2px 9px", marginLeft: 4 }}>
+                        Join
+                    </JoinBtn>
+                </TableMeta>
             </td>
-            <td style={{ whiteSpace: "nowrap", color: "var(--secondary-foreground)" }}>{vendor.shippingTime}</td>
-            <td style={{ maxWidth: 160, color: "var(--tertiary-foreground)", fontSize: 12 }}>{vendor.shippingRoutes}</td>
-            <td><TableRevBtn onClick={onReview}>⭐ {reviewCount}</TableRevBtn></td>
+            {isCommerce ? (
+                <>
+                    <td><PaymentBadges payment={c.payment} /></td>
+                    <td><CountryBadges warehouses={c.warehouses} /></td>
+                    <td><ProductBadges products={c.products} /></td>
+                    {isReseller && <td>{c.orderTypes ? <OrderBadges orderTypes={c.orderTypes} /> : <span style={{ color: "var(--tertiary-foreground)" }}>—</span>}</td>}
+                    <td>
+                        {c.freeShipping
+                            ? <Badge $v="green">✓ {c.freeShippingThreshold || "Yes"}</Badge>
+                            : <span style={{ color: "var(--tertiary-foreground)" }}>—</span>}
+                    </td>
+                    <td style={{ whiteSpace: "nowrap", color: "var(--secondary-foreground)" }}>{c.shippingTime}</td>
+                </>
+            ) : (
+                <td colSpan={isReseller ? 6 : 5} style={{ color: "var(--tertiary-foreground)", fontSize: 12, fontStyle: "italic" }}>
+                    General community
+                </td>
+            )}
         </tr>
     );
 }
@@ -1573,10 +1567,11 @@ function VendorRow({
 // ─── Reviews Modal ────────────────────────────────────────────────────────────
 
 function ReviewsModal({
-    vendor, vendorType, reviews, onClose, onSubmit,
+    community, reviews, onClose, onSubmit,
 }: {
-    vendor: Vendor | Reseller; vendorType: "vendor" | "reseller";
-    reviews: Review[]; onClose: () => void;
+    community: Community;
+    reviews: Review[];
+    onClose: () => void;
     onSubmit: (r: Omit<Review, "id" | "date">) => void;
 }) {
     const [name, setName] = useState("");
@@ -1588,7 +1583,7 @@ function ReviewsModal({
     function handleSubmit(e: Event) {
         e.preventDefault();
         if (!name.trim() || !text.trim()) { setError("Name and review text are required."); return; }
-        onSubmit({ vendorId: vendor.id, vendorType, reviewerName: name.trim(), rating, text: text.trim() });
+        onSubmit({ vendorId: community.id, vendorType: community.type, reviewerName: name.trim(), rating, text: text.trim() });
         setSubmitted(true);
     }
 
@@ -1598,8 +1593,8 @@ function ReviewsModal({
                 <DragHandle />
                 <ModalHead>
                     <div>
-                        <h2>{vendor.name}</h2>
-                        <StarRating rating={vendor.rating} />
+                        <h2>{community.name}</h2>
+                        <StarRating rating={community.rating} />
                     </div>
                     <ModalClose onClick={onClose}>✕</ModalClose>
                 </ModalHead>
@@ -1662,21 +1657,30 @@ function ReviewsModal({
 
 const defPay: Payment = { cc: false, btc: false, pp: false, zelle: false, venmo: false, bt: false, chk: false };
 const defWh: Warehouses = { us: false, eu: false, aus: false };
-const defPr: Products = { pep: false, oil: false, tabs: false, raw: false, amn: false, sup: false };
+const defPr: Products = { pep: false, oil: false, tabs: false, raw: false, amn: false, sup: false, aas: false };
 const defOr: OrderTypes = { single: false, halfkit: false, fullkit: false };
 
-function SubmitModal({ onClose, onSubmit, initialType = "vendor" }: { onClose: () => void; onSubmit: (f: SubmitForm) => void; initialType?: "vendor" | "reseller" }) {
+function SubmitModal({
+    onClose, onSubmit, initialType = "vendor",
+}: {
+    onClose: () => void;
+    onSubmit: (f: SubmitForm) => void;
+    initialType?: "vendor" | "reseller" | "other";
+}) {
     const [form, setForm] = useState<SubmitForm>({
-        type: initialType, name: "", url: "",
+        type: initialType, name: "", inviteLink: "", serverId: "", url: "",
         payment: { ...defPay }, warehouses: { ...defWh },
         products: { ...defPr }, orderTypes: { ...defOr }, notes: "",
     });
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState("");
 
+    const isCommerce = form.type === "vendor" || form.type === "reseller";
+
     function handleSubmit(e: Event) {
         e.preventDefault();
         if (!form.name.trim()) { setError("Name is required."); return; }
+        if (!form.inviteLink.trim()) { setError("PepChat invite link is required."); return; }
         onSubmit(form);
         setSubmitted(true);
     }
@@ -1686,7 +1690,7 @@ function SubmitModal({ onClose, onSubmit, initialType = "vendor" }: { onClose: (
             <ModalBox $wide onClick={(e) => e.stopPropagation()}>
                 <DragHandle />
                 <ModalHead>
-                    <h2>Submit a Listing</h2>
+                    <h2>Submit a Community</h2>
                     <ModalClose onClick={onClose}>✕</ModalClose>
                 </ModalHead>
                 <ModalBody>
@@ -1695,7 +1699,7 @@ function SubmitModal({ onClose, onSubmit, initialType = "vendor" }: { onClose: (
                             <div style={{ fontSize: 44, marginBottom: 14 }}>🎉</div>
                             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Submission Received!</div>
                             <div style={{ color: "var(--secondary-foreground)", fontSize: 13, lineHeight: 1.6 }}>
-                                Your listing will be reviewed and added shortly.
+                                Your community will be reviewed and added shortly.
                             </div>
                         </div>
                     ) : (
@@ -1705,74 +1709,95 @@ function SubmitModal({ onClose, onSubmit, initialType = "vendor" }: { onClose: (
                                     onClick={() => setForm((f) => ({ ...f, type: "vendor" }))}>Vendor</TypeBtn>
                                 <TypeBtn type="button" $active={form.type === "reseller"}
                                     onClick={() => setForm((f) => ({ ...f, type: "reseller" }))}>Reseller</TypeBtn>
+                                <TypeBtn type="button" $active={form.type === "other"}
+                                    onClick={() => setForm((f) => ({ ...f, type: "other" }))}>Other</TypeBtn>
                             </TypeToggle>
+
                             <FormGroup>
-                                <label>Name *</label>
+                                <label>Community Name *</label>
                                 <input type="text" value={form.name}
                                     onInput={(e) => setForm((f) => ({ ...f, name: (e.target as HTMLInputElement).value }))}
-                                    placeholder="Company or shop name" />
+                                    placeholder="Your community's name" />
                             </FormGroup>
                             <FormGroup>
-                                <label>Website URL</label>
-                                <input type="url" value={form.url}
-                                    onInput={(e) => setForm((f) => ({ ...f, url: (e.target as HTMLInputElement).value }))}
-                                    placeholder="https://example.com" />
+                                <label>PepChat Invite Link *</label>
+                                <input type="url" value={form.inviteLink}
+                                    onInput={(e) => setForm((f) => ({ ...f, inviteLink: (e.target as HTMLInputElement).value }))}
+                                    placeholder="https://rvlt.gg/yourserver" />
                             </FormGroup>
                             <FormGroup>
-                                <label>Payment Methods</label>
-                                <CheckboxGrid>
-                                    {(Object.keys(PAYMENT_LABELS) as (keyof Payment)[]).map((k) => (
-                                        <CheckLabel key={k} $checked={form.payment[k]}>
-                                            <input type="checkbox" checked={form.payment[k]}
-                                                onChange={() => setForm((f) => ({ ...f, payment: toggle(f.payment, k) }))} />
-                                            {PAYMENT_LABELS[k]}
-                                        </CheckLabel>
-                                    ))}
-                                </CheckboxGrid>
+                                <label>Revolt Server ID (optional — enables live member stats)</label>
+                                <input type="text" value={form.serverId}
+                                    onInput={(e) => setForm((f) => ({ ...f, serverId: (e.target as HTMLInputElement).value }))}
+                                    placeholder="01JABCDE..." />
                             </FormGroup>
-                            <FormGroup>
-                                <label>Warehouses</label>
-                                <CheckboxGrid>
-                                    {(Object.keys(WAREHOUSE_LABELS) as (keyof Warehouses)[]).map((k) => (
-                                        <CheckLabel key={k} $checked={form.warehouses[k]}>
-                                            <input type="checkbox" checked={form.warehouses[k]}
-                                                onChange={() => setForm((f) => ({ ...f, warehouses: toggle(f.warehouses, k) }))} />
-                                            {WAREHOUSE_LABELS[k]}
-                                        </CheckLabel>
-                                    ))}
-                                </CheckboxGrid>
-                            </FormGroup>
-                            <FormGroup>
-                                <label>Products</label>
-                                <CheckboxGrid>
-                                    {(Object.keys(PRODUCT_LABELS) as (keyof Products)[]).map((k) => (
-                                        <CheckLabel key={k} $checked={form.products[k]}>
-                                            <input type="checkbox" checked={form.products[k]}
-                                                onChange={() => setForm((f) => ({ ...f, products: toggle(f.products, k) }))} />
-                                            {PRODUCT_LABELS[k]}
-                                        </CheckLabel>
-                                    ))}
-                                </CheckboxGrid>
-                            </FormGroup>
-                            {form.type === "reseller" && (
-                                <FormGroup>
-                                    <label>Order Types</label>
-                                    <CheckboxGrid>
-                                        {(Object.keys(ORDER_LABELS) as (keyof OrderTypes)[]).map((k) => (
-                                            <CheckLabel key={k} $checked={form.orderTypes[k]}>
-                                                <input type="checkbox" checked={form.orderTypes[k]}
-                                                    onChange={() => setForm((f) => ({ ...f, orderTypes: toggle(f.orderTypes, k) }))} />
-                                                {ORDER_LABELS[k]}
-                                            </CheckLabel>
-                                        ))}
-                                    </CheckboxGrid>
-                                </FormGroup>
+
+                            {isCommerce && (
+                                <>
+                                    <FormGroup>
+                                        <label>Website URL (optional)</label>
+                                        <input type="url" value={form.url}
+                                            onInput={(e) => setForm((f) => ({ ...f, url: (e.target as HTMLInputElement).value }))}
+                                            placeholder="https://example.com" />
+                                    </FormGroup>
+                                    <FormGroup>
+                                        <label>Payment Methods</label>
+                                        <CheckboxGrid>
+                                            {(Object.keys(PAYMENT_LABELS) as (keyof Payment)[]).map((k) => (
+                                                <CheckLabel key={k} $checked={form.payment[k]}>
+                                                    <input type="checkbox" checked={form.payment[k]}
+                                                        onChange={() => setForm((f) => ({ ...f, payment: toggle(f.payment, k) }))} />
+                                                    {PAYMENT_LABELS[k]}
+                                                </CheckLabel>
+                                            ))}
+                                        </CheckboxGrid>
+                                    </FormGroup>
+                                    <FormGroup>
+                                        <label>Countries Served</label>
+                                        <CheckboxGrid>
+                                            {(Object.keys(WAREHOUSE_LABELS) as (keyof Warehouses)[]).map((k) => (
+                                                <CheckLabel key={k} $checked={form.warehouses[k]}>
+                                                    <input type="checkbox" checked={form.warehouses[k]}
+                                                        onChange={() => setForm((f) => ({ ...f, warehouses: toggle(f.warehouses, k) }))} />
+                                                    {WAREHOUSE_LABELS[k]}
+                                                </CheckLabel>
+                                            ))}
+                                        </CheckboxGrid>
+                                    </FormGroup>
+                                    <FormGroup>
+                                        <label>Products</label>
+                                        <CheckboxGrid>
+                                            {(Object.keys(PRODUCT_LABELS) as (keyof Products)[]).map((k) => (
+                                                <CheckLabel key={k} $checked={form.products[k]}>
+                                                    <input type="checkbox" checked={form.products[k]}
+                                                        onChange={() => setForm((f) => ({ ...f, products: toggle(f.products, k) }))} />
+                                                    {PRODUCT_LABELS[k]}
+                                                </CheckLabel>
+                                            ))}
+                                        </CheckboxGrid>
+                                    </FormGroup>
+                                    {form.type === "reseller" && (
+                                        <FormGroup>
+                                            <label>Order Types</label>
+                                            <CheckboxGrid>
+                                                {(Object.keys(ORDER_LABELS) as (keyof OrderTypes)[]).map((k) => (
+                                                    <CheckLabel key={k} $checked={form.orderTypes[k]}>
+                                                        <input type="checkbox" checked={form.orderTypes[k]}
+                                                            onChange={() => setForm((f) => ({ ...f, orderTypes: toggle(f.orderTypes, k) }))} />
+                                                        {ORDER_LABELS[k]}
+                                                    </CheckLabel>
+                                                ))}
+                                            </CheckboxGrid>
+                                        </FormGroup>
+                                    )}
+                                </>
                             )}
+
                             <FormGroup>
                                 <label>Notes (optional)</label>
                                 <textarea value={form.notes}
                                     onInput={(e) => setForm((f) => ({ ...f, notes: (e.target as HTMLTextAreaElement).value }))}
-                                    placeholder="Additional info, shipping details, etc." />
+                                    placeholder="Describe your community, focus area, etc." />
                             </FormGroup>
                             {error && <ErrorMsg>{error}</ErrorMsg>}
                             <PrimaryBtn type="submit">Submit for Review</PrimaryBtn>
@@ -1787,25 +1812,24 @@ function SubmitModal({ onClose, onSubmit, initialType = "vendor" }: { onClose: (
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 function Directory() {
-    const [tab, setTab] = useState<"vendors" | "resellers">("vendors");
+    const [tab, setTab] = useState<"vendors" | "resellers" | "other">("vendors");
     const [search, setSearch] = useState("");
     const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set());
     const [sortCol, setSortCol] = useState<"rating" | "name">("rating");
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
     const [reviews, setReviews] = useState<Review[]>([...(rawData.reviews as Review[])]);
     const [showLegend, setShowLegend] = useState(false);
-    const [reviewModal, setReviewModal] = useState<{ vendor: Vendor | Reseller; type: "vendor" | "reseller" } | null>(null);
+    const [reviewModal, setReviewModal] = useState<Community | null>(null);
     const [submitOpen, setSubmitOpen] = useState(false);
-    const [submitInitialType, setSubmitInitialType] = useState<"vendor" | "reseller">("vendor");
+    const [submitInitialType, setSubmitInitialType] = useState<"vendor" | "reseller" | "other">("vendor");
     const [darkMode, setDarkMode] = useState(false);
 
-    function openSubmit(type: "vendor" | "reseller") {
+    const allCommunities = rawData.communities as Community[];
+
+    function openSubmit(type: "vendor" | "reseller" | "other") {
         setSubmitInitialType(type);
         setSubmitOpen(true);
     }
-
-    const vendors = rawData.vendors as Vendor[];
-    const resellers = rawData.resellers as Reseller[];
 
     function toggleFilter(key: FilterKey) {
         setActiveFilters((prev) => {
@@ -1820,14 +1844,26 @@ function Directory() {
         else { setSortCol(col); setSortDir(col === "rating" ? "desc" : "asc"); }
     }
 
+    // Reset filters when switching tabs
+    function switchTab(t: typeof tab) {
+        setTab(t);
+        setSearch("");
+        setActiveFilters(new Set());
+    }
+
+    const tabType = tab === "vendors" ? "vendor" : tab === "resellers" ? "reseller" : "other";
+
     const filtered = useMemo(() => {
-        const list = (tab === "vendors" ? vendors : resellers) as (Vendor | Reseller)[];
+        const list = allCommunities.filter((c) => c.type === tabType);
         return list
-            .filter((v) => {
+            .filter((c) => {
                 const q = search.toLowerCase();
-                return !q || v.name.toLowerCase().includes(q) || v.url.toLowerCase().includes(q);
+                return !q || c.name.toLowerCase().includes(q);
             })
-            .filter((v) => matchesFilters(v, activeFilters))
+            .filter((c) => {
+                if (tab === "other" || activeFilters.size === 0) return true;
+                return matchesFilters(c as CommerceCommunity, activeFilters);
+            })
             .sort((a, b) => {
                 const cmp = sortCol === "rating" ? a.rating - b.rating : a.name.localeCompare(b.name);
                 return sortDir === "asc" ? cmp : -cmp;
@@ -1851,9 +1887,9 @@ function Directory() {
         localStorage.setItem(key, JSON.stringify(existing));
     }
 
-    const listType = tab === "vendors" ? "vendor" : "reseller";
     const si = (col: "rating" | "name") => sortCol === col ? (sortDir === "asc" ? " ↑" : " ↓") : "";
     const loggedIn = clientController.isLoggedIn();
+    const sectionTitle = tab === "vendors" ? "Vendor Communities" : tab === "resellers" ? "Reseller Communities" : "Other Communities";
 
     return (
         <Page $dark={darkMode}>
@@ -1890,19 +1926,22 @@ function Directory() {
             <Hero>
                 <HeroInner>
                     <HeroTitle>
-                        Vendor &amp; Reseller<br /><span>Directory</span>
+                        PepChat <span>Discovery</span>
                     </HeroTitle>
                     <HeroSub>
-                        Community-curated listings of trusted peptide vendors and resellers.
-                        Compare payment methods, warehouses, shipping, and community reviews.
+                        Community-curated directory of trusted peptide communities.
+                        Compare vendors, resellers, and general communities in one place.
                     </HeroSub>
 
                     <TabToggle>
-                        <ToggleTab $active={tab === "vendors"} onClick={() => setTab("vendors")}>
+                        <ToggleTab $active={tab === "vendors"} onClick={() => switchTab("vendors")}>
                             Vendors
                         </ToggleTab>
-                        <ToggleTab $active={tab === "resellers"} onClick={() => setTab("resellers")}>
+                        <ToggleTab $active={tab === "resellers"} onClick={() => switchTab("resellers")}>
                             Resellers
+                        </ToggleTab>
+                        <ToggleTab $active={tab === "other"} onClick={() => switchTab("other")}>
+                            Other
                         </ToggleTab>
                     </TabToggle>
                 </HeroInner>
@@ -1911,32 +1950,34 @@ function Directory() {
             {/* ── Main ── */}
             <Main>
                 <SectionHeader>
-                    <h2>{tab === "vendors" ? "Vendor Directory" : "Reseller Directory"}</h2>
+                    <h2>{sectionTitle}</h2>
                     <span className="count">{filtered.length} listing{filtered.length !== 1 ? "s" : ""}</span>
                 </SectionHeader>
 
-                {/* Filters */}
+                {/* Filters — commerce tabs only */}
                 <FilterWrap>
                     <SearchWrap>
                         <span className="icon">🔍</span>
                         <SearchInput
                             value={search}
                             onInput={(e) => setSearch((e.target as HTMLInputElement).value)}
-                            placeholder="Search name or URL..."
+                            placeholder="Search communities..."
                         />
                     </SearchWrap>
-                    <FilterPills>
-                        {FILTERS.map((f) => (
-                            <Pill key={f.key} $active={activeFilters.has(f.key)} onClick={() => toggleFilter(f.key)}>
-                                {f.emoji} {f.label}
-                            </Pill>
-                        ))}
-                        {activeFilters.size > 0 && (
-                            <ClearBtn onClick={() => setActiveFilters(new Set())}>
-                                ✕ Clear ({activeFilters.size})
-                            </ClearBtn>
-                        )}
-                    </FilterPills>
+                    {tab !== "other" && (
+                        <FilterPills>
+                            {COMMERCE_FILTERS.map((f) => (
+                                <Pill key={f.key} $active={activeFilters.has(f.key)} onClick={() => toggleFilter(f.key)}>
+                                    {f.emoji} {f.label}
+                                </Pill>
+                            ))}
+                            {activeFilters.size > 0 && (
+                                <ClearBtn onClick={() => setActiveFilters(new Set())}>
+                                    ✕ Clear ({activeFilters.size})
+                                </ClearBtn>
+                            )}
+                        </FilterPills>
+                    )}
                     <LegendToggle onClick={() => setShowLegend((s) => !s)}>
                         {showLegend ? "Hide Legend" : "? Legend"}
                     </LegendToggle>
@@ -1961,7 +2002,7 @@ function Directory() {
                 {filtered.length === 0 ? (
                     <EmptyState>
                         <span className="icon">🔍</span>
-                        No listings match your search or filters.
+                        No communities match your search or filters.
                     </EmptyState>
                 ) : (
                     <>
@@ -1972,24 +2013,27 @@ function Directory() {
                                     <tr>
                                         <th onClick={() => handleSort("rating")}>Rating{si("rating")}</th>
                                         <th onClick={() => handleSort("name")}>Name{si("name")}</th>
-                                        <th>Payment</th>
-                                        <th>Warehouses</th>
-                                        <th>Products</th>
-                                        {tab === "resellers" && <th>Order Types</th>}
-                                        <th>Free Ship</th>
-                                        <th>Ship Time</th>
-                                        <th>Routes</th>
-                                        <th>Reviews</th>
+                                        {tab !== "other" && (
+                                            <>
+                                                <th>Payment</th>
+                                                <th>Countries</th>
+                                                <th>Products</th>
+                                                {tab === "resellers" && <th>Order Types</th>}
+                                                <th>Free Ship</th>
+                                                <th>Ship Time</th>
+                                            </>
+                                        )}
+                                        {tab === "other" && <th>About</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filtered.map((v) => (
-                                        <VendorRow
-                                            key={v.id}
-                                            vendor={v}
-                                            reviewCount={reviewCount(v.id, listType)}
+                                    {filtered.map((c) => (
+                                        <CommunityRow
+                                            key={c.id}
+                                            community={c}
+                                            reviewCount={reviewCount(c.id, c.type)}
                                             isReseller={tab === "resellers"}
-                                            onReview={() => setReviewModal({ vendor: v, type: listType })}
+                                            onReview={() => setReviewModal(c)}
                                         />
                                     ))}
                                 </tbody>
@@ -1998,13 +2042,12 @@ function Directory() {
 
                         {/* Mobile Cards */}
                         <CardGrid className={styles.mobileCards}>
-                            {filtered.map((v) => (
-                                <VendorCard
-                                    key={v.id}
-                                    vendor={v}
-                                    reviewCount={reviewCount(v.id, listType)}
-                                    isReseller={tab === "resellers"}
-                                    onReview={() => setReviewModal({ vendor: v, type: listType })}
+                            {filtered.map((c) => (
+                                <CommunityCard
+                                    key={c.id}
+                                    community={c}
+                                    reviewCount={reviewCount(c.id, c.type)}
+                                    onReview={() => setReviewModal(c)}
                                 />
                             ))}
                         </CardGrid>
@@ -2018,7 +2061,7 @@ function Directory() {
                     <LogoImg src={wideSVG} alt="PepChat" draggable={false} style={{ marginBottom: 8 }} />
                     <p className="disclaimer">
                         Information is community-maintained and may not be current.
-                        Not affiliated with or endorsing any listed vendor or reseller.
+                        Not affiliated with or endorsing any listed community.
                     </p>
                 </div>
                 <FooterLinks>
@@ -2035,8 +2078,9 @@ function Directory() {
 
             {/* ── Mobile Bottom Nav ── */}
             <BottomNav className={styles.mobileNav}>
-                <BottomTab $active={tab === "vendors"} onClick={() => setTab("vendors")}>Vendors</BottomTab>
-                <BottomTab $active={tab === "resellers"} onClick={() => setTab("resellers")}>Resellers</BottomTab>
+                <BottomTab $active={tab === "vendors"} onClick={() => switchTab("vendors")}>Vendors</BottomTab>
+                <BottomTab $active={tab === "resellers"} onClick={() => switchTab("resellers")}>Resellers</BottomTab>
+                <BottomTab $active={tab === "other"} onClick={() => switchTab("other")}>Other</BottomTab>
             </BottomNav>
 
             <FAB onClick={() => setSubmitOpen(true)}>+</FAB>
@@ -2044,10 +2088,9 @@ function Directory() {
             {/* ── Modals ── */}
             {reviewModal && (
                 <ReviewsModal
-                    vendor={reviewModal.vendor}
-                    vendorType={reviewModal.type}
+                    community={reviewModal}
                     reviews={reviews.filter(
-                        (r) => r.vendorId === reviewModal.vendor.id && r.vendorType === reviewModal.type,
+                        (r) => r.vendorId === reviewModal.id && r.vendorType === reviewModal.type,
                     )}
                     onClose={() => setReviewModal(null)}
                     onSubmit={handleSubmitReview}
@@ -2055,7 +2098,11 @@ function Directory() {
             )}
 
             {submitOpen && (
-                <SubmitModal onClose={() => setSubmitOpen(false)} onSubmit={handleSubmitListing} initialType={submitInitialType} />
+                <SubmitModal
+                    onClose={() => setSubmitOpen(false)}
+                    onSubmit={handleSubmitListing}
+                    initialType={submitInitialType}
+                />
             )}
         </Page>
     );
