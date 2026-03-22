@@ -50,7 +50,7 @@ export function App() {
                             <Invite />
                         </CheckAuth>
                     </Route>
-                    <Route path="/directory">
+                    <Route path="/d1r3ct0ry-b3ta">
                         <LoadSuspense>
                             <Directory />
                         </LoadSuspense>
@@ -69,10 +69,10 @@ export function App() {
                                 <RevoltApp />
                             </LoadSuspense>
                         </CheckAuth>
-                        {/* Unauthenticated users see the public directory homepage */}
+                        {/* Unauthenticated users redirected to login */}
                         <CheckAuth blockRender>
                             <LoadSuspense>
-                                <Directory />
+                                <Login />
                             </LoadSuspense>
                         </CheckAuth>
                     </Route>
