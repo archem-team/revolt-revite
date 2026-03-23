@@ -10,6 +10,8 @@ export function useDirectory() {
     const [sortCol, setSortCol] = useState<"rating" | "name">("rating");
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
     const [reviews, setReviews] = useState<Review[]>([]);
+    /** Live mode: review counts from GET reviews pagination (list is empty until a modal fetch). */
+    const [reviewTotals, setReviewTotals] = useState<Record<string, number>>({});
     const [allCommunities, setAllCommunities] = useState<Community[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
@@ -54,6 +56,32 @@ export function useDirectory() {
 
         return () => { cancelled = true; };
     }, [useLive]);
+
+    // Live mode: load per-listing review totals (rating comes from communities; counts need reviews meta)
+    useEffect(() => {
+        if (!useLive || allCommunities.length === 0) return;
+        let cancelled = false;
+        Promise.all(
+            allCommunities.map((c) =>
+                fetch(
+                    `${API_BASE}/directory/communities/reviews?communityId=${encodeURIComponent(c.id)}&pageSize=1`,
+                )
+                    .then((r) => r.json())
+                    .then((json) => {
+                        const total = json.meta?.pagination?.total;
+                        const n = typeof total === "number" ? total : (json.data?.length ?? 0);
+                        return { key: `${c.id}:${c.type}`, n };
+                    })
+                    .catch(() => ({ key: `${c.id}:${c.type}`, n: 0 })),
+            ),
+        ).then((rows) => {
+            if (cancelled) return;
+            const next: Record<string, number> = {};
+            for (const { key, n } of rows) next[key] = n;
+            setReviewTotals(next);
+        });
+        return () => { cancelled = true; };
+    }, [useLive, allCommunities]);
 
     // In live mode: fetch reviews for a community when its modal opens
     useEffect(() => {
@@ -116,8 +144,11 @@ export function useDirectory() {
             });
     }, [allCommunities, tab, tabType, search, activeFilters, sortCol, sortDir]);
 
-    const reviewCount = (id: string, type: string) =>
-        reviews.filter((r) => r.vendorId === id && r.vendorType === type).length;
+    const reviewCount = (id: string, type: string) => {
+        const key = `${id}:${type}`;
+        const loaded = reviews.filter((r) => r.vendorId === id && r.vendorType === type).length;
+        return Math.max(reviewTotals[key] ?? 0, loaded);
+    };
 
     function handleSubmitReview(rev: Omit<Review, "id" | "date">) {
         if (useLive) {

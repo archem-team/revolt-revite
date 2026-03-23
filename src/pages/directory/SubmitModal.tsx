@@ -70,7 +70,7 @@ export function SubmitModal({
                                 <label>PepChat Invite Link *</label>
                                 <input type="url" value={form.inviteLink}
                                     onInput={(e) => setForm((f) => ({ ...f, inviteLink: (e.target as HTMLInputElement).value }))}
-                                    placeholder="https://rvlt.gg/yourserver" />
+                                    placeholder="https://peptide.chat/invite/code" />
                             </FormGroup>
                             <FormGroup>
                                 <label>Revolt Server ID (optional — enables live member stats)</label>
