@@ -1,0 +1,42 @@
+// Desktop + tablet (incl. iPad): data table. Phones only: card grid + bottom chrome.
+// 767px max = standard sub-iPad width so 768px+ viewports keep the table.
+
+$home-compact: 767px;
+
+.desktopTable {
+    display: block;
+
+    @media (max-width: $home-compact) {
+        display: none !important;
+    }
+}
+
+.mobileCards {
+    display: none !important;
+
+    @media (max-width: $home-compact) {
+        display: grid !important;
+    }
+}
+
+.fab {
+    display: none !important;
+
+    @media (max-width: $home-compact) {
+        display: flex !important;
+    }
+}
+
+.mobileNav {
+    display: none !important;
+
+    @media (max-width: $home-compact) {
+        display: flex !important;
+    }
+}
+
+.desktopSubmit {
+    @media (max-width: $home-compact) {
+        display: none !important;
+    }
+}

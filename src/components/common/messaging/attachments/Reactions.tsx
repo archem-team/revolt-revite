@@ -16,6 +16,8 @@ import { IconButton } from "@revoltchat/ui";
 
 import { emojiDictionary } from "../../../../assets/emojis";
 import { useClient } from "../../../../controllers/client/ClientController";
+import Tooltip from "../../../common/Tooltip";
+import UserShort from "../../../common/user/UserShort";
 import { RenderEmoji } from "../../../markdown/plugins/emoji";
 import { HackAlertThisFileWillBeReplaced } from "../MessageBox";
 
@@ -99,14 +101,50 @@ export const Reactions = observer(({ message }: Props) => {
         observer(({ id, user_ids }: { id: string; user_ids?: Set<string> }) => {
             const active = user_ids?.has(client.user!._id) || false;
 
+            const reactingUserIds = user_ids ? Array.from(user_ids) : [];
+            reactingUserIds.sort((a, b) => {
+                const ua = client.users.get(a) as any | undefined;
+                const ub = client.users.get(b) as any | undefined;
+
+                const na: string = ua?.display_name ?? ua?.username ?? a;
+                const nb: string = ub?.display_name ?? ub?.username ?? b;
+
+                // Deterministic ordering for consistent UI.
+                return na.localeCompare(nb) || a.localeCompare(b);
+            });
+
             return (
-                <Reaction
-                    active={active}
-                    onClick={() =>
-                        active ? message.unreact(id) : message.react(id)
-                    }>
-                    <RenderEmoji match={id} /> {user_ids?.size || 0}
-                </Reaction>
+                <Tooltip
+                    // Keep hover list readable/clickable even with many reactors.
+                    interactive
+                    placement="top"
+                    content={(
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "4px",
+                                maxHeight: "220px",
+                                overflowY: "auto",
+                                padding: "6px",
+                            }}>
+                            {reactingUserIds.map((uid) => (
+                                <UserShort
+                                    // UserShort is resilient to missing user objects.
+                                    key={uid}
+                                    user={client.users.get(uid) ?? undefined}
+                                />
+                            ))}
+                        </div>
+                    ) as any}>
+                    <Reaction
+                        active={active}
+                        onClick={() =>
+                            active ? message.unreact(id) : message.react(id)
+                        }>
+                        <RenderEmoji match={id} /> {user_ids?.size || 0}
+                    </Reaction>
+                </Tooltip>
             );
         }),
         [],
