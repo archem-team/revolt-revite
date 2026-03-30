@@ -145,7 +145,7 @@ export const LEGEND = [
         items: [
             { abbr: "Purity", label: "Re-ship/Replacement or refund if purity is below 99%" },
             { abbr: "Volume", label: "Re-ship/Replacement or refund if fill volume is below 90%" },
-            { abbr: "Re-Ship", label: "Re-ship/Replacement or refund if seized by customs" },
+            { abbr: "Re-Ship", label: "Re-ship guarantee: Re-ship/Replacement or refund if seized by customs" },
         ],
     },
     {

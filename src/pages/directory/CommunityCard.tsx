@@ -76,15 +76,16 @@ export function ProductBadges({ products }: { products: Products }) {
 }
 
 export function GuaranteeBadges({ guarantees }: { guarantees: Guarantees }) {
+    const guaranteeKeys = (Object.keys(GUARANTEE_LABELS) as (keyof Guarantees)[])
+        .filter((k) => guarantees[k]);
+
     return (
         <BadgeRow>
-            {(Object.keys(GUARANTEE_LABELS) as (keyof Guarantees)[]).map((k) =>
-                guarantees[k] ? (
-                    <Badge key={k} $v="orange" title={GUARANTEE_HINTS[k]}>
-                        {GUARANTEE_LABELS[k]}
-                    </Badge>
-                ) : null,
-            )}
+            {guaranteeKeys.map((k) => (
+                <Badge key={k} $v="orange" data-tip={GUARANTEE_HINTS[k]}>
+                    {GUARANTEE_LABELS[k]}
+                </Badge>
+            ))}
         </BadgeRow>
     );
 }

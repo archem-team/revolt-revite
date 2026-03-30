@@ -1,4 +1,5 @@
 import styled, { css } from "styled-components/macro";
+
 import { ac, cy, gr, or, fadeUp } from "./stylesLayout";
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
@@ -6,13 +7,41 @@ import { ac, cy, gr, or, fadeUp } from "./stylesLayout";
 type BV = "accent" | "green" | "purple" | "orange" | "dim" | "teal" | "red";
 
 const bv: Record<BV, ReturnType<typeof css>> = {
-    accent: css`background:${ac(0.12)};color:var(--dir-accent);border-color:${ac(0.28)};`,
-    green: css`background:${gr(0.1)};color:var(--success);border-color:${gr(0.25)};`,
-    purple: css`background:${cy(0.1)};color:#00b4d8;border-color:${cy(0.25)};`,
-    orange: css`background:${or(0.1)};color:var(--warning);border-color:${or(0.25)};`,
-    dim: css`background:var(--dir-overlay-sm);color:var(--tertiary-foreground);border-color:var(--block);`,
-    teal: css`background:rgba(0,180,216,0.15);color:#00b4d8;border-color:rgba(0,180,216,0.4);`,
-    red: css`background:rgba(239,68,68,0.1);color:#ef4444;border-color:rgba(239,68,68,0.3);`,
+    accent: css`
+        background: ${ac(0.12)};
+        color: var(--dir-accent);
+        border-color: ${ac(0.28)};
+    `,
+    green: css`
+        background: ${gr(0.1)};
+        color: var(--success);
+        border-color: ${gr(0.25)};
+    `,
+    purple: css`
+        background: ${cy(0.1)};
+        color: #00b4d8;
+        border-color: ${cy(0.25)};
+    `,
+    orange: css`
+        background: ${or(0.1)};
+        color: var(--warning);
+        border-color: ${or(0.25)};
+    `,
+    dim: css`
+        background: var(--dir-overlay-sm);
+        color: var(--tertiary-foreground);
+        border-color: var(--block);
+    `,
+    teal: css`
+        background: rgba(0, 180, 216, 0.15);
+        color: #00b4d8;
+        border-color: rgba(0, 180, 216, 0.4);
+    `,
+    red: css`
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.3);
+    `,
 };
 
 export const Badge = styled.span<{ $v?: BV }>`
@@ -24,15 +53,87 @@ export const Badge = styled.span<{ $v?: BV }>`
     letter-spacing: 0.02em;
     border: 1px solid transparent;
     white-space: nowrap;
+    position: relative;
+    transition: transform 0.13s ease, filter 0.13s ease;
     ${(p) => bv[p.$v ?? "dim"]}
+
+    &[data-tip]:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.08);
+    }
+
+    &[data-tip]::after {
+        content: attr(data-tip);
+        position: absolute;
+        left: 50%;
+        bottom: calc(100% + 9px);
+        transform: translate(-50%, 4px);
+        min-width: 220px;
+        max-width: min(300px, 70vw);
+        width: max-content;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--dir-border-table);
+        background: var(--dir-surface-card);
+        color: var(--foreground);
+        box-shadow: 0 8px 22px ${ac(0.18)};
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0;
+        line-height: 1.35;
+        white-space: pre-line;
+        pointer-events: none;
+        opacity: 0;
+        visibility: hidden;
+        z-index: 25;
+        transition: opacity 0.13s ease, transform 0.13s ease;
+    }
+
+    &[data-tip]::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: calc(100% + 2px);
+        transform: translateX(-50%);
+        border: 6px solid transparent;
+        border-top-color: var(--dir-border-table);
+        pointer-events: none;
+        opacity: 0;
+        visibility: hidden;
+        z-index: 24;
+        transition: opacity 0.13s ease;
+    }
+
+    &[data-tip]:hover::after,
+    &[data-tip]:hover::before {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    &[data-tip]:hover::after {
+        transform: translate(-50%, 0);
+    }
 `;
 
-export const BadgeRow = styled.div`display: flex; gap: 4px; flex-wrap: wrap;`;
+export const BadgeRow = styled.div`
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+`;
 
 // ─── Stars ────────────────────────────────────────────────────────────────────
 
-export const Stars = styled.span`color: var(--warning); font-size: 12px; letter-spacing: 0.5px;`;
-export const StarNum = styled.span`font-size: 12px; font-weight: 700; color: var(--warning); margin-left: 3px;`;
+export const Stars = styled.span`
+    color: var(--warning);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+`;
+export const StarNum = styled.span`
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--warning);
+    margin-left: 3px;
+`;
 
 // ─── Community Card header row ────────────────────────────────────────────────
 
@@ -69,7 +170,9 @@ export const JoinBtn = styled.a`
         transition: filter 0.13s;
         white-space: nowrap;
         cursor: pointer;
-        &:hover { filter: brightness(1.15); }
+        &:hover {
+            filter: brightness(1.15);
+        }
     }
 `;
 
@@ -97,7 +200,11 @@ export const Card = styled.div`
     overflow: hidden;
     transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
     box-shadow: 0 2px 8px ${ac(0.06)};
-    &:hover { border-color: ${cy(0.6)}; transform: translateY(-3px); box-shadow: 0 10px 32px ${ac(0.12)}; }
+    &:hover {
+        border-color: ${cy(0.6)};
+        transform: translateY(-3px);
+        box-shadow: 0 10px 32px ${ac(0.12)};
+    }
 `;
 
 export const CardHead = styled.div`
@@ -108,10 +215,15 @@ export const CardHead = styled.div`
     gap: 12px;
     cursor: pointer;
     user-select: none;
-    &:hover { background: var(--dir-overlay-sm); }
+    &:hover {
+        background: var(--dir-overlay-sm);
+    }
 `;
 
-export const CardLeft = styled.div`flex: 1; min-width: 0;`;
+export const CardLeft = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
 
 export const CardName = styled.div`
     font-weight: 700;
@@ -138,7 +250,11 @@ export const Chevron = styled.span<{ $open: boolean }>`
     display: inline-block;
 `;
 
-export const CardDivider = styled.div`height: 1px; background: var(--dir-overlay-md); margin: 0 16px;`;
+export const CardDivider = styled.div`
+    height: 1px;
+    background: var(--dir-overlay-md);
+    margin: 0 16px;
+`;
 
 export const CardBody = styled.div<{ $open: boolean }>`
     display: ${(p) => (p.$open ? "block" : "none")};
@@ -153,7 +269,9 @@ export const SectionLabel = styled.div`
     text-transform: uppercase;
     letter-spacing: 0.1em;
     margin: 12px 0 6px;
-    &:first-child { margin-top: 0; }
+    &:first-child {
+        margin-top: 0;
+    }
 `;
 
 export const InfoLine = styled.div`
@@ -161,7 +279,10 @@ export const InfoLine = styled.div`
     color: var(--secondary-foreground);
     margin-bottom: 4px;
     line-height: 1.5;
-    strong { color: var(--foreground); font-weight: 600; }
+    strong {
+        color: var(--foreground);
+        font-weight: 600;
+    }
 `;
 
 // ─── Desktop Table ────────────────────────────────────────────────────────────
@@ -178,8 +299,13 @@ export const TableWrap = styled.div`
     @media (min-width: 768px) {
         scrollbar-width: thin;
         scrollbar-color: ${cy(0.4)} transparent;
-        &::-webkit-scrollbar { height: 4px; }
-        &::-webkit-scrollbar-thumb { background: ${cy(0.4)}; border-radius: 2px; }
+        &::-webkit-scrollbar {
+            height: 4px;
+        }
+        &::-webkit-scrollbar-thumb {
+            background: ${cy(0.4)};
+            border-radius: 2px;
+        }
     }
 `;
 
@@ -189,7 +315,13 @@ export const Table = styled.table`
     border-collapse: collapse;
     font-size: 13px;
 
-    @media (max-width: 1200px) { font-size: 12px; th, td { padding: 9px 10px; } }
+    @media (max-width: 1200px) {
+        font-size: 12px;
+        th,
+        td {
+            padding: 9px 10px;
+        }
+    }
 
     th {
         padding: 11px 13px;
@@ -205,7 +337,9 @@ export const Table = styled.table`
         background: var(--dir-surface-thead);
         border-bottom: 1px solid var(--dir-border-table);
         transition: color 0.12s;
-        &:hover { color: var(--foreground); }
+        &:hover {
+            color: var(--foreground);
+        }
     }
 
     td {
@@ -215,7 +349,9 @@ export const Table = styled.table`
         background: var(--dir-surface-table);
     }
 
-    tbody tr:hover td { background: var(--dir-row-hover); }
+    tbody tr:hover td {
+        background: var(--dir-row-hover);
+    }
 `;
 
 export const TableName = styled.div`
@@ -244,8 +380,13 @@ export const TableMeta = styled.div`
     flex-wrap: nowrap;
     white-space: nowrap;
 
-    .sep { color: var(--block); user-select: none; }
-    .online { color: var(--success); }
+    .sep {
+        color: var(--block);
+        user-select: none;
+    }
+    .online {
+        color: var(--success);
+    }
 `;
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
@@ -254,5 +395,10 @@ export const EmptyState = styled.div`
     text-align: center;
     padding: clamp(40px, 12vw, 72px) clamp(16px, 4vw, 20px);
     color: var(--tertiary-foreground);
-    .icon { font-size: clamp(28px, 8vw, 36px); display: block; margin-bottom: 12px; opacity: 0.4; }
+    .icon {
+        font-size: clamp(28px, 8vw, 36px);
+        display: block;
+        margin-bottom: 12px;
+        opacity: 0.4;
+    }
 `;
