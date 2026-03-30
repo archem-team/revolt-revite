@@ -184,6 +184,7 @@ export function useDirectory() {
                     payment: form.payment,
                     warehouses: form.warehouses,
                     products: form.products,
+                    guarantees: form.guarantees,
                     orderTypes: form.orderTypes,
                     notes: form.notes || undefined,
                 }),

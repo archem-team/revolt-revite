@@ -9,6 +9,7 @@ export interface Products {
     pep: boolean; oil: boolean; tabs: boolean;
     raw: boolean; amn: boolean; sup: boolean; aas: boolean;
 }
+export interface Guarantees { purity: boolean; volume: boolean; reship: boolean; }
 export interface OrderTypes { single: boolean; halfkit: boolean; fullkit: boolean; }
 
 export interface CommunityBase {
@@ -31,6 +32,7 @@ export interface VendorCommunity extends CommunityBase {
     payment: Payment;
     warehouses: Warehouses;
     products: Products;
+    guarantees: Guarantees;
     orderTypes: null;
     shippingTime: string;
     freeShipping: boolean;
@@ -42,6 +44,7 @@ export interface ResellerCommunity extends CommunityBase {
     payment: Payment;
     warehouses: Warehouses;
     products: Products;
+    guarantees: Guarantees;
     orderTypes: OrderTypes;
     shippingTime: string;
     freeShipping: boolean;
@@ -68,6 +71,7 @@ export interface SubmitForm {
     payment: Payment;
     warehouses: Warehouses;
     products: Products;
+    guarantees: Guarantees;
     orderTypes: OrderTypes;
     notes: string;
 }
@@ -80,6 +84,14 @@ export const PAYMENT_LABELS: Record<keyof Payment, string> = {
 export const WAREHOUSE_LABELS: Record<keyof Warehouses, string> = { us: "US", eu: "EU", aus: "AUS" };
 export const PRODUCT_LABELS: Record<keyof Products, string> = {
     pep: "PEP", oil: "OIL", tabs: "TABS", raw: "RAW", amn: "AMN", sup: "SUP", aas: "AAS",
+};
+export const GUARANTEE_LABELS: Record<keyof Guarantees, string> = {
+    purity: "Purity", volume: "Volume", reship: "Re-Ship",
+};
+export const GUARANTEE_HINTS: Record<keyof Guarantees, string> = {
+    purity: "Re-ship/Replacement or refund if purity is below 99%",
+    volume: "Re-ship/Replacement or refund if fill volume is below 90%",
+    reship: "Re-ship/Replacement or refund if seized by customs",
 };
 export const ORDER_LABELS: Record<keyof OrderTypes, string> = {
     single: "1V", halfkit: "½K", fullkit: "FK",
@@ -126,6 +138,14 @@ export const LEGEND = [
             { abbr: "TABS", label: "Tablets" }, { abbr: "RAW", label: "Raw Powder" },
             { abbr: "AMN", label: "Amino Acids" }, { abbr: "SUP", label: "Supplies" },
             { abbr: "AAS", label: "Anabolic-Androgenic Steroids" },
+        ],
+    },
+    {
+        category: "Guarantee",
+        items: [
+            { abbr: "Purity", label: "Re-ship/Replacement or refund if purity is below 99%" },
+            { abbr: "Volume", label: "Re-ship/Replacement or refund if fill volume is below 90%" },
+            { abbr: "Re-Ship", label: "Re-ship/Replacement or refund if seized by customs" },
         ],
     },
     {

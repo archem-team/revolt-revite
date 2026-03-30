@@ -1,7 +1,7 @@
 import type {
     Community, CommerceCommunity, CommunityBase,
     VendorCommunity, ResellerCommunity, OtherCommunity,
-    Review, Payment, Warehouses, Products, OrderTypes, FilterKey,
+    Review, Payment, Warehouses, Products, Guarantees, OrderTypes, FilterKey,
 } from "./types";
 
 // ─── CSV Parser ───────────────────────────────────────────────────────────────
@@ -73,6 +73,11 @@ export function rowToCommunity(r: Record<string, string>): Community | null {
             pep: toBool(r["pep"]), oil: toBool(r["oil"]), tabs: toBool(r["tabs"]),
             raw: toBool(r["raw"]), amn: toBool(r["amn"]), sup: toBool(r["sup"]), aas: toBool(r["aas"]),
         },
+        guarantees: {
+            purity: toBool(r["guaranteePurity"]),
+            volume: toBool(r["guaranteeVolume"]),
+            reship: toBool(r["guaranteeReship"]),
+        },
         shippingTime: r["shippingTime"] || "",
         freeShipping: toBool(r["freeShipping"]),
         freeShippingThreshold: r["freeShippingThreshold"] || "",
@@ -109,6 +114,7 @@ export function rowToReview(r: Record<string, string>): Review | null {
 export const defPay: Payment = { cc: false, btc: false, pp: false, zelle: false, venmo: false, bt: false, chk: false };
 export const defWh: Warehouses = { us: false, eu: false, aus: false };
 export const defPr: Products = { pep: false, oil: false, tabs: false, raw: false, amn: false, sup: false, aas: false };
+export const defGu: Guarantees = { purity: false, volume: false, reship: false };
 export const defOr: OrderTypes = { single: false, halfkit: false, fullkit: false };
 
 // ─── API → model mappers ──────────────────────────────────────────────────────
@@ -135,6 +141,7 @@ export function apiToCommunity(c: any): Community {
         payment: c.payment ?? { ...defPay },
         warehouses: c.warehouses ?? { ...defWh },
         products: c.products ?? { ...defPr },
+        guarantees: c.guarantees ?? { ...defGu },
         shippingTime: c.shippingTime || "",
         freeShipping: c.freeShipping || false,
         freeShippingThreshold: c.freeShippingThreshold || "",

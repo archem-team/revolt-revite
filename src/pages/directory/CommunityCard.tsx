@@ -1,7 +1,7 @@
 import { useState, useEffect } from "preact/hooks";
 import { clientController } from "../../controllers/client/ClientController";
-import type { Community, CommerceCommunity, Payment, Warehouses, Products, OrderTypes } from "./types";
-import { PAYMENT_LABELS, WAREHOUSE_LABELS, PRODUCT_LABELS, ORDER_LABELS } from "./types";
+import type { Community, CommerceCommunity, Payment, Warehouses, Products, Guarantees, OrderTypes } from "./types";
+import { PAYMENT_LABELS, WAREHOUSE_LABELS, PRODUCT_LABELS, GUARANTEE_LABELS, GUARANTEE_HINTS, ORDER_LABELS } from "./types";
 import { formatCount } from "./dataUtils";
 import {
     Badge, BadgeRow, Stars, StarNum,
@@ -75,6 +75,20 @@ export function ProductBadges({ products }: { products: Products }) {
     );
 }
 
+export function GuaranteeBadges({ guarantees }: { guarantees: Guarantees }) {
+    return (
+        <BadgeRow>
+            {(Object.keys(GUARANTEE_LABELS) as (keyof Guarantees)[]).map((k) =>
+                guarantees[k] ? (
+                    <Badge key={k} $v="orange" title={GUARANTEE_HINTS[k]}>
+                        {GUARANTEE_LABELS[k]}
+                    </Badge>
+                ) : null,
+            )}
+        </BadgeRow>
+    );
+}
+
 export function OrderBadges({ orderTypes }: { orderTypes: OrderTypes }) {
     return (
         <BadgeRow>
@@ -104,7 +118,7 @@ function useLiveStats(community: Community): { memberCount: number; onlineCount:
                     setLive({ memberCount, onlineCount: onlineCount ?? community.onlineCount });
                 }
             })
-            .catch(() => {/* fall through to stored fallback */});
+            .catch(() => {/* fall through to stored fallback */ });
         return () => { cancelled = true; };
     }, [community.serverId]);
 
@@ -167,6 +181,8 @@ export function CommunityCard({
                         <PaymentBadges payment={c.payment} />
                         <SectionLabel>Products</SectionLabel>
                         <ProductBadges products={c.products} />
+                        <SectionLabel>Guarantee</SectionLabel>
+                        <GuaranteeBadges guarantees={c.guarantees} />
                         {community.type === "reseller" && c.orderTypes && (
                             <>
                                 <SectionLabel>Order Types</SectionLabel>
@@ -239,6 +255,7 @@ export function CommunityRow({
                     <td><PaymentBadges payment={c.payment} /></td>
                     <td><CountryBadges warehouses={c.warehouses} /></td>
                     <td><ProductBadges products={c.products} /></td>
+                    <td><GuaranteeBadges guarantees={c.guarantees} /></td>
                     {isReseller && <td>{c.orderTypes ? <OrderBadges orderTypes={c.orderTypes} /> : <span style={{ color: "var(--tertiary-foreground)" }}>—</span>}</td>}
                     <td>
                         {c.freeShipping
@@ -248,7 +265,7 @@ export function CommunityRow({
                     <td style={{ whiteSpace: "nowrap", color: "var(--secondary-foreground)" }}>{c.shippingTime}</td>
                 </>
             ) : (
-                <td colSpan={isReseller ? 6 : 5} style={{ color: "var(--tertiary-foreground)", fontSize: 12, fontStyle: "italic" }}>
+                <td colSpan={isReseller ? 7 : 6} style={{ color: "var(--tertiary-foreground)", fontSize: 12, fontStyle: "italic" }}>
                     General community
                 </td>
             )}

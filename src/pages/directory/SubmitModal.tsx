@@ -1,7 +1,7 @@
 import { useState } from "preact/hooks";
-import type { SubmitForm, Payment, Warehouses, Products, OrderTypes } from "./types";
-import { PAYMENT_LABELS, WAREHOUSE_LABELS, PRODUCT_LABELS, ORDER_LABELS } from "./types";
-import { defPay, defWh, defPr, defOr, toggle } from "./dataUtils";
+import type { SubmitForm, Payment, Warehouses, Products, Guarantees, OrderTypes } from "./types";
+import { PAYMENT_LABELS, WAREHOUSE_LABELS, PRODUCT_LABELS, GUARANTEE_LABELS, ORDER_LABELS } from "./types";
+import { defPay, defWh, defPr, defGu, defOr, toggle } from "./dataUtils";
 import {
     Overlay, ModalBox, DragHandle, ModalHead, ModalClose, ModalBody,
     FormGroup, CheckboxGrid, CheckLabel, TypeToggle, TypeBtn, PrimaryBtn, ErrorMsg,
@@ -17,7 +17,7 @@ export function SubmitModal({
     const [form, setForm] = useState<SubmitForm>({
         type: initialType, name: "", inviteLink: "", serverId: "",
         payment: { ...defPay }, warehouses: { ...defWh },
-        products: { ...defPr }, orderTypes: { ...defOr }, notes: "",
+        products: { ...defPr }, guarantees: { ...defGu }, orderTypes: { ...defOr }, notes: "",
     });
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState("");
@@ -113,6 +113,18 @@ export function SubmitModal({
                                                     <input type="checkbox" checked={form.products[k]}
                                                         onChange={() => setForm((f) => ({ ...f, products: toggle(f.products, k) }))} />
                                                     {PRODUCT_LABELS[k]}
+                                                </CheckLabel>
+                                            ))}
+                                        </CheckboxGrid>
+                                    </FormGroup>
+                                    <FormGroup>
+                                        <label>Guarantee</label>
+                                        <CheckboxGrid>
+                                            {(Object.keys(GUARANTEE_LABELS) as (keyof Guarantees)[]).map((k) => (
+                                                <CheckLabel key={k} $checked={form.guarantees[k]}>
+                                                    <input type="checkbox" checked={form.guarantees[k]}
+                                                        onChange={() => setForm((f) => ({ ...f, guarantees: toggle(f.guarantees, k) }))} />
+                                                    {GUARANTEE_LABELS[k]}
                                                 </CheckLabel>
                                             ))}
                                         </CheckboxGrid>
