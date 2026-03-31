@@ -1,6 +1,6 @@
 import { useState, useEffect } from "preact/hooks";
 import { clientController } from "../../controllers/client/ClientController";
-import type { Community, CommerceCommunity, Payment, Warehouses, Products, Guarantees, OrderTypes } from "./types";
+import type { Community, CommerceCommunity, Payment, Warehouses, Products, Guarantees, GuaranteeTexts, OrderTypes } from "./types";
 import { PAYMENT_LABELS, WAREHOUSE_LABELS, PRODUCT_LABELS, GUARANTEE_LABELS, GUARANTEE_HINTS, ORDER_LABELS } from "./types";
 import { formatCount } from "./dataUtils";
 import {
@@ -75,17 +75,26 @@ export function ProductBadges({ products }: { products: Products }) {
     );
 }
 
-export function GuaranteeBadges({ guarantees }: { guarantees: Guarantees }) {
+export function GuaranteeBadges({
+    guarantees,
+    guaranteeTexts,
+}: {
+    guarantees: Guarantees;
+    guaranteeTexts?: Partial<GuaranteeTexts> | null;
+}) {
     const guaranteeKeys = (Object.keys(GUARANTEE_LABELS) as (keyof Guarantees)[])
         .filter((k) => guarantees[k]);
 
     return (
         <BadgeRow>
-            {guaranteeKeys.map((k) => (
-                <Badge key={k} $v="orange" data-tip={GUARANTEE_HINTS[k]}>
-                    {GUARANTEE_LABELS[k]}
-                </Badge>
-            ))}
+            {guaranteeKeys.map((k) => {
+                const hintText = guaranteeTexts?.[k]?.trim() || GUARANTEE_HINTS[k];
+                return (
+                    <Badge key={k} $v="orange" data-tip={hintText}>
+                        {GUARANTEE_LABELS[k]}
+                    </Badge>
+                );
+            })}
         </BadgeRow>
     );
 }
@@ -183,7 +192,7 @@ export function CommunityCard({
                         <SectionLabel>Products</SectionLabel>
                         <ProductBadges products={c.products} />
                         <SectionLabel>Guarantee</SectionLabel>
-                        <GuaranteeBadges guarantees={c.guarantees} />
+                        <GuaranteeBadges guarantees={c.guarantees} guaranteeTexts={c.guaranteeTexts} />
                         {community.type === "reseller" && c.orderTypes && (
                             <>
                                 <SectionLabel>Order Types</SectionLabel>
@@ -256,7 +265,7 @@ export function CommunityRow({
                     <td><PaymentBadges payment={c.payment} /></td>
                     <td><CountryBadges warehouses={c.warehouses} /></td>
                     <td><ProductBadges products={c.products} /></td>
-                    <td><GuaranteeBadges guarantees={c.guarantees} /></td>
+                    <td><GuaranteeBadges guarantees={c.guarantees} guaranteeTexts={c.guaranteeTexts} /></td>
                     {isReseller && <td>{c.orderTypes ? <OrderBadges orderTypes={c.orderTypes} /> : <span style={{ color: "var(--tertiary-foreground)" }}>—</span>}</td>}
                     <td>
                         {c.freeShipping
