@@ -95,7 +95,7 @@ function buildPattern(count: number) {
     return items;
 }
 
-function SkeletonRows({ count = 30 }: { count?: number }) {
+function SkeletonRows({ count = 60 }: { count?: number }) {
     const pattern = buildPattern(count);
     let widthIdx = 0;
     let nameIdx = 0;
@@ -164,7 +164,7 @@ interface SkeletonMessagesProps {
  * - contained=true: fixed-height container, used for pagination
  */
 export function SkeletonMessages({
-    count = 30,
+    count = 60,
     align = "end",
     contained = false,
 }: SkeletonMessagesProps) {
