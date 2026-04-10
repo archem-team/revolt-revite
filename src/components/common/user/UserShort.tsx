@@ -23,10 +23,13 @@ const NEW_MEMBER_THRESHOLD_DAYS = 14;
 // Vendor badge flags - reusing existing enum values
 const TRUSTED_SELLER_BADGE = 8;           // ResponsibleDisclosure
 const VERIFIED_VENDOR_BADGE = 512;        // ReservedRelevantJokeBadge1  
-const VERIFIED_MANUFACTURER_BADGE = 1024; // ReservedRelevantJokeBadge2
+// NOTE: ReservedRelevantJokeBadge2 (1024) is rendered as "Gump" in the full badge
+// list (`src/components/common/user/UserBadges.tsx`). It should not trigger the
+// compact "Verified Vendor" indicator next to usernames.
+const VERIFIED_MANUFACTURER_BADGE = 0;
 
 // Combined mask to check for any vendor badge
-const VENDOR_BADGES_MASK = TRUSTED_SELLER_BADGE | VERIFIED_VENDOR_BADGE | VERIFIED_MANUFACTURER_BADGE;
+const VENDOR_BADGES_MASK = TRUSTED_SELLER_BADGE | VERIFIED_VENDOR_BADGE;
 
 const BotBadge = styled.div`
     display: inline-block;
