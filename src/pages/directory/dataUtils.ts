@@ -1,8 +1,20 @@
 import type {
-    Community, CommerceCommunity, CommunityBase,
-    VendorCommunity, ResellerCommunity, OtherCommunity,
-    Review, Payment, Warehouses, Products, OrderTypes, FilterKey,
+    Community,
+    CommerceCommunity,
+    CommunityBase,
+    VendorCommunity,
+    ResellerCommunity,
+    OtherCommunity,
+    Review,
+    Payment,
+    Warehouses,
+    Products,
+    Guarantees,
+    GuaranteeTexts,
+    OrderTypes,
+    FilterKey,
 } from "./types";
+import { GUARANTEE_TEXT_DEFAULTS } from "./types";
 
 // ─── CSV Parser ───────────────────────────────────────────────────────────────
 
@@ -16,7 +28,9 @@ export function parseCSV(text: string): Record<string, string>[] {
         if (!line) continue;
         const values = splitCSVRow(line);
         const row: Record<string, string> = {};
-        headers.forEach((h, idx) => { row[h.trim()] = values[idx]?.trim() ?? ""; });
+        headers.forEach((h, idx) => {
+            row[h.trim()] = values[idx]?.trim() ?? "";
+        });
         rows.push(row);
     }
     return rows;
@@ -29,10 +43,13 @@ function splitCSVRow(line: string): string[] {
     for (let i = 0; i < line.length; i++) {
         const ch = line[i];
         if (ch === '"') {
-            if (inQuote && line[i + 1] === '"') { cur += '"'; i++; }
-            else inQuote = !inQuote;
+            if (inQuote && line[i + 1] === '"') {
+                cur += '"';
+                i++;
+            } else inQuote = !inQuote;
         } else if (ch === "," && !inQuote) {
-            result.push(cur); cur = "";
+            result.push(cur);
+            cur = "";
         } else {
             cur += ch;
         }
@@ -41,8 +58,26 @@ function splitCSVRow(line: string): string[] {
     return result;
 }
 
-function toBool(v: string): boolean { return v === "TRUE" || v === "true" || v === "1"; }
-function toNum(v: string): number { return parseFloat(v) || 0; }
+function toBool(v: string): boolean {
+    return v === "TRUE" || v === "true" || v === "1";
+}
+function toNum(v: string): number {
+    return parseFloat(v) || 0;
+}
+function toText(v: string | undefined, fallback: string): string {
+    const trimmed = (v ?? "").trim();
+    return trimmed || fallback;
+}
+
+function mapGuaranteeTexts(
+    texts?: Partial<GuaranteeTexts> | null,
+): GuaranteeTexts {
+    return {
+        purity: toText(texts?.purity, GUARANTEE_TEXT_DEFAULTS.purity),
+        volume: toText(texts?.volume, GUARANTEE_TEXT_DEFAULTS.volume),
+        reship: toText(texts?.reship, GUARANTEE_TEXT_DEFAULTS.reship),
+    };
+}
 
 export function rowToCommunity(r: Record<string, string>): Community | null {
     const type = r["type"] as "vendor" | "reseller" | "other";
@@ -65,13 +100,46 @@ export function rowToCommunity(r: Record<string, string>): Community | null {
     const commerce = {
         ...base,
         payment: {
-            cc: toBool(r["cc"]), btc: toBool(r["btc"]), pp: toBool(r["pp"]),
-            zelle: toBool(r["zelle"]), venmo: toBool(r["venmo"]), bt: toBool(r["bt"]), chk: toBool(r["chk"]),
+            cc: toBool(r["cc"]),
+            btc: toBool(r["btc"]),
+            pp: toBool(r["pp"]),
+            zelle: toBool(r["zelle"]),
+            venmo: toBool(r["venmo"]),
+            bt: toBool(r["bt"]),
+            chk: toBool(r["chk"]),
         },
-        warehouses: { us: toBool(r["us"]), eu: toBool(r["eu"]), aus: toBool(r["aus"]) },
+        warehouses: {
+            us: toBool(r["us"]),
+            eu: toBool(r["eu"]),
+            aus: toBool(r["aus"]),
+        },
         products: {
-            pep: toBool(r["pep"]), oil: toBool(r["oil"]), tabs: toBool(r["tabs"]),
-            raw: toBool(r["raw"]), amn: toBool(r["amn"]), sup: toBool(r["sup"]), aas: toBool(r["aas"]),
+            pep: toBool(r["pep"]),
+            oil: toBool(r["oil"]),
+            tabs: toBool(r["tabs"]),
+            raw: toBool(r["raw"]),
+            amn: toBool(r["amn"]),
+            sup: toBool(r["sup"]),
+            aas: toBool(r["aas"]),
+        },
+        guarantees: {
+            purity: toBool(r["guaranteePurity"]),
+            volume: toBool(r["guaranteeVolume"]),
+            reship: toBool(r["guaranteeReship"]),
+        },
+        guaranteeTexts: {
+            purity: toText(
+                r["guaranteePurityText"],
+                GUARANTEE_TEXT_DEFAULTS.purity,
+            ),
+            volume: toText(
+                r["guaranteeVolumeText"],
+                GUARANTEE_TEXT_DEFAULTS.volume,
+            ),
+            reship: toText(
+                r["guaranteeReshipText"],
+                GUARANTEE_TEXT_DEFAULTS.reship,
+            ),
         },
         shippingTime: r["shippingTime"] || "",
         freeShipping: toBool(r["freeShipping"]),
@@ -106,10 +174,36 @@ export function rowToReview(r: Record<string, string>): Review | null {
 
 // ─── Default map values ───────────────────────────────────────────────────────
 
-export const defPay: Payment = { cc: false, btc: false, pp: false, zelle: false, venmo: false, bt: false, chk: false };
+export const defPay: Payment = {
+    cc: false,
+    btc: false,
+    pp: false,
+    zelle: false,
+    venmo: false,
+    bt: false,
+    chk: false,
+};
 export const defWh: Warehouses = { us: false, eu: false, aus: false };
-export const defPr: Products = { pep: false, oil: false, tabs: false, raw: false, amn: false, sup: false, aas: false };
-export const defOr: OrderTypes = { single: false, halfkit: false, fullkit: false };
+export const defPr: Products = {
+    pep: false,
+    oil: false,
+    tabs: false,
+    raw: false,
+    amn: false,
+    sup: false,
+    aas: false,
+};
+export const defGu: Guarantees = {
+    purity: false,
+    volume: false,
+    reship: false,
+};
+export const defGuText: GuaranteeTexts = { ...GUARANTEE_TEXT_DEFAULTS };
+export const defOr: OrderTypes = {
+    single: false,
+    halfkit: false,
+    fullkit: false,
+};
 
 // ─── API → model mappers ──────────────────────────────────────────────────────
 
@@ -135,12 +229,18 @@ export function apiToCommunity(c: any): Community {
         payment: c.payment ?? { ...defPay },
         warehouses: c.warehouses ?? { ...defWh },
         products: c.products ?? { ...defPr },
+        guarantees: c.guarantees ?? { ...defGu },
+        guaranteeTexts: mapGuaranteeTexts(c.guaranteeTexts),
         shippingTime: c.shippingTime || "",
         freeShipping: c.freeShipping || false,
         freeShippingThreshold: c.freeShippingThreshold || "",
     };
     if (c.type === "reseller") {
-        return { ...commerce, type: "reseller", orderTypes: c.orderTypes ?? { ...defOr } } as ResellerCommunity;
+        return {
+            ...commerce,
+            type: "reseller",
+            orderTypes: c.orderTypes ?? { ...defOr },
+        } as ResellerCommunity;
     }
     return { ...commerce, type: "vendor", orderTypes: null } as VendorCommunity;
 }
@@ -165,7 +265,10 @@ export function formatCount(n: number): string {
     return String(n);
 }
 
-export function matchesFilters(c: CommerceCommunity, active: Set<FilterKey>): boolean {
+export function matchesFilters(
+    c: CommerceCommunity,
+    active: Set<FilterKey>,
+): boolean {
     if (active.size === 0) return true;
     for (const f of active) {
         if (f === "us" && !c.warehouses.us) return false;

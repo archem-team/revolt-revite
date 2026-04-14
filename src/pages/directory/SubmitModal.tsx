@@ -1,7 +1,7 @@
 import { useState } from "preact/hooks";
-import type { SubmitForm, Payment, Warehouses, Products, OrderTypes } from "./types";
-import { PAYMENT_LABELS, WAREHOUSE_LABELS, PRODUCT_LABELS, ORDER_LABELS } from "./types";
-import { defPay, defWh, defPr, defOr, toggle } from "./dataUtils";
+import type { SubmitForm, Payment, Warehouses, Products, Guarantees, GuaranteeTexts, OrderTypes } from "./types";
+import { PAYMENT_LABELS, WAREHOUSE_LABELS, PRODUCT_LABELS, GUARANTEE_LABELS, GUARANTEE_TEXT_DEFAULTS, ORDER_LABELS } from "./types";
+import { defPay, defWh, defPr, defGu, defGuText, defOr, toggle } from "./dataUtils";
 import {
     Overlay, ModalBox, DragHandle, ModalHead, ModalClose, ModalBody,
     FormGroup, CheckboxGrid, CheckLabel, TypeToggle, TypeBtn, PrimaryBtn, ErrorMsg,
@@ -17,7 +17,7 @@ export function SubmitModal({
     const [form, setForm] = useState<SubmitForm>({
         type: initialType, name: "", inviteLink: "", serverId: "",
         payment: { ...defPay }, warehouses: { ...defWh },
-        products: { ...defPr }, orderTypes: { ...defOr }, notes: "",
+        products: { ...defPr }, guarantees: { ...defGu }, guaranteeTexts: { ...defGuText }, orderTypes: { ...defOr }, notes: "",
     });
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState("");
@@ -116,6 +116,33 @@ export function SubmitModal({
                                                 </CheckLabel>
                                             ))}
                                         </CheckboxGrid>
+                                    </FormGroup>
+                                    <FormGroup>
+                                        <label>Guarantee</label>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                            {(Object.keys(GUARANTEE_LABELS) as (keyof Guarantees)[]).map((k) => (
+                                                <div key={k} style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: 8, alignItems: "center" }}>
+                                                    <CheckLabel $checked={form.guarantees[k]}>
+                                                        <input type="checkbox" checked={form.guarantees[k]}
+                                                            onChange={() => setForm((f) => ({ ...f, guarantees: toggle(f.guarantees, k) }))} />
+                                                        {GUARANTEE_LABELS[k]}
+                                                    </CheckLabel>
+                                                    <input
+                                                        type="text"
+                                                        value={form.guaranteeTexts[k]}
+                                                        onInput={(e) => setForm((f) => ({
+                                                            ...f,
+                                                            guaranteeTexts: {
+                                                                ...f.guaranteeTexts,
+                                                                [k]: (e.target as HTMLInputElement).value,
+                                                            } as GuaranteeTexts,
+                                                        }))}
+                                                        placeholder={GUARANTEE_TEXT_DEFAULTS[k]}
+                                                        aria-label={`${GUARANTEE_LABELS[k]} guarantee chip text`}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
                                     </FormGroup>
                                     {form.type === "reseller" && (
                                         <FormGroup>

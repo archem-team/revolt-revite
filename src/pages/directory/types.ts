@@ -1,15 +1,39 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface Payment {
-    cc: boolean; btc: boolean; pp: boolean;
-    zelle: boolean; venmo: boolean; bt: boolean; chk: boolean;
+    cc: boolean;
+    btc: boolean;
+    pp: boolean;
+    zelle: boolean;
+    venmo: boolean;
+    bt: boolean;
+    chk: boolean;
 }
-export interface Warehouses { us: boolean; eu: boolean; aus: boolean; }
+export interface Warehouses {
+    us: boolean;
+    eu: boolean;
+    aus: boolean;
+}
 export interface Products {
-    pep: boolean; oil: boolean; tabs: boolean;
-    raw: boolean; amn: boolean; sup: boolean; aas: boolean;
+    pep: boolean;
+    oil: boolean;
+    tabs: boolean;
+    raw: boolean;
+    amn: boolean;
+    sup: boolean;
+    aas: boolean;
 }
-export interface OrderTypes { single: boolean; halfkit: boolean; fullkit: boolean; }
+export interface Guarantees {
+    purity: boolean;
+    volume: boolean;
+    reship: boolean;
+}
+export type GuaranteeTexts = Record<keyof Guarantees, string>;
+export interface OrderTypes {
+    single: boolean;
+    halfkit: boolean;
+    fullkit: boolean;
+}
 
 export interface CommunityBase {
     id: string;
@@ -31,6 +55,8 @@ export interface VendorCommunity extends CommunityBase {
     payment: Payment;
     warehouses: Warehouses;
     products: Products;
+    guarantees: Guarantees;
+    guaranteeTexts?: GuaranteeTexts;
     orderTypes: null;
     shippingTime: string;
     freeShipping: boolean;
@@ -42,6 +68,8 @@ export interface ResellerCommunity extends CommunityBase {
     payment: Payment;
     warehouses: Warehouses;
     products: Products;
+    guarantees: Guarantees;
+    guaranteeTexts?: GuaranteeTexts;
     orderTypes: OrderTypes;
     shippingTime: string;
     freeShipping: boolean;
@@ -56,8 +84,13 @@ export type Community = VendorCommunity | ResellerCommunity | OtherCommunity;
 export type CommerceCommunity = VendorCommunity | ResellerCommunity;
 
 export interface Review {
-    id: string; vendorId: string; vendorType: string;
-    reviewerName: string; rating: number; text: string; date: string;
+    id: string;
+    vendorId: string;
+    vendorType: string;
+    reviewerName: string;
+    rating: number;
+    text: string;
+    date: string;
 }
 
 export interface SubmitForm {
@@ -68,6 +101,8 @@ export interface SubmitForm {
     payment: Payment;
     warehouses: Warehouses;
     products: Products;
+    guarantees: Guarantees;
+    guaranteeTexts: GuaranteeTexts;
     orderTypes: OrderTypes;
     notes: string;
 }
@@ -75,19 +110,67 @@ export interface SubmitForm {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const PAYMENT_LABELS: Record<keyof Payment, string> = {
-    cc: "CC", btc: "BTC", pp: "PP", zelle: "ZL", venmo: "VM", bt: "BT", chk: "CHK",
+    cc: "CC",
+    btc: "BTC",
+    pp: "PP",
+    zelle: "ZL",
+    venmo: "VM",
+    bt: "BT",
+    chk: "CHK",
 };
-export const WAREHOUSE_LABELS: Record<keyof Warehouses, string> = { us: "US", eu: "EU", aus: "AUS" };
+export const WAREHOUSE_LABELS: Record<keyof Warehouses, string> = {
+    us: "US",
+    eu: "EU",
+    aus: "AUS",
+};
 export const PRODUCT_LABELS: Record<keyof Products, string> = {
-    pep: "PEP", oil: "OIL", tabs: "TABS", raw: "RAW", amn: "AMN", sup: "SUP", aas: "AAS",
+    pep: "PEP",
+    oil: "OIL",
+    tabs: "TABS",
+    raw: "RAW",
+    amn: "AMN",
+    sup: "SUP",
+    aas: "AAS",
+};
+export const GUARANTEE_LABELS: Record<keyof Guarantees, string> = {
+    purity: "Purity",
+    volume: "Volume",
+    reship: "Re-Ship",
+};
+export const GUARANTEE_TEXT_DEFAULTS: GuaranteeTexts = {
+    purity: "Re-ship/Replacement or refund if purity is below 99%",
+    volume: "Re-ship/Replacement or refund if fill volume is below 90%",
+    reship: "Re-ship/Replacement or refund if seized by customs",
+};
+export const GUARANTEE_HINTS: Record<keyof Guarantees, string> = {
+    purity: "Re-ship/Replacement or refund if purity is below 99%",
+    volume: "Re-ship/Replacement or refund if fill volume is below 90%",
+    reship: "Re-ship/Replacement or refund if seized by customs",
 };
 export const ORDER_LABELS: Record<keyof OrderTypes, string> = {
-    single: "1V", halfkit: "½K", fullkit: "FK",
+    single: "1V",
+    halfkit: "½K",
+    fullkit: "FK",
 };
 
-export type FilterKey = "us" | "eu" | "aus" | "cc" | "crypto" | "freeShipping" | "raw" | "oil" | "aas" | "amn" | "sup";
+export type FilterKey =
+    | "us"
+    | "eu"
+    | "aus"
+    | "cc"
+    | "crypto"
+    | "freeShipping"
+    | "raw"
+    | "oil"
+    | "aas"
+    | "amn"
+    | "sup";
 
-export const COMMERCE_FILTERS: { key: FilterKey; label: string; emoji: string }[] = [
+export const COMMERCE_FILTERS: {
+    key: FilterKey;
+    label: string;
+    emoji: string;
+}[] = [
     { key: "us", label: "US", emoji: "🇺🇸" },
     { key: "eu", label: "EU", emoji: "🇪🇺" },
     { key: "aus", label: "AU", emoji: "🇦🇺" },
@@ -105,9 +188,12 @@ export const LEGEND = [
     {
         category: "Payment",
         items: [
-            { abbr: "CC", label: "Credit Card" }, { abbr: "BTC", label: "Bitcoin / Crypto" },
-            { abbr: "PP", label: "PayPal" }, { abbr: "ZL", label: "Zelle" },
-            { abbr: "VM", label: "Venmo" }, { abbr: "BT", label: "Bank Transfer" },
+            { abbr: "CC", label: "Credit Card" },
+            { abbr: "BTC", label: "Bitcoin / Crypto" },
+            { abbr: "PP", label: "PayPal" },
+            { abbr: "ZL", label: "Zelle" },
+            { abbr: "VM", label: "Venmo" },
+            { abbr: "BT", label: "Bank Transfer" },
             { abbr: "CHK", label: "Check" },
         ],
     },
@@ -122,10 +208,30 @@ export const LEGEND = [
     {
         category: "Products",
         items: [
-            { abbr: "PEP", label: "Peptides" }, { abbr: "OIL", label: "Oils" },
-            { abbr: "TABS", label: "Tablets" }, { abbr: "RAW", label: "Raw Powder" },
-            { abbr: "AMN", label: "Amino Acids" }, { abbr: "SUP", label: "Supplies" },
+            { abbr: "PEP", label: "Peptides" },
+            { abbr: "OIL", label: "Oils" },
+            { abbr: "TABS", label: "Tablets" },
+            { abbr: "RAW", label: "Raw Powder" },
+            { abbr: "AMN", label: "Amino Acids" },
+            { abbr: "SUP", label: "Supplies" },
             { abbr: "AAS", label: "Anabolic-Androgenic Steroids" },
+        ],
+    },
+    {
+        category: "Guarantee",
+        items: [
+            {
+                abbr: "Purity",
+                label: "Re-ship/Replacement or refund if purity is below 99%",
+            },
+            {
+                abbr: "Volume",
+                label: "Re-ship/Replacement or refund if fill volume is below 90%",
+            },
+            {
+                abbr: "Re-Ship",
+                label: "Re-ship guarantee: Re-ship/Replacement or refund if seized by customs",
+            },
         ],
     },
     {
@@ -140,8 +246,10 @@ export const LEGEND = [
 
 // ─── Sheet URLs ───────────────────────────────────────────────────────────────
 
-export const SHEET_COMMUNITIES = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRIOkigL7Zu8jsYMF0AKu8CAw1az-8EFiAhHCrXBzSASrhQDocU-U5mezf2u08uO_imVvWvmi3rH-NX/pub?gid=0&single=true&output=csv";
-export const SHEET_REVIEWS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRIOkigL7Zu8jsYMF0AKu8CAw1az-8EFiAhHCrXBzSASrhQDocU-U5mezf2u08uO_imVvWvmi3rH-NX/pub?gid=1967322747&single=true&output=csv";
+export const SHEET_COMMUNITIES =
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vRIOkigL7Zu8jsYMF0AKu8CAw1az-8EFiAhHCrXBzSASrhQDocU-U5mezf2u08uO_imVvWvmi3rH-NX/pub?gid=0&single=true&output=csv";
+export const SHEET_REVIEWS =
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vRIOkigL7Zu8jsYMF0AKu8CAw1az-8EFiAhHCrXBzSASrhQDocU-U5mezf2u08uO_imVvWvmi3rH-NX/pub?gid=1967322747&single=true&output=csv";
 
 // ─── Live API ─────────────────────────────────────────────────────────────────
 

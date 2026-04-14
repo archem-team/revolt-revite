@@ -156,6 +156,7 @@ function Directory() {
                                                 <th>Payment</th>
                                                 <th>Countries</th>
                                                 <th>Products</th>
+                                                <th>Guarantee</th>
                                                 {tab === "resellers" && <th>Order Types</th>}
                                                 <th>Free Ship</th>
                                                 <th>Ship Time</th>
