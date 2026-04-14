@@ -8,11 +8,14 @@ export interface Payment {
     venmo: boolean;
     bt: boolean;
     chk: boolean;
+    custom?: string[];
 }
 export interface Warehouses {
     us: boolean;
     eu: boolean;
     aus: boolean;
+    cn: boolean;
+    custom?: string[];
 }
 export interface Products {
     pep: boolean;
@@ -22,6 +25,7 @@ export interface Products {
     amn: boolean;
     sup: boolean;
     aas: boolean;
+    custom?: string[];
 }
 export interface Guarantees {
     purity: boolean;
@@ -109,7 +113,7 @@ export interface SubmitForm {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-export const PAYMENT_LABELS: Record<keyof Payment, string> = {
+export const PAYMENT_LABELS: Record<Exclude<keyof Payment, 'custom'>, string> = {
     cc: "CC",
     btc: "BTC",
     pp: "PP",
@@ -118,12 +122,13 @@ export const PAYMENT_LABELS: Record<keyof Payment, string> = {
     bt: "BT",
     chk: "CHK",
 };
-export const WAREHOUSE_LABELS: Record<keyof Warehouses, string> = {
+export const WAREHOUSE_LABELS: Record<string, string> = {
     us: "US",
     eu: "EU",
     aus: "AUS",
+    cn: "CN",
 };
-export const PRODUCT_LABELS: Record<keyof Products, string> = {
+export const PRODUCT_LABELS: Record<Exclude<keyof Products, 'custom'>, string> = {
     pep: "PEP",
     oil: "OIL",
     tabs: "TABS",
@@ -253,4 +258,4 @@ export const SHEET_REVIEWS =
 
 // ─── Live API ─────────────────────────────────────────────────────────────────
 
-export const API_BASE = "https://manageapi.peptide.chat/api";
+export const API_BASE = import.meta.env.VITE_API_BASE || "/api";
