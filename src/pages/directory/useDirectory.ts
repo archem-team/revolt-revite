@@ -59,7 +59,10 @@ export function useDirectory() {
                 .then((r) => r.json())
                 .then((json) => {
                     if (cancelled) return;
-                    setAllCommunities((json.data ?? []).map(apiToCommunity));
+                    const list = Array.isArray(json.data) 
+                        ? json.data 
+                        : (json.data?.items ?? json.items ?? []);
+                    setAllCommunities(list.map(apiToCommunity));
                 })
                 .catch((err) => {
                     if (!cancelled) setLoadError(String(err));
@@ -240,6 +243,21 @@ export function useDirectory() {
 
     function handleSubmitListing(form: SubmitForm) {
         if (useLive) {
+            const isCommerce = form.type === "vendor" || form.type === "reseller";
+
+            // Build the single `guarantee` object the backend expects:
+            // { purity, purityDesc, volume, volumeDesc, reship, reshipDesc }
+            const guarantee = isCommerce
+                ? {
+                      purity: form.guarantees.purity,
+                      purityDesc: form.guaranteeTexts.purity || undefined,
+                      volume: form.guarantees.volume,
+                      volumeDesc: form.guaranteeTexts.volume || undefined,
+                      reship: form.guarantees.reship,
+                      reshipDesc: form.guaranteeTexts.reship || undefined,
+                  }
+                : undefined;
+
             fetch(`${API_BASE}/directory/communities/submissions`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -248,12 +266,13 @@ export function useDirectory() {
                     name: form.name,
                     inviteLink: form.inviteLink,
                     serverId: form.serverId || undefined,
-                    payment: form.payment,
-                    warehouses: form.warehouses,
-                    products: form.products,
-                    guarantees: form.guarantees,
-                    guaranteeTexts: form.guaranteeTexts,
-                    orderTypes: form.orderTypes,
+                    ...(isCommerce && {
+                        payment: form.payment,
+                        warehouses: form.warehouses,
+                        products: form.products,
+                        guarantee,
+                        orderTypes: form.type === "reseller" ? form.orderTypes : undefined,
+                    }),
                     notes: form.notes || undefined,
                 }),
             }).catch(() => {});

@@ -182,8 +182,9 @@ export const defPay: Payment = {
     venmo: false,
     bt: false,
     chk: false,
+    custom: [],
 };
-export const defWh: Warehouses = { us: false, eu: false, aus: false };
+export const defWh: Warehouses = { us: false, eu: false, aus: false, cn: false, custom: [] };
 export const defPr: Products = {
     pep: false,
     oil: false,
@@ -192,7 +193,8 @@ export const defPr: Products = {
     amn: false,
     sup: false,
     aas: false,
-};
+    custom: [],
+};;
 export const defGu: Guarantees = {
     purity: false,
     volume: false,
@@ -224,13 +226,66 @@ export function apiToCommunity(c: any): Community {
         notes: c.notes || "",
     };
     if (c.type === "other") return base as OtherCommunity;
+
+    // Merge API payment (may include custom[])
+    const apiPay = c.payment ?? {};
+    const payment: Payment = {
+        ...defPay,
+        cc: apiPay.cc ?? false,
+        btc: apiPay.btc ?? false,
+        pp: apiPay.pp ?? false,
+        zelle: apiPay.zelle ?? false,
+        venmo: apiPay.venmo ?? false,
+        bt: apiPay.bt ?? false,
+        chk: apiPay.chk ?? false,
+        custom: Array.isArray(apiPay.custom) ? apiPay.custom : [],
+    };
+
+    // Merge API warehouses (may include cn + custom[])
+    const apiWh = c.warehouses ?? {};
+    const warehouses: Warehouses = {
+        ...defWh,
+        us: apiWh.us ?? false,
+        eu: apiWh.eu ?? false,
+        aus: apiWh.aus ?? false,
+        cn: apiWh.cn ?? false,
+        custom: Array.isArray(apiWh.custom) ? apiWh.custom : [],
+    };
+
+    // Merge API products (may include custom[])
+    const apiPr = c.products ?? {};
+    const products: Products = {
+        ...defPr,
+        pep: apiPr.pep ?? false,
+        oil: apiPr.oil ?? false,
+        tabs: apiPr.tabs ?? false,
+        raw: apiPr.raw ?? false,
+        amn: apiPr.amn ?? false,
+        sup: apiPr.sup ?? false,
+        aas: apiPr.aas ?? false,
+        custom: Array.isArray(apiPr.custom) ? apiPr.custom : [],
+    };
+
+    // Guarantees — backend may use purityDesc/volumeDesc/reshipDesc as text keys
+    const apiGu = c.guarantee ?? c.guarantees ?? {};
+    const guarantees: Guarantees = {
+        purity: apiGu.purity ?? false,
+        volume: apiGu.volume ?? false,
+        reship: apiGu.reship ?? false,
+    };
+    const guaranteeTexts = mapGuaranteeTexts({
+        purity: apiGu.purityDesc ?? c.guaranteeTexts?.purity,
+        volume: apiGu.volumeDesc ?? c.guaranteeTexts?.volume,
+        reship: apiGu.reshipDesc ?? c.guaranteeTexts?.reship,
+    });
+
     const commerce = {
         ...base,
-        payment: c.payment ?? { ...defPay },
-        warehouses: c.warehouses ?? { ...defWh },
-        products: c.products ?? { ...defPr },
-        guarantees: c.guarantees ?? { ...defGu },
-        guaranteeTexts: mapGuaranteeTexts(c.guaranteeTexts),
+        payment,
+        warehouses,
+        products,
+        guarantees,
+        guaranteeTexts,
         shippingTime: c.shippingTime || "",
         freeShipping: c.freeShipping || false,
         freeShippingThreshold: c.freeShippingThreshold || "",

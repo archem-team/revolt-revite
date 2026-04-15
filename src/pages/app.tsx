@@ -55,6 +55,11 @@ export function App() {
                             <Directory />
                         </LoadSuspense>
                     </Route>
+                    <Route path="/home">
+                        <LoadSuspense>
+                            <Directory />
+                        </LoadSuspense>
+                    </Route>
                     <Route path="/login">
                         <CheckAuth>
                             <LoadSuspense>

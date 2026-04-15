@@ -48,9 +48,12 @@ export function StarPicker({ rating, onChange }: { rating: number; onChange: (n:
 export function PaymentBadges({ payment }: { payment: Payment }) {
     return (
         <BadgeRow>
-            {(Object.keys(PAYMENT_LABELS) as (keyof Payment)[]).map((k) =>
+            {(Object.keys(PAYMENT_LABELS) as (Exclude<keyof Payment, 'custom'>)[]).map((k) =>
                 payment[k] ? <Badge key={k} $v="accent">{PAYMENT_LABELS[k]}</Badge> : null,
             )}
+            {payment.custom?.map((label) => (
+                <Badge key={`custom-pay-${label}`} $v="accent">{label}</Badge>
+            ))}
         </BadgeRow>
     );
 }
@@ -58,9 +61,12 @@ export function PaymentBadges({ payment }: { payment: Payment }) {
 export function CountryBadges({ warehouses }: { warehouses: Warehouses }) {
     return (
         <BadgeRow>
-            {(Object.keys(WAREHOUSE_LABELS) as (keyof Warehouses)[]).map((k) =>
-                warehouses[k] ? <Badge key={k} $v="green">{WAREHOUSE_LABELS[k]}</Badge> : null,
+            {(Object.keys(WAREHOUSE_LABELS) as (keyof typeof WAREHOUSE_LABELS)[]).map((k) =>
+                (warehouses as any)[k] ? <Badge key={k} $v="green">{WAREHOUSE_LABELS[k]}</Badge> : null,
             )}
+            {warehouses.custom?.map((label) => (
+                <Badge key={`custom-wh-${label}`} $v="green">{label}</Badge>
+            ))}
         </BadgeRow>
     );
 }
@@ -68,9 +74,36 @@ export function CountryBadges({ warehouses }: { warehouses: Warehouses }) {
 export function ProductBadges({ products }: { products: Products }) {
     return (
         <BadgeRow>
-            {(Object.keys(PRODUCT_LABELS) as (keyof Products)[]).map((k) =>
+            {(Object.keys(PRODUCT_LABELS) as (Exclude<keyof Products, 'custom'>)[]).map((k) =>
                 products[k] ? <Badge key={k} $v="purple">{PRODUCT_LABELS[k]}</Badge> : null,
             )}
+            {products.custom?.map((label) => (
+                <Badge key={`custom-pr-${label}`} $v="purple">{label}</Badge>
+            ))}
+        </BadgeRow>
+    );
+}
+
+export function GuaranteeBadges({
+    guarantees,
+    guaranteeTexts,
+}: {
+    guarantees: Guarantees;
+    guaranteeTexts?: Partial<GuaranteeTexts> | null;
+}) {
+    const guaranteeKeys = (Object.keys(GUARANTEE_LABELS) as (keyof Guarantees)[])
+        .filter((k) => guarantees[k]);
+
+    return (
+        <BadgeRow>
+            {guaranteeKeys.map((k) => {
+                const hintText = guaranteeTexts?.[k]?.trim() || GUARANTEE_HINTS[k];
+                return (
+                    <Badge key={k} $v="orange" data-tip={hintText}>
+                        {GUARANTEE_LABELS[k]}
+                    </Badge>
+                );
+            })}
         </BadgeRow>
     );
 }
