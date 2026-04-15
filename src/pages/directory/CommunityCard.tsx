@@ -108,30 +108,6 @@ export function GuaranteeBadges({
     );
 }
 
-export function GuaranteeBadges({
-    guarantees,
-    guaranteeTexts,
-}: {
-    guarantees: Guarantees;
-    guaranteeTexts?: Partial<GuaranteeTexts> | null;
-}) {
-    const guaranteeKeys = (Object.keys(GUARANTEE_LABELS) as (keyof Guarantees)[])
-        .filter((k) => guarantees[k]);
-
-    return (
-        <BadgeRow>
-            {guaranteeKeys.map((k) => {
-                const hintText = guaranteeTexts?.[k]?.trim() || GUARANTEE_HINTS[k];
-                return (
-                    <Badge key={k} $v="orange" data-tip={hintText}>
-                        {GUARANTEE_LABELS[k]}
-                    </Badge>
-                );
-            })}
-        </BadgeRow>
-    );
-}
-
 export function OrderBadges({ orderTypes }: { orderTypes: OrderTypes }) {
     return (
         <BadgeRow>
