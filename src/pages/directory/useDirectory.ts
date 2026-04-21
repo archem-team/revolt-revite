@@ -25,8 +25,8 @@ export function useDirectory() {
     const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(
         new Set(),
     );
-    const [sortCol, setSortCol] = useState<"rating" | "name">("rating");
-    const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+    const [sortCol, setSortCol] = useState<"rank" | "rating" | "name">("rank");
+    const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
     const [reviews, setReviews] = useState<Review[]>([]);
     /** Live mode: review counts from GET reviews pagination (list is empty until a modal fetch). */
     const [reviewTotals, setReviewTotals] = useState<Record<string, number>>(
@@ -44,7 +44,7 @@ export function useDirectory() {
     const [darkMode, setDarkMode] = useState(false);
 
     const useLive = useMemo(
-        () => new URLSearchParams(window.location.search).has("live"),
+        () => new URLSearchParams(window.location.search).has("live") || window.location.pathname === "/",
         [],
     );
 
@@ -167,7 +167,7 @@ export function useDirectory() {
         });
     }
 
-    function handleSort(col: "rating" | "name") {
+    function handleSort(col: "rank" | "rating" | "name") {
         if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
         else {
             setSortCol(col);
@@ -200,10 +200,15 @@ export function useDirectory() {
                 return matchesFilters(c as CommerceCommunity, activeFilters);
             })
             .sort((a, b) => {
-                const cmp =
-                    sortCol === "rating"
-                        ? a.rating - b.rating
-                        : a.name.localeCompare(b.name);
+                let cmp = 0;
+                if (sortCol === "rank") {
+                    cmp = (a.sortorder || 0) - (b.sortorder || 0);
+                    if (cmp === 0) cmp = b.rating - a.rating; // Tie breaker: higher rating
+                } else if (sortCol === "rating") {
+                    cmp = a.rating - b.rating;
+                } else {
+                    cmp = a.name.localeCompare(b.name);
+                }
                 return sortDir === "asc" ? cmp : -cmp;
             });
     }, [allCommunities, tab, tabType, search, activeFilters, sortCol, sortDir]);
@@ -272,6 +277,9 @@ export function useDirectory() {
                         products: form.products,
                         guarantee,
                         orderTypes: form.type === "reseller" ? form.orderTypes : undefined,
+                        externalLinks: form.externalLinks || undefined,
+                        coas: form.coas || undefined,
+                        shortDescription: form.shortDescription || undefined,
                     }),
                     notes: form.notes || undefined,
                 }),

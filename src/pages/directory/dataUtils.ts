@@ -87,7 +87,7 @@ export function rowToCommunity(r: Record<string, string>): Community | null {
         type,
         name: r["name"] || "",
         logo: r["logo"] || null,
-        inviteLink: r["inviteLink"] || "",
+        inviteLink: r["inviteLink"] || null,
         serverId: r["serverId"] || null,
         ageDays: toNum(r["ageDays"]),
         verified: toBool(r["verified"]),
@@ -95,6 +95,9 @@ export function rowToCommunity(r: Record<string, string>): Community | null {
         onlineCount: toNum(r["onlineCount"]),
         rating: toNum(r["rating"]),
         notes: r["notes"] || "",
+        sortorder: toNum(r["sortorder"]),
+        locked: toBool(r["locked"]),
+        joinable: r["joinable"] === "FALSE" || r["joinable"] === "false" || r["joinable"] === "0" ? false : true,
     };
     if (type === "other") return base as OtherCommunity;
     const commerce = {
@@ -184,7 +187,13 @@ export const defPay: Payment = {
     chk: false,
     custom: [],
 };
-export const defWh: Warehouses = { us: false, eu: false, aus: false, cn: false, custom: [] };
+export const defWh: Warehouses = {
+    us: false,
+    eu: false,
+    aus: false,
+    cn: false,
+    custom: [],
+};
 export const defPr: Products = {
     pep: false,
     oil: false,
@@ -194,7 +203,7 @@ export const defPr: Products = {
     sup: false,
     aas: false,
     custom: [],
-};;
+};
 export const defGu: Guarantees = {
     purity: false,
     volume: false,
@@ -216,7 +225,7 @@ export function apiToCommunity(c: any): Community {
         type: c.type,
         name: c.name || "",
         logo: c.logo || null,
-        inviteLink: c.inviteLink || "",
+        inviteLink: c.inviteLink || null,
         serverId: c.serverId || null,
         ageDays: c.ageDays || 0,
         verified: c.verified || false,
@@ -224,6 +233,9 @@ export function apiToCommunity(c: any): Community {
         onlineCount: c.onlineCount || 0,
         rating: c.rating || 0,
         notes: c.notes || "",
+        sortorder: c.sortorder || 0,
+        locked: c.locked ?? false,
+        joinable: c.joinable ?? true,
     };
     if (c.type === "other") return base as OtherCommunity;
 

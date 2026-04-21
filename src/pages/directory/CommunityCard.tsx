@@ -11,6 +11,27 @@ import {
     TableName, TableMeta,
 } from "./stylesCommunity";
 
+function getJoinState(community: Community) {
+    if (community.locked) {
+        return { text: "Join", clickable: false };
+    }
+    if (community.joinable === false) {
+        return { text: "Not Joinable", clickable: false };
+    }
+    if (!community.inviteLink) {
+        return { text: "Unavailable", clickable: false };
+    }
+    return { text: "Join →", clickable: true, href: community.inviteLink };
+}
+
+function getJoinStateRow(community: Community) {
+    const state = getJoinState(community);
+    if (state.text === "Join →") {
+        return { ...state, text: "Join" };
+    }
+    return state;
+}
+
 // ─── Star components ──────────────────────────────────────────────────────────
 
 export function StarRating({ rating }: { rating: number }) {
@@ -172,10 +193,23 @@ export function CommunityCard({
                         <MetaItem>{formatCount(stats.memberCount)}</MetaItem>
                         <MetaItem style={{ color: "var(--secondary-foreground)" }}>·</MetaItem>
                         <MetaItem style={{ color: "var(--success)" }}>● {formatCount(stats.onlineCount)}</MetaItem>
-                        <JoinBtn href={community.inviteLink} target="_blank" rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}>
-                            Join →
-                        </JoinBtn>
+                        {(() => {
+                            const joinState = getJoinState(community);
+                            if (joinState.clickable) {
+                                return (
+                                    <JoinBtn href={joinState.href} target="_blank" rel="noreferrer"
+                                        onClick={(e) => e.stopPropagation()}>
+                                        {joinState.text}
+                                    </JoinBtn>
+                                );
+                            }
+                            return (
+                                <JoinBtn as="span" style={{ opacity: 0.5, cursor: "not-allowed", filter: "grayscale(1)" }}
+                                    onClick={(e) => e.stopPropagation()}>
+                                    {joinState.text}
+                                </JoinBtn>
+                            );
+                        })()}
                     </CommunityMeta>
                 </CardLeft>
                 <CardRight>
@@ -263,10 +297,25 @@ export function CommunityRow({
                     <span>{formatCount(stats.memberCount)} members</span>
                     <span className="sep">·</span>
                     <span className="online">● {formatCount(stats.onlineCount)}</span>
-                    <JoinBtn href={community.inviteLink} target="_blank" rel="noreferrer"
-                        style={{ fontSize: 10, padding: "2px 9px", marginLeft: 4 }}>
-                        Join
-                    </JoinBtn>
+                    {(() => {
+                        const joinState = getJoinStateRow(community);
+                        if (joinState.clickable) {
+                            return (
+                                <JoinBtn href={joinState.href} target="_blank" rel="noreferrer"
+                                    style={{ fontSize: 10, padding: "2px 9px", marginLeft: 4 }}
+                                    onClick={(e) => e.stopPropagation()}>
+                                    {joinState.text}
+                                </JoinBtn>
+                            );
+                        }
+                        return (
+                            <JoinBtn as="span"
+                                style={{ fontSize: 10, padding: "2px 9px", marginLeft: 4, opacity: 0.5, cursor: "not-allowed", filter: "grayscale(1)" }}
+                                onClick={(e) => e.stopPropagation()}>
+                                {joinState.text}
+                            </JoinBtn>
+                        );
+                    })()}
                 </TableMeta>
             </td>
             {isCommerce ? (
