@@ -44,7 +44,7 @@ export interface CommunityBase {
     type: "vendor" | "reseller" | "other";
     name: string;
     logo?: string | null;
-    inviteLink: string;
+    inviteLink: string | null;
     serverId?: string | null;
     ageDays: number;
     verified: boolean;
@@ -52,6 +52,9 @@ export interface CommunityBase {
     onlineCount: number;
     rating: number;
     notes: string;
+    sortorder?: number;
+    locked?: boolean;
+    joinable?: boolean;
 }
 
 export interface VendorCommunity extends CommunityBase {
@@ -108,12 +111,19 @@ export interface SubmitForm {
     guarantees: Guarantees;
     guaranteeTexts: GuaranteeTexts;
     orderTypes: OrderTypes;
+    proofs: File[];
+    externalLinks: string;
+    coas: string;
+    shortDescription: string;
     notes: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-export const PAYMENT_LABELS: Record<Exclude<keyof Payment, 'custom'>, string> = {
+export const PAYMENT_LABELS: Record<
+    Exclude<keyof Payment, "custom">,
+    string
+> = {
     cc: "CC",
     btc: "BTC",
     pp: "PP",
@@ -128,7 +138,10 @@ export const WAREHOUSE_LABELS: Record<string, string> = {
     aus: "AUS",
     cn: "CN",
 };
-export const PRODUCT_LABELS: Record<Exclude<keyof Products, 'custom'>, string> = {
+export const PRODUCT_LABELS: Record<
+    Exclude<keyof Products, "custom">,
+    string
+> = {
     pep: "PEP",
     oil: "OIL",
     tabs: "TABS",
@@ -203,11 +216,12 @@ export const LEGEND = [
         ],
     },
     {
-        category: "Countries",
+        category: "Warehouse Locations",
         items: [
             { abbr: "US", label: "United States" },
             { abbr: "EU", label: "Europe" },
             { abbr: "AUS", label: "Australia" },
+            { abbr: "CN", label: "China" },
         ],
     },
     {
@@ -258,4 +272,6 @@ export const SHEET_REVIEWS =
 
 // ─── Live API ─────────────────────────────────────────────────────────────────
 
-export const API_BASE = import.meta.env.VITE_API_BASE || "/api";
+export const API_BASE =
+    import.meta.env.VITE_API_BASE ||
+    (import.meta.env.PROD ? "https://manageapi.peptide.chat/api" : "/api");

@@ -55,7 +55,7 @@ export function App() {
                             <Directory />
                         </LoadSuspense>
                     </Route>
-                    <Route path="/home">
+                    <Route path="/newhome">
                         <LoadSuspense>
                             <Directory />
                         </LoadSuspense>
