@@ -253,6 +253,8 @@ export function CommunityCard({
                         <PaymentBadges payment={c.payment} />
                         <SectionLabel>Products</SectionLabel>
                         <ProductBadges products={c.products} />
+                        <SectionLabel>Guarantee</SectionLabel>
+                        <GuaranteeBadges guarantees={c.guarantees} guaranteeTexts={c.guaranteeTexts} />
                         {community.type === "reseller" && c.orderTypes && (
                             <>
                                 <SectionLabel>Order Types</SectionLabel>
