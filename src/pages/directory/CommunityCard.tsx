@@ -7,7 +7,7 @@ import {
     Badge, BadgeRow, Stars, StarNum,
     CommunityMeta, MetaItem, JoinBtn,
     Card, CardHead, CardLeft, CardName, CardRight, Chevron,
-    CardDivider, CardBody, SectionLabel, InfoLine,
+    CardDivider, CardBody, SectionLabel, InfoLine, MobileMetaBadgesRow,
     TableName, TableMeta,
 } from "./stylesCommunity";
 
@@ -120,7 +120,7 @@ export function GuaranteeBadges({
             {guaranteeKeys.map((k) => {
                 const hintText = guaranteeTexts?.[k]?.trim() || GUARANTEE_HINTS[k];
                 return (
-                    <Badge key={k} $v="orange" data-tip={hintText}>
+                    <Badge key={k} $v="orange" data-tip={hintText} data-guarantee-chip>
                         {GUARANTEE_LABELS[k]}
                     </Badge>
                 );
@@ -184,7 +184,15 @@ export function CommunityCard({
                     <CardName>
                         {community.name}
                         {community.verified && (
-                            <span style={{ fontSize: 11, color: "#00b4d8", fontWeight: 700, marginLeft: 5 }}>✓</span>
+                            <span
+                                style={{
+                                    fontSize: "var(--font-size-caption-1)",
+                                    color: "var(--color-success)",
+                                    fontWeight: "var(--font-weight-bold)",
+                                    marginLeft: "var(--space-1)",
+                                }}>
+                                ✓
+                            </span>
                         )}
                     </CardName>
                     <CommunityMeta>
@@ -193,34 +201,45 @@ export function CommunityCard({
                         <MetaItem>{formatCount(stats.memberCount)}</MetaItem>
                         <MetaItem style={{ color: "var(--secondary-foreground)" }}>·</MetaItem>
                         <MetaItem style={{ color: "var(--success)" }}>● {formatCount(stats.onlineCount)}</MetaItem>
-                        {(() => {
-                            const joinState = getJoinState(community);
-                            if (joinState.clickable) {
-                                return (
-                                    <JoinBtn href={joinState.href} target="_blank" rel="noreferrer"
-                                        onClick={(e) => e.stopPropagation()}>
-                                        {joinState.text}
-                                    </JoinBtn>
-                                );
-                            }
+                    </CommunityMeta>
+                    {isCommerce && (
+                        <MobileMetaBadgesRow>
+                            <GuaranteeBadges guarantees={c.guarantees} guaranteeTexts={c.guaranteeTexts} />
+                            <CountryBadges warehouses={c.warehouses} />
+                        </MobileMetaBadgesRow>
+                    )}
+                </CardLeft>
+                <CardRight>
+                    {(() => {
+                        const joinState = getJoinState(community);
+                        if (joinState.clickable) {
                             return (
-                                <JoinBtn as="span" style={{ opacity: 0.5, cursor: "not-allowed", filter: "grayscale(1)" }}
+                                <JoinBtn href={joinState.href} target="_blank" rel="noreferrer"
                                     onClick={(e) => e.stopPropagation()}>
                                     {joinState.text}
                                 </JoinBtn>
                             );
-                        })()}
-                    </CommunityMeta>
-                </CardLeft>
-                <CardRight>
+                        }
+                        return (
+                            <JoinBtn as="span" style={{ opacity: 0.5, cursor: "not-allowed", filter: "grayscale(1)" }}
+                                onClick={(e) => e.stopPropagation()}>
+                                {joinState.text}
+                            </JoinBtn>
+                        );
+                    })()}
                     <div onClick={(e) => { e.stopPropagation(); onReview(); }}
                         style={{ cursor: "pointer" }} title="Open reviews">
                         <StarRating rating={community.rating} />
-                        <div style={{ fontSize: 10, color: "var(--tertiary-foreground)", textAlign: "right", marginTop: 1 }}>
+                        <div
+                            style={{
+                                fontSize: "var(--font-size-caption-1)",
+                                color: "var(--tertiary-foreground)",
+                                textAlign: "right",
+                                marginTop: "var(--space-1)",
+                            }}>
                             {reviewCount} review{reviewCount !== 1 ? "s" : ""}
                         </div>
                     </div>
-                    {isCommerce && <CountryBadges warehouses={c.warehouses} />}
                     <Chevron $open={open}>▾</Chevron>
                 </CardRight>
             </CardHead>
@@ -234,8 +253,6 @@ export function CommunityCard({
                         <PaymentBadges payment={c.payment} />
                         <SectionLabel>Products</SectionLabel>
                         <ProductBadges products={c.products} />
-                        <SectionLabel>Guarantee</SectionLabel>
-                        <GuaranteeBadges guarantees={c.guarantees} guaranteeTexts={c.guaranteeTexts} />
                         {community.type === "reseller" && c.orderTypes && (
                             <>
                                 <SectionLabel>Order Types</SectionLabel>
@@ -248,7 +265,12 @@ export function CommunityCard({
                             <InfoLine>
                                 <Badge $v="green">Free Shipping</Badge>
                                 {c.freeShippingThreshold && (
-                                    <span style={{ fontSize: 11, marginLeft: 6, color: "var(--tertiary-foreground)" }}>
+                                    <span
+                                        style={{
+                                            fontSize: "var(--font-size-caption-1)",
+                                            marginLeft: "var(--space-2)",
+                                            color: "var(--tertiary-foreground)",
+                                        }}>
                                         over {c.freeShippingThreshold}
                                     </span>
                                 )}
@@ -282,7 +304,12 @@ export function CommunityRow({
         <tr>
             <td onClick={onReview} style={{ cursor: "pointer", whiteSpace: "nowrap" }} title="Open reviews">
                 <StarRating rating={community.rating} />
-                <div style={{ fontSize: 10, color: "var(--tertiary-foreground)", marginTop: 3 }}>
+                <div
+                    style={{
+                        fontSize: "var(--font-size-caption-1)",
+                        color: "var(--tertiary-foreground)",
+                        marginTop: "var(--space-1)",
+                    }}>
                     {reviewCount} review{reviewCount !== 1 ? "s" : ""}
                 </div>
             </td>
@@ -297,25 +324,6 @@ export function CommunityRow({
                     <span>{formatCount(stats.memberCount)} members</span>
                     <span className="sep">·</span>
                     <span className="online">● {formatCount(stats.onlineCount)}</span>
-                    {(() => {
-                        const joinState = getJoinStateRow(community);
-                        if (joinState.clickable) {
-                            return (
-                                <JoinBtn href={joinState.href} target="_blank" rel="noreferrer"
-                                    style={{ fontSize: 10, padding: "2px 9px", marginLeft: 4 }}
-                                    onClick={(e) => e.stopPropagation()}>
-                                    {joinState.text}
-                                </JoinBtn>
-                            );
-                        }
-                        return (
-                            <JoinBtn as="span"
-                                style={{ fontSize: 10, padding: "2px 9px", marginLeft: 4, opacity: 0.5, cursor: "not-allowed", filter: "grayscale(1)" }}
-                                onClick={(e) => e.stopPropagation()}>
-                                {joinState.text}
-                            </JoinBtn>
-                        );
-                    })()}
                 </TableMeta>
             </td>
             {isCommerce ? (
@@ -323,20 +331,46 @@ export function CommunityRow({
                     <td><PaymentBadges payment={c.payment} /></td>
                     <td><CountryBadges warehouses={c.warehouses} /></td>
                     <td><ProductBadges products={c.products} /></td>
-                    <td><GuaranteeBadges guarantees={c.guarantees} guaranteeTexts={c.guaranteeTexts} /></td>
+                    <td style={{ minWidth: 160 }}><GuaranteeBadges guarantees={c.guarantees} guaranteeTexts={c.guaranteeTexts} /></td>
                     {isReseller && <td>{c.orderTypes ? <OrderBadges orderTypes={c.orderTypes} /> : <span style={{ color: "var(--tertiary-foreground)" }}>—</span>}</td>}
                     <td>
                         {c.freeShipping
                             ? <Badge $v="green">✓ {c.freeShippingThreshold || "Yes"}</Badge>
                             : <span style={{ color: "var(--tertiary-foreground)" }}>—</span>}
                     </td>
-                    <td style={{ whiteSpace: "nowrap", color: "var(--secondary-foreground)" }}>{c.shippingTime}</td>
+                    <td style={{ whiteSpace: "nowrap", color: "var(--color-text-primary)" }}>{c.shippingTime}</td>
                 </>
             ) : (
-                <td colSpan={isReseller ? 7 : 6} style={{ color: "var(--tertiary-foreground)", fontSize: 12, fontStyle: "italic" }}>
+                <td
+                    colSpan={isReseller ? 7 : 6}
+                    style={{
+                        color: "var(--tertiary-foreground)",
+                        fontSize: "var(--font-size-footnote)",
+                        fontStyle: "italic",
+                    }}>
                     General community
                 </td>
             )}
+            <td>
+                {(() => {
+                    const joinState = getJoinStateRow(community);
+                    if (joinState.clickable) {
+                        return (
+                            <JoinBtn href={joinState.href} target="_blank" rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}>
+                                {joinState.text}
+                            </JoinBtn>
+                        );
+                    }
+                    return (
+                        <JoinBtn as="span"
+                            style={{ opacity: 0.5, cursor: "not-allowed", filter: "grayscale(1)" }}
+                            onClick={(e) => e.stopPropagation()}>
+                            {joinState.text}
+                        </JoinBtn>
+                    );
+                })()}
+            </td>
         </tr>
     );
 }

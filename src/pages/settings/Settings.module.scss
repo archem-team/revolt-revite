@@ -166,6 +166,10 @@
         }
     }
 
+    .categoryHeading {
+        font-size: 0.9rem !important;
+    }
+
     .content {
         flex: 1 1 800px;
         display: flex;
@@ -210,7 +214,7 @@
         h1 {
             margin: 0;
             line-height: 1rem;
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             font-weight: 600;
         }
 
@@ -272,15 +276,19 @@
         visibility: visible;
         position: sticky;
         top: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
 
         &:after {
             content: "ESC";
-            margin-top: 4px;
+            margin-top: 6px;
             display: flex;
             justify-content: center;
             width: 40px;
-            opacity: 0.5;
-            font-size: 0.75rem;
+            opacity: 0.7;
+            font-size: 0.875rem;
+            line-height: 1;
         }
 
         .closeButton {
@@ -290,7 +298,8 @@
             border-radius: var(--border-radius-half);
             height: 40px;
             width: 40px;
-            border: 3px solid var(--tertiary-background);
+            border: 2px solid var(--secondary-foreground);
+            box-sizing: border-box;
             cursor: pointer;
 
             svg {

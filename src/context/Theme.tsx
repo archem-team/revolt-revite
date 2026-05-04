@@ -262,60 +262,60 @@ export const DEFAULT_MONO_FONT = "Fira Code";
 // Generated from https://gitlab.insrt.uk/revolt/community/themes
 export const PRESETS: Record<string, Theme> = {
     light: {
-        accent: "#FD6671",
-        background: "#F6F6F6",
-        foreground: "#000000",
-        block: "#414141",
-        "message-box": "#F1F1F1",
-        mention: "rgba(251, 255, 0, 0.40)",
-        success: "#65E572",
-        warning: "#FAA352",
-        tooltip: "#FFF",
-        error: "#ED4245",
-        hover: "rgba(0, 0, 0, 0.2)",
-        "scrollbar-thumb": "#CA525A",
+        accent: "#662D91",
+        background: "#F3F2F3",
+        foreground: "#100518",
+        block: "#49454C",
+        "message-box": "#FFFFFF",
+        mention: "#531722",
+        success: "#3CC374",
+        warning: "#FFDE17",
+        tooltip: "#F3F2F3",
+        error: "#C63945",
+        hover: "#D0CFD0",
+        "scrollbar-thumb": "#8C8A8E",
         "scrollbar-track": "transparent",
         "primary-background": "#FFFFFF",
-        "primary-header": "#F1F1F1",
-        "secondary-background": "#F1F1F1",
-        "secondary-foreground": "#1f1f1f",
-        "secondary-header": "#F1F1F1",
-        "tertiary-background": "#4D4D4D",
-        "tertiary-foreground": "#3a3a3a",
-        "status-online": "#3ABF7E",
-        "status-idle": "#F39F00",
-        "status-focus": "#4799F0",
-        "status-busy": "#F84848",
-        "status-streaming": "#977EFF",
-        "status-invisible": "#A5A5A5",
+        "primary-header": "#F3F2F3",
+        "secondary-background": "#F3F2F3",
+        "secondary-foreground": "#605C62",
+        "secondary-header": "#F3F2F3",
+        "tertiary-background": "#D0CFD0",
+        "tertiary-foreground": "#8C8A8E",
+        "status-online": "#3CC374",
+        "status-idle": "#FFDE17",
+        "status-focus": "#17A6FF",
+        "status-busy": "#C63945",
+        "status-streaming": "#662D91",
+        "status-invisible": "#8C8A8E",
     },
     dark: {
-        accent: "#FD6671",
-        background: "#191919",
-        foreground: "#F6F6F6",
-        block: "#2D2D2D",
-        "message-box": "#363636",
-        mention: "rgba(251, 255, 0, 0.06)",
-        success: "#65E572",
-        warning: "#FAA352",
-        tooltip: "#000000",
-        error: "#ED4245",
-        hover: "rgba(0, 0, 0, 0.1)",
-        "scrollbar-thumb": "#CA525A",
+        accent: "#662D91",
+        background: "#100518",
+        foreground: "#FFFFFD",
+        block: "#49454C",
+        "message-box": "#332E36",
+        mention: "#531722",
+        success: "#3CC374",
+        warning: "#FFDE17",
+        tooltip: "#1C1720",
+        error: "#C63945",
+        hover: "#3B1954",
+        "scrollbar-thumb": "#605C62",
         "scrollbar-track": "transparent",
-        "primary-background": "#242424",
-        "primary-header": "#363636",
-        "secondary-background": "#1E1E1E",
-        "secondary-foreground": "#C8C8C8",
-        "secondary-header": "#2D2D2D",
-        "tertiary-background": "#4D4D4D",
-        "tertiary-foreground": "#848484",
-        "status-online": "#3ABF7E",
-        "status-idle": "#F39F00",
-        "status-focus": "#4799F0",
-        "status-busy": "#F84848",
-        "status-streaming": "#977EFF",
-        "status-invisible": "#A5A5A5",
+        "primary-background": "#332E36",
+        "primary-header": "#1C1720",
+        "secondary-background": "#1C1720",
+        "secondary-foreground": "#D0CFD0",
+        "secondary-header": "#1C1720",
+        "tertiary-background": "#332E36",
+        "tertiary-foreground": "#A3A1A4",
+        "status-online": "#3CC374",
+        "status-idle": "#FFDE17",
+        "status-focus": "#17A6FF",
+        "status-busy": "#C63945",
+        "status-streaming": "#662D91",
+        "status-invisible": "#8C8A8E",
     },
 };
 
@@ -325,8 +325,8 @@ const GlobalTheme = createGlobalStyle<{ theme: Theme }>`
 }
 
 ${(props) =>
-    props.theme["min-opacity"] === 1 &&
-    `
+        props.theme["min-opacity"] === 1 &&
+        `
         * {
             backdrop-filter: unset !important;
         }
@@ -350,14 +350,8 @@ export default observer(() => {
 
     const root = document.documentElement.style;
     useEffect(() => {
-        const font = theme.getFont() ?? DEFAULT_FONT;
-        root.setProperty("--font", `"${font}"`);
-        try {
-            FONTS[font]?.load();
-        } catch (err) {
-            console.error(`Failed to load font: ${font}`);
-        }
-    }, [root, theme.getFont()]);
+        root.setProperty("--font", "var(--font-family)");
+    }, [root]);
 
     useEffect(() => {
         const font = theme.getMonospaceFont() ?? DEFAULT_MONO_FONT;

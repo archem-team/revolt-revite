@@ -133,7 +133,10 @@ export function GenericSettings({
                                 entry.hidden ? undefined : (
                                     <>
                                         {entry.category && (
-                                            <Category>
+                                            <Category
+                                                className={
+                                                    styles.categoryHeading
+                                                }>
                                                 {entry.category}
                                             </Category>
                                         )}
@@ -182,9 +185,8 @@ export function GenericSettings({
                                 ) && (
                                     <h1>
                                         <Text
-                                            id={`app.settings.${category}.${
-                                                page ?? defaultPage
-                                            }.title`}
+                                            id={`app.settings.${category}.${page ?? defaultPage
+                                                }.title`}
                                         />
                                     </h1>
                                 )}

@@ -36,6 +36,7 @@ export function useDirectory() {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [showLegend, setShowLegend] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
     const [reviewModal, setReviewModal] = useState<Community | null>(null);
     const [submitOpen, setSubmitOpen] = useState(false);
     const [submitInitialType, setSubmitInitialType] = useState<
@@ -44,7 +45,9 @@ export function useDirectory() {
     const [darkMode, setDarkMode] = useState(false);
 
     const useLive = useMemo(
-        () => new URLSearchParams(window.location.search).has("live") || window.location.pathname === "/",
+        () =>
+            new URLSearchParams(window.location.search).has("live") ||
+            window.location.pathname === "/",
         [],
     );
 
@@ -59,9 +62,9 @@ export function useDirectory() {
                 .then((r) => r.json())
                 .then((json) => {
                     if (cancelled) return;
-                    const list = Array.isArray(json.data) 
-                        ? json.data 
-                        : (json.data?.items ?? json.items ?? []);
+                    const list = Array.isArray(json.data)
+                        ? json.data
+                        : json.data?.items ?? json.items ?? [];
                     setAllCommunities(list.map(apiToCommunity));
                 })
                 .catch((err) => {
@@ -248,7 +251,8 @@ export function useDirectory() {
 
     function handleSubmitListing(form: SubmitForm) {
         if (useLive) {
-            const isCommerce = form.type === "vendor" || form.type === "reseller";
+            const isCommerce =
+                form.type === "vendor" || form.type === "reseller";
 
             // Build the single `guarantee` object the backend expects:
             // { purity, purityDesc, volume, volumeDesc, reship, reshipDesc }
@@ -276,7 +280,10 @@ export function useDirectory() {
                         warehouses: form.warehouses,
                         products: form.products,
                         guarantee,
-                        orderTypes: form.type === "reseller" ? form.orderTypes : undefined,
+                        orderTypes:
+                            form.type === "reseller"
+                                ? form.orderTypes
+                                : undefined,
                         externalLinks: form.externalLinks || undefined,
                         coas: form.coas || undefined,
                         shortDescription: form.shortDescription || undefined,
@@ -304,6 +311,8 @@ export function useDirectory() {
         loadError,
         showLegend,
         setShowLegend,
+        showFilters,
+        setShowFilters,
         reviewModal,
         setReviewModal,
         submitOpen,

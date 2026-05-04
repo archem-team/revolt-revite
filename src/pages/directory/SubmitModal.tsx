@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import type { SubmitForm, Payment, Warehouses, Products, Guarantees, GuaranteeTexts, OrderTypes } from "./types";
 import { PAYMENT_LABELS, WAREHOUSE_LABELS, PRODUCT_LABELS, GUARANTEE_LABELS, GUARANTEE_TEXT_DEFAULTS, ORDER_LABELS } from "./types";
 import { defPay, defWh, defPr, defGu, defGuText, defOr, toggle } from "./dataUtils";
@@ -26,20 +26,37 @@ export function SubmitModal({
     const [showCustomWarehouseInput, setShowCustomWarehouseInput] = useState(false);
     const [availableCustomWarehouses, setAvailableCustomWarehouses] = useState<string[]>([]);
     const [showProofInfo, setShowProofInfo] = useState(false);
+    const [isMobileLayout, setIsMobileLayout] = useState(() =>
+        typeof window !== "undefined"
+            ? window.matchMedia("(max-width: 767px)").matches
+            : false,
+    );
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const mediaQuery = window.matchMedia("(max-width: 767px)");
+        const update = () => setIsMobileLayout(mediaQuery.matches);
+
+        update();
+        mediaQuery.addEventListener("change", update);
+
+        return () => mediaQuery.removeEventListener("change", update);
+    }, []);
 
     const isCommerce = form.type === "vendor" || form.type === "reseller";
 
     function addCustomWarehouse() {
         const val = customWarehouse.trim().toUpperCase();
         if (!val) return;
-        
+
         setAvailableCustomWarehouses((prev) => prev.includes(val) ? prev : [...prev, val]);
-        
+
         const current: string[] = form.warehouses.custom ?? [];
         if (!current.includes(val)) {
             setForm((f) => ({ ...f, warehouses: { ...f.warehouses, custom: [...current, val] } }));
         }
-        
+
         setCustomWarehouse("");
         setShowCustomWarehouseInput(false);
     }
@@ -48,7 +65,7 @@ export function SubmitModal({
         e.preventDefault();
         if (!form.name.trim()) { setError("Name is required."); return; }
         if (!form.inviteLink.trim()) { setError("PepChat invite link is required."); return; }
-        
+
         if (isCommerce) {
             if (form.proofs.length === 0) {
                 setError("Proof upload is required.");
@@ -150,8 +167,8 @@ export function SubmitModal({
                                                         <input type="checkbox" checked={isChecked}
                                                             onChange={() => setForm((f) => {
                                                                 const current = f.warehouses.custom ?? [];
-                                                                const next = current.includes(val) 
-                                                                    ? current.filter(v => v !== val) 
+                                                                const next = current.includes(val)
+                                                                    ? current.filter(v => v !== val)
                                                                     : [...current, val];
                                                                 return { ...f, warehouses: { ...f.warehouses, custom: next } };
                                                             })} />
@@ -194,8 +211,8 @@ export function SubmitModal({
                                                             width: 68, padding: "0 8px",
                                                             borderRadius: 6,
                                                             border: "1px solid var(--dir-accent)",
-                                                            background: "var(--secondary-background)",
-                                                            color: "var(--foreground)",
+                                                            background: "var(--color-surface-alt)",
+                                                            color: "var(--color-text-primary)",
                                                             fontSize: 12, fontFamily: "inherit",
                                                             outline: "none", boxSizing: "border-box",
                                                             height: "28px",
@@ -267,15 +284,25 @@ export function SubmitModal({
                                     </FormGroup>
 
                                     <FormGroup>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                                        <div style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 8,
+                                            marginBottom: 6,
+                                            position: "relative",
+                                            width: "100%",
+                                        }}>
                                             <label style={{ margin: 0 }}>PROOF UPLOAD (REQUIRED)</label>
-                                            <div 
-                                                style={{ position: "relative", display: "inline-flex" }}
+                                            <div
+                                                style={{
+                                                    position: isMobileLayout ? "static" : "relative",
+                                                    display: "inline-flex",
+                                                }}
                                                 onMouseEnter={() => setShowProofInfo(true)}
                                                 onMouseLeave={() => setShowProofInfo(false)}
                                             >
-                                                <button 
-                                                    type="button" 
+                                                <button
+                                                    type="button"
                                                     style={{
                                                         display: "flex", alignItems: "center", justifyContent: "center",
                                                         width: 18, height: 18, borderRadius: "50%",
@@ -292,25 +319,34 @@ export function SubmitModal({
                                                     i
                                                 </button>
                                                 {showProofInfo && (
-                                                    <div style={{ 
+                                                    <div style={{
                                                         position: "absolute",
                                                         top: "calc(100% + 8px)",
-                                                        left: "0",
-                                                        width: "280px",
+                                                        left: isMobileLayout ? "50%" : "0",
+                                                        right: "auto",
+                                                        transform: isMobileLayout ? "translateX(-50%)" : "none",
+                                                        width: isMobileLayout
+                                                            ? "min(280px, calc(100% - 12px))"
+                                                            : "280px",
+                                                        maxWidth: isMobileLayout
+                                                            ? "calc(100% - 12px)"
+                                                            : "280px",
                                                         zIndex: 100,
-                                                        fontSize: 12, 
-                                                        color: "var(--foreground)", 
-                                                        background: "var(--dir-surface-modal)",
-                                                        boxShadow: "0 4px 18px rgba(0,0,0,0.4)",
+                                                        fontSize: 12,
+                                                        color: "var(--color-text-primary)",
+                                                        background: "var(--color-surface-alt)",
+                                                        boxShadow: "var(--shadow-lg)",
                                                         border: "1px solid var(--dir-border-card)",
                                                         borderRadius: 6,
                                                         padding: "12px 14px",
-                                                        pointerEvents: "none"
+                                                        pointerEvents: "none",
+                                                        whiteSpace: "normal",
+                                                        overflowWrap: "anywhere"
                                                     }}>
                                                         <div style={{ fontWeight: 600, marginBottom: 6 }}>
                                                             Please upload photos or videos showing:
                                                         </div>
-                                                        <ul style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4, color: "var(--secondary-foreground)", fontWeight: 600 }}>
+                                                        <ul style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4, color: "var(--color-text-secondary)", fontWeight: 600 }}>
                                                             <li>A facility or large inventory</li>
                                                             <li>A handwritten sign: <strong>"Company name + PepChat + today's date"</strong></li>
                                                         </ul>
@@ -319,9 +355,9 @@ export function SubmitModal({
                                             </div>
                                         </div>
                                         <div style={{ position: "relative", display: "inline-block" }}>
-                                            <input 
-                                                type="file" 
-                                                multiple 
+                                            <input
+                                                type="file"
+                                                multiple
                                                 accept="image/*,video/*"
                                                 onChange={(e) => {
                                                     const files = Array.from((e.target as HTMLInputElement).files || []);
@@ -339,8 +375,8 @@ export function SubmitModal({
                                             <button type="button" style={{
                                                 padding: "4px 10px", borderRadius: 6,
                                                 border: "1px solid var(--block)",
-                                                background: "var(--secondary-background)",
-                                                color: "var(--foreground)",
+                                                background: "var(--color-surface-alt)",
+                                                color: "var(--color-text-primary)",
                                                 fontSize: 13,
                                                 cursor: "pointer",
                                                 display: "flex", alignItems: "center", gap: 4
@@ -349,8 +385,8 @@ export function SubmitModal({
                                         {form.proofs.length > 0 && (
                                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
                                                 {form.proofs.map((file, i) => (
-                                                    <div key={i} style={{ 
-                                                        fontSize: 12, padding: "4px 8px", 
+                                                    <div key={i} style={{
+                                                        fontSize: 12, padding: "4px 8px",
                                                         background: "var(--block)", borderRadius: 4,
                                                         display: "flex", alignItems: "center", gap: 6
                                                     }}>
@@ -360,9 +396,9 @@ export function SubmitModal({
                                                                 ...f,
                                                                 proofs: f.proofs.filter((_, idx) => idx !== i)
                                                             }));
-                                                        }} style={{ 
-                                                            border: "none", background: "none", 
-                                                            color: "var(--secondary-foreground)", cursor: "pointer", 
+                                                        }} style={{
+                                                            border: "none", background: "none",
+                                                            color: "var(--secondary-foreground)", cursor: "pointer",
                                                             fontSize: 12, padding: 0,
                                                             display: "flex", alignItems: "center", justifyContent: "center"
                                                         }}>✕</button>

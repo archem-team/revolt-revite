@@ -10,14 +10,14 @@ import { SubmitModal } from "./SubmitModal";
 import { COMMERCE_FILTERS, LEGEND } from "./types";
 
 import { Page, Header, LogoImg, DirectoryBadge, HeaderSpacer, HeaderNav, NavBtn, DesktopAuthGroup, MobileAuthBtn } from "./stylesLayout";
-import { Hero, HeroInner, HeroTitle, HeroSub, TabToggle, ToggleTab, Main, SectionHeader, FilterWrap, SearchWrap, SearchInput, FilterPills, Pill, ClearBtn, LegendToggle, LegendBox, LegendCat } from "./stylesHero";
+import { TabToggle, ToggleTab, Main, FilterWrap, SearchWrap, SearchInput, FilterPills, FilterToggleBtn, MobileBreak, Pill, ClearBtn, LegendToggle, LegendBox, LegendCat } from "./stylesHero";
 import { EmptyState, TableWrap, Table, CardGrid } from "./stylesCommunity";
-import { Footer, FooterLinks, BottomNav, BottomTab, FAB, ThemeToggle, NavDivider, NavSubmitGroup, NavSubmitBtn } from "./stylesNav";
+import { BottomNav, BottomTab, FAB, ThemeToggle, NavDivider, NavSubmitGroup, NavSubmitBtn } from "./stylesNav";
 
 function Directory() {
     const {
         tab, search, setSearch, activeFilters, setActiveFilters, sortCol, sortDir,
-        loading, loadError, showLegend, setShowLegend,
+        loading, loadError, showLegend, setShowLegend, showFilters, setShowFilters,
         reviewModal, setReviewModal, submitOpen, setSubmitOpen,
         submitInitialType, darkMode, setDarkMode,
         filtered, reviews, openSubmit, toggleFilter, handleSort, switchTab,
@@ -26,7 +26,6 @@ function Directory() {
 
     const si = (col: "rating" | "name") => sortCol === col ? (sortDir === "asc" ? " ↑" : " ↓") : "";
     const loggedIn = clientController.isLoggedIn();
-    const sectionTitle = tab === "vendors" ? "Vendor Communities" : tab === "resellers" ? "Reseller Communities" : "Other Communities";
 
     return (
         <Page $dark={darkMode}>
@@ -39,7 +38,6 @@ function Directory() {
                     <NavSubmitBtn onClick={() => openSubmit("vendor")}>+ Vendor</NavSubmitBtn>
                     <NavSubmitBtn onClick={() => openSubmit("reseller")}>+ Reseller</NavSubmitBtn>
                 </NavSubmitGroup>
-                <NavDivider />
                 <ThemeToggle onClick={() => setDarkMode((d) => !d)} title={darkMode ? "Light mode" : "Dark mode"}>
                     {darkMode ? "☀" : "☾"}
                 </ThemeToggle>
@@ -59,30 +57,16 @@ function Directory() {
                 </HeaderNav>
             </Header>
 
-            {/* ── Hero ── */}
-            <Hero>
-                <HeroInner>
-                    <HeroTitle>PepChat <span>Discovery</span></HeroTitle>
-                    <HeroSub>
-                        Community-curated directory of trusted peptide communities.
-                        Compare vendors, resellers, and general communities in one place.
-                    </HeroSub>
+
+            {/* ── Main ── */}
+            <Main>
+                <div style={{ marginBottom: "var(--space-4)" }}>
                     <TabToggle>
                         <ToggleTab $active={tab === "vendors"} onClick={() => switchTab("vendors")}>Vendors</ToggleTab>
                         <ToggleTab $active={tab === "resellers"} onClick={() => switchTab("resellers")}>Resellers</ToggleTab>
                         <ToggleTab $active={tab === "other"} onClick={() => switchTab("other")}>Other</ToggleTab>
                     </TabToggle>
-                </HeroInner>
-            </Hero>
-
-            {/* ── Main ── */}
-            <Main>
-                <SectionHeader>
-                    <h2>{sectionTitle}</h2>
-                    {!loading && !loadError && (
-                        <span className="count">{filtered.length} listing{filtered.length !== 1 ? "s" : ""}</span>
-                    )}
-                </SectionHeader>
+                </div>
 
                 <FilterWrap>
                     <SearchWrap>
@@ -94,10 +78,24 @@ function Directory() {
                         />
                     </SearchWrap>
                     {tab !== "other" && (
-                        <FilterPills>
+                        <FilterToggleBtn
+                            onClick={() => setShowFilters(!showFilters)}
+                            $active={showFilters}
+                            title="Filters"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M3 4C3 3.44772 3.44772 3 4 3H20C20.5523 3 21 3.44772 21 4V6.58579C21 6.851 20.8946 7.10536 20.7071 7.29289L14.2929 13.7071C14.1054 13.8946 14 14.149 14 14.4142V19.5528C14 19.818 13.8946 20.0724 13.7071 20.2599L10.7071 23.2599C10.3166 23.6505 9.68342 23.6505 9.29289 23.2599C9.10536 23.0724 9 22.818 9 22.5528V14.4142C9 14.149 8.89464 13.8946 8.70711 13.7071L2.29289 7.29289C2.10536 7.10536 2 6.851 2 6.58579V4C2 3.44772 2.44772 3 3 3Z" />
+                            </svg>
+                        </FilterToggleBtn>
+                    )}
+                    <MobileBreak />
+                    {tab !== "other" && (
+                        <FilterPills $showMobile={showFilters}>
                             {COMMERCE_FILTERS.map((f) => (
                                 <Pill key={f.key} $active={activeFilters.has(f.key)} onClick={() => toggleFilter(f.key)}>
-                                    {f.emoji} {f.label}
+                                    {f.key === "us" || f.key === "eu" || f.key === "aus"
+                                        ? f.label
+                                        : `${f.emoji} ${f.label}`}
                                 </Pill>
                             ))}
                             {activeFilters.size > 0 && (
@@ -129,7 +127,7 @@ function Directory() {
 
                 {loading ? (
                     <EmptyState>
-                        <span className="icon" style={{ fontSize: "2rem", animation: "spin 1s linear infinite" }}>⟳</span>
+                        <span className="icon" style={{ fontSize: "var(--font-size-title-1)", animation: "spin 1s linear infinite" }}>⟳</span>
                         Loading directory…
                         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                     </EmptyState>
@@ -163,6 +161,7 @@ function Directory() {
                                             </>
                                         )}
                                         {tab === "other" && <th>About</th>}
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -192,27 +191,6 @@ function Directory() {
                     </>
                 )}
             </Main>
-
-            {/* ── Footer ── */}
-            <Footer>
-                <div>
-                    <LogoImg src={wideSVG} alt="PepChat" draggable={false} style={{ marginBottom: 8 }} />
-                    <p className="disclaimer">
-                        Information is community-maintained and may not be current.
-                        Not affiliated with or endorsing any listed community.
-                    </p>
-                </div>
-                <FooterLinks>
-                    {loggedIn ? (
-                        <a href="/" style={{ color: "inherit", textDecoration: "none" }}>Open Chat</a>
-                    ) : (
-                        <>
-                            <a href="/login" style={{ color: "inherit", textDecoration: "none" }}>Log In</a>
-                            <a href="/login/create" style={{ color: "inherit", textDecoration: "none" }}>Register</a>
-                        </>
-                    )}
-                </FooterLinks>
-            </Footer>
 
             <BottomNav className={styles.mobileNav}>
                 <BottomTab $active={tab === "vendors"} onClick={() => switchTab("vendors")}>Vendors</BottomTab>
