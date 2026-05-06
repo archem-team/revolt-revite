@@ -1,7 +1,7 @@
 [submodule "external/lang"]
 	path = external/lang
 	url = https://github.com/archem-team/translations
-	branch = revite-backports
+	branch = pre-brand
 [submodule "external/components"]
 	path = external/components
 	url = https://github.com/archem-team/components
@@ -9,4 +9,4 @@
 [submodule "external/revolt.js"]
 	path = external/revolt.js
 	url = https://github.com/archem-team/revolt.js
-	branch = pin_message
+	branch = mention_everyone

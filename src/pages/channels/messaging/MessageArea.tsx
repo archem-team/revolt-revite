@@ -18,6 +18,8 @@ import {
 
 import { Preloader } from "@revoltchat/ui";
 
+import { SkeletonMessages } from "../../../components/common/messaging/SkeletonMessage";
+
 import { defer } from "../../../lib/defer";
 import { internalEmit, internalSubscribe } from "../../../lib/eventEmitter";
 import { getRenderer } from "../../../lib/renderer/Singleton";
@@ -110,23 +112,6 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
                         ?.scrollIntoView({ block: "center" });
 
                     setScrollState({ type: "Free" });
-                } else if (scrollState.current.type === "OffsetTop") {
-                    animateScroll.scrollTo(
-                        Math.max(
-                            101,
-                            ref.current
-                                ? ref.current.scrollTop +
-                                (ref.current.scrollHeight -
-                                    scrollState.current.previousHeight)
-                                : 101,
-                        ),
-                        {
-                            container: ref.current,
-                            duration: 0,
-                        },
-                    );
-
-                    setScrollState({ type: "Free" });
                 } else if (scrollState.current.type === "ScrollTop") {
                     animateScroll.scrollTo(scrollState.current.y, {
                         container: ref.current,
@@ -153,8 +138,6 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
             ref.current?.clientHeight
             : true;
 
-    const atTop = (offset = 0) =>
-        ref.current ? ref.current.scrollTop <= offset : false;
     const client = useClient()
     function pin(message: Message) {
         client.api.post(`/channels/${message.channel_id}/messages/${message._id}/pin` as any)
@@ -277,32 +260,53 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
         return () => current.removeEventListener("scroll", onScroll);
     }, [ref, scrollState, setScrollState]);
 
-    // ? Top and bottom loaders.
+    // ? Track scroll position and anchored state.
     useEffect(() => {
         const current = ref.current;
         if (!current) return;
 
-        async function onScroll() {
+        function onScroll() {
             renderer.scrollPosition = current!.scrollTop;
-
-            if (atTop(100)) {
-                renderer.loadTop(current!);
-            }
-
-            if (atBottom(100)) {
-                renderer.loadBottom(current!);
-            }
-
-            if (atBottom()) {
-                renderer.scrollAnchored = true;
-            } else {
-                renderer.scrollAnchored = false;
-            }
+            renderer.scrollAnchored = atBottom();
         }
 
         current.addEventListener("scroll", onScroll);
         return () => current.removeEventListener("scroll", onScroll);
     }, [ref, renderer]);
+
+    // ? IntersectionObserver-based top/bottom loaders.
+    // ? Fires when skeleton elements become visible.
+    useEffect(() => {
+        const current = ref.current;
+        if (!current) return;
+        if (renderer.state !== "RENDER") return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (renderer.fetching) return;
+                for (const entry of entries) {
+                    if (!entry.isIntersecting) continue;
+                    const target = entry.target as HTMLElement;
+                    if (target.dataset.skeleton === "top") {
+                        renderer.loadTop(current);
+                    } else if (target.dataset.skeleton === "bottom") {
+                        renderer.loadBottom(current);
+                    }
+                }
+            },
+            { root: current },
+        );
+
+        // Observe skeleton sentinel elements
+        const topSentinel = current.querySelector("[data-skeleton='top']");
+        const bottomSentinel = current.querySelector(
+            "[data-skeleton='bottom']",
+        );
+        if (topSentinel) observer.observe(topSentinel);
+        if (bottomSentinel) observer.observe(bottomSentinel);
+
+        return () => observer.disconnect();
+    }, [ref, renderer, renderer.state, renderer.atTop, renderer.atBottom]);
 
     // ? Scroll down whenever the message area resizes.
     const stbOnResize = useCallback(() => {
@@ -345,7 +349,7 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
             value={(width ?? 0) - MESSAGE_AREA_PADDING}>
             <Area ref={ref}>
                 <div>
-                    {renderer.state === "LOADING" && <Preloader type="ring" />}
+                    {renderer.state === "LOADING" && <SkeletonMessages />}
                     {renderer.state === "WAITING_FOR_NETWORK" && (
                         <RequiresOnline>
                             <Preloader type="ring" />

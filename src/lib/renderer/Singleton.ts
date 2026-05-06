@@ -3,7 +3,7 @@ import { action, makeAutoObservable } from "mobx";
 import { Channel, Message, Nullable } from "revolt.js";
 
 import { SimpleRenderer } from "./simple/SimpleRenderer";
-import { RendererRoutines, ScrollState } from "./types";
+import { DOMUpdate, RendererRoutines, ScrollState } from "./types";
 
 export const SMOOTH_SCROLL_ON_RECEIVE = false;
 
@@ -66,7 +66,9 @@ export class ChannelRenderer {
     @action async init(message_id?: string) {
         if (message_id) {
             if (this.state === "RENDER") {
-                const message = this.messages.find((x) => x._id === message_id);
+                const message = this.messages.find(
+                    (x) => x._id === message_id,
+                );
 
                 if (message) {
                     this.emitScroll({
@@ -103,49 +105,49 @@ export class ChannelRenderer {
         }
     }
 
+    /**
+     * Apply a DOMUpdate with element-based scroll anchoring.
+     * Records anchor position before commit, corrects scroll
+     * after DOM update using requestAnimationFrame to ensure
+     * Preact has flushed the render.
+     */
+    applyDOMUpdate(update: DOMUpdate, scrollContainer: HTMLDivElement) {
+        const anchorEl = update.scrollAnchorId
+            ? document.getElementById(update.scrollAnchorId)
+            : null;
+        const rectBefore = anchorEl?.getBoundingClientRect() ?? null;
+
+        // Commit state changes — triggers MobX reaction → Preact re-render
+        update.commitToDOM();
+
+        if (rectBefore && anchorEl) {
+            // Use rAF to ensure Preact has flushed DOM changes
+            requestAnimationFrame(() => {
+                const rectAfter = anchorEl.getBoundingClientRect();
+                const delta = rectAfter.top - rectBefore.top;
+                if (Math.abs(delta) > 1) {
+                    scrollContainer.scrollTop += delta;
+                }
+                this.fetching = false;
+            });
+        } else {
+            this.fetching = false;
+        }
+    }
+
     async loadTop(ref?: HTMLDivElement) {
         if (this.fetching) return;
         this.fetching = true;
 
-        function generateScroll(end: string): ScrollState {
-            if (ref) {
-                let heightRemoved = 0,
-                    removing = false;
-                const messageContainer = ref.children[0];
-                if (messageContainer) {
-                    for (const child of Array.from(messageContainer.children)) {
-                        // If this child has a ulid, check whether it was removed.
-                        if (
-                            removing ||
-                            (child.id?.length === 26 &&
-                                child.id.localeCompare(end) === 1)
-                        ) {
-                            removing = true;
-                            heightRemoved +=
-                                child.clientHeight +
-                                // We also need to take into account the top margin of the container.
-                                parseInt(
-                                    window
-                                        .getComputedStyle(child)
-                                        .marginTop.slice(0, -2),
-                                    10,
-                                );
-                        }
-                    }
-                }
+        try {
+            const update = await this.currentRenderer.loadTop(this);
 
-                return {
-                    type: "OffsetTop",
-                    previousHeight: ref.scrollHeight - heightRemoved,
-                };
+            if (update && ref) {
+                this.applyDOMUpdate(update, ref);
+            } else {
+                this.fetching = false;
             }
-            return {
-                type: "OffsetTop",
-                previousHeight: 0,
-            };
-        }
-
-        if (await this.currentRenderer.loadTop(this, generateScroll)) {
+        } catch {
             this.fetching = false;
         }
     }
@@ -154,49 +156,15 @@ export class ChannelRenderer {
         if (this.fetching) return;
         this.fetching = true;
 
-        function generateScroll(start: string): ScrollState {
-            if (ref) {
-                let heightRemoved = 0,
-                    removing = true;
-                const messageContainer = ref.children[0];
-                if (messageContainer) {
-                    for (const child of Array.from(messageContainer.children)) {
-                        // If this child has a ulid check whether it was removed.
-                        if (
-                            removing /* ||
-                            (child.id?.length === 26 &&
-                                child.id.localeCompare(start) === -1)*/
-                        ) {
-                            heightRemoved +=
-                                child.clientHeight +
-                                // We also need to take into account the top margin of the container.
-                                parseInt(
-                                    window
-                                        .getComputedStyle(child)
-                                        .marginTop.slice(0, -2),
-                                    10,
-                                );
-                        }
+        try {
+            const update = await this.currentRenderer.loadBottom(this);
 
-                        if (
-                            child.id?.length === 26 &&
-                            child.id.localeCompare(start) !== -1
-                        )
-                            removing = false;
-                    }
-                }
-
-                return {
-                    type: "ScrollTop",
-                    y: ref.scrollTop - heightRemoved,
-                };
+            if (update && ref) {
+                this.applyDOMUpdate(update, ref);
+            } else {
+                this.fetching = false;
             }
-            return {
-                type: "ScrollToBottom",
-            };
-        }
-
-        if (await this.currentRenderer.loadBottom(this, generateScroll)) {
+        } catch {
             this.fetching = false;
         }
     }
