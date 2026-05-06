@@ -1,5 +1,4 @@
 import styled from "styled-components/macro";
-import { ac, cy } from "./stylesLayout";
 
 // ─── Mobile Bottom Nav ────────────────────────────────────────────────────────
 
@@ -19,23 +18,29 @@ export const BottomNav = styled.div`
 
 export const BottomTab = styled.button<{ $active: boolean }>`
     flex: 1;
-    padding: 12px 10px;
+    padding: var(--space-3) var(--space-2);
     border: none;
     background: transparent;
-    color: ${(p) => (p.$active ? "#90e0ef" : "rgba(202,240,248,0.45)")};
-    font-size: 12px;
-    font-weight: ${(p) => (p.$active ? 700 : 400)};
+    color: ${(p) =>
+        p.$active
+            ? "var(--color-text-primary)"
+            : "var(--color-text-secondary)"};
+    font-size: var(--font-size-footnote);
+    font-weight: ${(p) =>
+        p.$active ? "var(--font-weight-bold)" : "var(--font-weight-regular)"};
     cursor: pointer;
     transition: color 0.14s;
     position: relative;
 
     &::after {
-        content: '';
+        content: "";
         position: absolute;
-        bottom: 0; left: 20%; right: 20%;
-        height: 2px;
-        background: #00b4d8;
-        border-radius: 2px 2px 0 0;
+        bottom: 0;
+        left: 20%;
+        right: 20%;
+        height: var(--space-1);
+        background: var(--color-accent);
+        border-radius: var(--radius-xs) var(--radius-xs) 0 0;
         transform: scaleX(${(p) => (p.$active ? 1 : 0)});
         transition: transform 0.18s;
     }
@@ -43,49 +48,56 @@ export const BottomTab = styled.button<{ $active: boolean }>`
 
 export const FAB = styled.button`
     position: fixed;
-    bottom: 28px;
-    right: 28px;
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
+    bottom: var(--space-8);
+    right: var(--space-8);
+    width: var(--space-12);
+    height: var(--space-12);
+    border-radius: var(--radius-pill);
     background: var(--dir-accent);
-    border: none;
-    color: white;
-    font-size: 24px;
+    border: 1px solid var(--color-accent-deep);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-title-2);
     cursor: pointer;
-    box-shadow: 0 4px 16px ${ac(0.45)};
+    box-shadow: var(--shadow-sm);
     z-index: 51;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.15s;
-    &:hover { filter: brightness(1.1); transform: scale(1.05); }
+    &:hover {
+        background: var(--color-accent-deep);
+        transform: scale(1.05);
+    }
 
     @media (max-width: 768px) {
-        bottom: calc(64px + env(safe-area-inset-bottom, 0px));
-        right: max(18px, env(safe-area-inset-right, 0px));
+        bottom: calc(var(--space-16) + env(safe-area-inset-bottom, 0px));
+        right: max(var(--space-4), env(safe-area-inset-right, 0px));
     }
 `;
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
 export const Footer = styled.footer`
-    --footer-logo-h: 22px;
+    --footer-logo-h: var(--space-5);
     background: var(--dir-surface-nav);
     border-top: 1px solid var(--dir-border-nav);
-    padding: 24px 28px;
+    padding: var(--space-6) var(--space-8);
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: var(--space-3);
 
-    .left { display: flex; align-items: center; gap: 12px; }
+    .left {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
     .disclaimer {
-        font-size: 12px;
-        color: rgba(202,240,248,0.55);
+        font-size: var(--font-size-footnote);
+        color: var(--color-text-secondary);
         max-width: 480px;
-        line-height: 1.5;
+        line-height: var(--line-height-loose);
         margin: 0;
         margin-left: calc(var(--footer-logo-h) * 157 / 240);
     }
@@ -93,75 +105,99 @@ export const Footer = styled.footer`
     @media (max-width: 767px) {
         flex-direction: column;
         align-items: flex-start;
-        padding: 20px clamp(12px, 3.5vw, 18px);
-        .disclaimer { max-width: 100%; }
+        padding: var(--space-5) var(--space-3);
+        .disclaimer {
+            max-width: 100%;
+        }
     }
 
     @media (max-width: 480px) {
-        padding: 18px max(12px, env(safe-area-inset-left, 0px)) 18px max(12px, env(safe-area-inset-right, 0px));
+        padding: var(--space-4)
+            max(var(--space-3), env(safe-area-inset-left, 0px)) var(--space-4)
+            max(var(--space-3), env(safe-area-inset-right, 0px));
     }
 `;
 
 export const FooterLinks = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: 12px 16px;
+    gap: var(--space-3) var(--space-4);
     align-items: center;
     a {
-        font-size: 12px;
-        color: rgba(202,240,248,0.7) !important;
+        font-size: var(--font-size-footnote);
+        color: var(--color-text-secondary) !important;
         text-decoration: none !important;
         transition: color 0.12s;
-        &:hover { color: #90e0ef !important; }
+        &:hover {
+            color: var(--color-text-primary) !important;
+        }
     }
 `;
 
 // ─── Theme Toggle + Nav extras ────────────────────────────────────────────────
 
 export const ThemeToggle = styled.button`
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.18);
-    background: rgba(255,255,255,0.08);
-    color: #caf0f8;
-    font-size: 16px;
+    width: calc(var(--space-8) + var(--space-1));
+    height: calc(var(--space-8) + var(--space-1));
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-body-2);
     cursor: pointer;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     transition: all 0.15s;
     flex-shrink: 0;
     line-height: 1;
-    &:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.35); transform: rotate(20deg); }
-    @media (max-width: 500px) { width: 30px; height: 30px; font-size: 14px; }
+    &:hover {
+        background: var(--color-surface-alt);
+        border-color: var(--color-border-strong);
+        color: var(--color-text-primary);
+        transform: rotate(20deg);
+    }
+    @media (max-width: 500px) {
+        width: var(--space-8);
+        height: var(--space-8);
+        font-size: var(--font-size-body-4);
+    }
 `;
 
 export const NavDivider = styled.div`
     width: 1px;
-    height: 20px;
-    background: rgba(255,255,255,0.15);
+    height: var(--space-5);
+    background: var(--color-border);
     flex-shrink: 0;
-    @media (max-width: 560px) { display: none; }
+    @media (max-width: 560px) {
+        display: none;
+    }
 `;
 
 export const NavSubmitGroup = styled.div`
     display: flex;
     align-items: center;
-    gap: 6px;
-    @media (max-width: 560px) { display: none; }
+    gap: var(--space-2);
 `;
 
 export const NavSubmitBtn = styled.button`
-    padding: 6px 13px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-footnote);
+    font-weight: var(--font-weight-semibold);
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
-    border: 1px solid ${cy(0.45)};
-    background: ${cy(0.12)};
-    color: #90e0ef;
-    &:hover { background: ${cy(0.22)}; border-color: #00b4d8; color: #caf0f8; }
+    background: var(--dir-accent);
+    color: var(--color-text-primary) !important;
+    border: 1px solid var(--dir-accent);
+    &:hover {
+        background: var(--color-accent-deep);
+        box-shadow: var(--shadow-sm);
+    }
+
+    @media (max-width: 560px) {
+        padding: var(--space-1) var(--space-2);
+        font-size: var(--font-size-caption-1);
+    }
 `;

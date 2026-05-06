@@ -59,7 +59,7 @@ export function determineLink(href?: string): LinkType {
             url = new URL(href, location.href);
 
             if (ALLOWED_ORIGINS.includes(url.hostname)) {
-                const path = url.pathname.replace(/[^A-z0-9/]/g, "");
+                const path = url.pathname.replace(/[^A-Za-z0-9/-]/g, "");
                 return { type: "navigate", path };
             }
         } catch (err) {}

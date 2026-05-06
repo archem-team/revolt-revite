@@ -27,8 +27,8 @@ const ServerBase = styled.div`
     flex-shrink: 0;
     flex-direction: column;
     background: var(--secondary-background);
-    border-start-start-radius: 8px;
-    border-end-start-radius: 8px;
+    border-start-start-radius: var(--radius-md);
+    border-end-start-radius: var(--radius-md);
     overflow: hidden;
 
     ${isTouchscreenDevice &&
@@ -38,7 +38,7 @@ const ServerBase = styled.div`
 `;
 
 const ServerList = styled.div`
-    padding: 6px;
+    padding: var(--space-2);
     flex-grow: 1;
     overflow-y: scroll;
 
@@ -101,8 +101,8 @@ export default observer(() => {
                         mentionCount.length > 0
                             ? "mention"
                             : isUnread
-                            ? "unread"
-                            : undefined
+                                ? "unread"
+                                : undefined
                     }
                     compact
                     muted={state.notifications.isMuted(entry)}

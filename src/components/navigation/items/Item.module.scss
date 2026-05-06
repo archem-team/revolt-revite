@@ -1,12 +1,12 @@
 .item {
-    height: 42px;
+    height: calc(var(--space-10) + var(--space-1));
     display: flex;
-    padding: 0 8px;
+    padding: 0 var(--space-2);
     user-select: none;
-    margin-bottom: 2px;
+    margin-bottom: var(--space-1);
     border-radius: var(--border-radius);
 
-    gap: 8px;
+    gap: var(--space-2);
     align-items: center;
     flex-direction: row;
 
@@ -17,7 +17,7 @@
     color: var(--tertiary-foreground);
 
     &.normal {
-        height: 42px;
+        height: calc(var(--space-10) + var(--space-1));
     }
 
     &.compact {
@@ -47,7 +47,7 @@
         transition: color 0.1s ease-in-out;
 
         &.content {
-            gap: 10px;
+            gap: var(--space-3);
             flex-grow: 1;
             min-width: 0;
             display: flex;
@@ -136,9 +136,9 @@
 }
 
 .alert {
-    width: 6px;
-    height: 6px;
-    margin: 9px;
+    width: var(--space-1);
+    height: var(--space-1);
+    margin: var(--space-2);
     flex-shrink: 0;
     background: var(--foreground);
     border-radius: var(--border-radius-half);
@@ -149,9 +149,9 @@
     place-items: center;
 
     &[data-style="mention"] {
-        width: 16px;
-        height: 16px;
-        color: white;
+        width: var(--space-4);
+        height: var(--space-4);
+        color: var(--color-text-primary);
         background: var(--error);
     }
 }

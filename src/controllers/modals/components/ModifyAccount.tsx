@@ -3,6 +3,8 @@ import { SubmitHandler, useForm } from "react-hook-form";
 import { Text } from "preact-i18n";
 import { useState } from "preact/hooks";
 
+import styled from "styled-components/macro";
+
 import { Category, Error, InputBox, Modal, Tip } from "@revoltchat/ui";
 
 import { noopTrue } from "../../../lib/js";
@@ -22,6 +24,18 @@ interface FormInputs {
     // it wasn't in the types before this was typed but the element itself was there
     current_password?: string;
 }
+
+const StyledModal = styled(Modal)`
+    .updateHover:hover,
+    .updateHover:focus-visible,
+    .updateHover:active {
+        background: #242424 !important;
+        color: var(--foreground) !important;
+        text-decoration: none !important;
+        filter: none !important;
+        box-shadow: none !important;
+    }
+`;
 
 export default function ModifyAccount({
     field,
@@ -68,7 +82,7 @@ export default function ModifyAccount({
     };
 
     return (
-        <Modal
+        <StyledModal
             {...props}
             title={<Text id={`app.special.modals.account.change.${field}`} />}
             disabled={processing}
@@ -76,6 +90,7 @@ export default function ModifyAccount({
                 {
                     confirmation: true,
                     onClick: () => void handleSubmit(onSubmit)(),
+                    className: "updateHover",
                     children:
                         field === "email" ? (
                             <Text id="app.special.modals.actions.send_email" />
@@ -180,6 +195,6 @@ export default function ModifyAccount({
                     </div>
                 )}
             </form>
-        </Modal>
+        </StyledModal>
     );
 }

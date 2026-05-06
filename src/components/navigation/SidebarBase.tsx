@@ -46,7 +46,7 @@ export const GenericSidebarBase = styled.div<{
 `;
 
 export const GenericSidebarList = styled.div`
-    padding: 6px;
+    padding: var(--space-2);
     flex-grow: 1;
     overflow-y: scroll;
 
