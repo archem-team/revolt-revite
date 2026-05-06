@@ -1030,10 +1030,6 @@ const TableMeta = styled.div`
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
-import { Page, Header, LogoImg, DirectoryBadge, HeaderSpacer, HeaderNav, NavBtn, DesktopAuthGroup, MobileAuthBtn } from "./stylesLayout";
-import { TabToggle, ToggleTab, Main, FilterWrap, SearchWrap, SearchInput, FilterPills, FilterToggleBtn, MobileBreak, Pill, ClearBtn, LegendToggle, LegendBox, LegendCat } from "./stylesHero";
-import { EmptyState, TableWrap, Table, CardGrid } from "./stylesCommunity";
-import { BottomNav, BottomTab, FAB, ThemeToggle, NavDivider, NavSubmitGroup, NavSubmitBtn } from "./stylesNav";
 
 function Directory() {
     const {
