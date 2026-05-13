@@ -16,6 +16,8 @@ export interface ISettings {
     "notifications:desktop": boolean;
     "notifications:sounds": SoundOptions;
 
+    "privacy:require_friends_for_dms": boolean;
+
     "appearance:emoji": EmojiPack;
     "appearance:ligatures": boolean;
     "appearance:transparency": boolean;

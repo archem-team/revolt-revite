@@ -9,6 +9,7 @@ import { useEffect, useState } from "preact/hooks";
 import { Button, Category, Error, Preloader } from "@revoltchat/ui";
 
 import { TextReact } from "../../lib/i18n";
+import { hasServerJoinApproval } from "../../lib/serverFlags";
 
 import { useApplicationState } from "../../mobx/State";
 
@@ -30,6 +31,7 @@ export default function Invite() {
 
     const { code } = useParams<{ code: string }>();
     const [processing, setProcessing] = useState(false);
+    const [pendingApproval, setPendingApproval] = useState(false);
     const [error, setError] = useState<string | undefined>(undefined);
     const [invite, setInvite] = useState<API.InviteResponse | undefined>(
         undefined,
@@ -89,6 +91,41 @@ export default function Invite() {
 
     if (invite.type === "Group") return <h1>unimplemented</h1>;
 
+    const approvalRequired = hasServerJoinApproval(invite.server_flags);
+
+    if (pendingApproval) {
+        return (
+            <div
+                className={styles.invite}
+                style={{
+                    backgroundImage: invite.server_banner
+                        ? `url('${client?.generateFileURL(invite.server_banner)}')`
+                        : undefined,
+                }}>
+                <div className={styles.details}>
+                    <h1>{invite.server_name}</h1>
+                    <h2>
+                        <TextReact
+                            id="app.special.invite.approval_pending"
+                            fields={{ server: invite.server_name }}
+                        />
+                    </h2>
+                    <Category>
+                        <TextReact
+                            id="app.special.invite.approval_pending_desc"
+                            fields={{ channel: invite.channel_name }}
+                        />
+                    </Category>
+                    <Button
+                        palette="secondary"
+                        onClick={() => history.push("/")}>
+                        <TextReact id="app.special.invite.go_home" />
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div
             className={styles.invite}
@@ -129,6 +166,11 @@ export default function Invite() {
                                 }}
                             />
                         </h2>
+                        {approvalRequired && (
+                            <Category>
+                                <TextReact id="app.special.invite.approval_required" />
+                            </Category>
+                        )}
                         <h3>
                             <TextReact
                                 id="app.special.invite.invited_by"
@@ -159,6 +201,11 @@ export default function Invite() {
 
                                 try {
                                     await client.joinInvite(invite);
+
+                                    if (approvalRequired) {
+                                        setPendingApproval(true);
+                                        return;
+                                    }
 
                                     history.push(
                                         `/server/${invite.server_id}/channel/${invite.channel_id}`,

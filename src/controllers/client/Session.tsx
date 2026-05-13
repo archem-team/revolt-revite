@@ -5,6 +5,7 @@ import { state } from "../../mobx/State";
 
 import { resetMemberSidebarFetched } from "../../components/navigation/right/MemberSidebar";
 import { modalController } from "../modals/ModalController";
+import { handleIncomingDM } from "../../lib/incomingDMGuard";
 
 /**
  * Current lifecycle state
@@ -16,22 +17,22 @@ type State = "Ready" | "Connecting" | "Online" | "Disconnected" | "Offline";
  */
 type Transition =
     | {
-          action: "LOGIN";
-          apiUrl?: string;
-          session: SessionPrivate;
-          configuration?: API.RevoltConfig;
+        action: "LOGIN";
+        apiUrl?: string;
+        session: SessionPrivate;
+        configuration?: API.RevoltConfig;
 
-          knowledge: "new" | "existing";
-      }
+        knowledge: "new" | "existing";
+    }
     | {
-          action:
-              | "SUCCESS"
-              | "DISCONNECT"
-              | "RETRY"
-              | "LOGOUT"
-              | "ONLINE"
-              | "OFFLINE";
-      };
+        action:
+        | "SUCCESS"
+        | "DISCONNECT"
+        | "RETRY"
+        | "LOGOUT"
+        | "ONLINE"
+        | "OFFLINE";
+    };
 
 /**
  * Client lifecycle finite state machine
@@ -99,8 +100,33 @@ export default class Session {
      */
     private onReady() {
         resetMemberSidebarFetched();
+        this.setupIncomingDMGuard();
         this.emit({
             action: "SUCCESS",
+        });
+    }
+
+    /**
+     * Set up listener for incoming DM channels to check privacy settings
+     */
+    private setupIncomingDMGuard() {
+        if (!this.client) return;
+
+        // Listen for when channels are added or updated
+        const checkChannel = (channel: any) => {
+            if (channel.channel_type === "DirectMessage") {
+                handleIncomingDM(state.settings, channel);
+            }
+        };
+
+        // Check existing DM channels that were just received
+        for (const channel of this.client.channels.values()) {
+            checkChannel(channel);
+        }
+
+        // Listen for new channels being added
+        this.client.addListener("channel", (channel: any) => {
+            checkChannel(channel);
         });
     }
 

@@ -1,8 +1,14 @@
 import React, { useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { Home as HomeIcon } from "@styled-icons/boxicons-solid";
-import { ChevronLeft, ChevronRight, Menu } from "@styled-icons/boxicons-regular";
+import {
+    ChevronLeft,
+    ChevronRight,
+    Menu,
+    Search,
+} from "@styled-icons/boxicons-regular";
 import { Text } from "preact-i18n";
+import { useEffect as usePreactEffect, useRef, useState } from "preact/hooks";
 import styled from "styled-components/macro";
 
 import { PageHeader } from "../../components/ui/Header";
@@ -28,6 +34,7 @@ import { ThemeToggle, NavSubmitGroup, NavSubmitBtn } from "../directory/stylesNa
 import { TabToggle, ToggleTab, Main, FilterWrap, SearchWrap, SearchInput, FilterPills, FilterToggleBtn, MobileBreak, Pill, ClearBtn, LegendToggle, LegendBox, LegendCat } from "../directory/stylesHero";
 import { EmptyState, TableWrap, Table, CardGrid } from "../directory/stylesCommunity";
 import directoryStyles from "../directory/Directory.module.scss";
+import { GlobalDMSearch } from "../../components/navigation/right/GlobalDMSearch";
 
 const Overlay = styled.div`
     display: flex;
@@ -37,11 +44,75 @@ const Overlay = styled.div`
     background: var(--background);
 `;
 
+const GlobalSearchOverlay = styled.div`
+    position: absolute;
+    top: calc(100% + 16px);
+    right: -8px;
+    width: min(300px, calc(100vw - 24px));
+    max-height: min(460px, calc(100vh - 120px));
+    z-index: 40;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 72px rgba(0, 0, 0, 0.45);
+`;
+
+const HeaderSearchWrap = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    flex: 0 1 260px;
+    min-width: 180px;
+    max-width: 280px;
+    margin-right: 8px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    .icon {
+        flex-shrink: 0;
+        opacity: 0.75;
+    }
+
+    input {
+        width: 100%;
+        height: 38px;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--foreground);
+        font-size: 14px;
+
+        &::placeholder {
+            color: var(--secondary-foreground);
+        }
+    }
+
+    @media (max-width: 1200px) {
+        flex-basis: 220px;
+        max-width: 240px;
+    }
+
+    @media (max-width: 900px) {
+        display: none;
+    }
+`;
+
+const SearchShell = styled.div`
+    position: relative;
+    display: flex;
+    align-items: center;
+`;
+
 
 
 const HomeContent = observer(() => {
     const layout = useApplicationState().layout;
     const sidebarVisible = layout.getSectionState(SIDEBAR_CHANNELS, true);
+    const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+    const [globalSearchQuery, setGlobalSearchQuery] = useState("");
+    const searchShellRef = useRef<HTMLDivElement>(null);
 
     const {
         tab, search, setSearch, activeFilters, setActiveFilters, sortCol, sortDir,
@@ -59,6 +130,18 @@ const HomeContent = observer(() => {
             setDarkMode(true);
         }
     }, [darkMode, setDarkMode]);
+
+    usePreactEffect(() => {
+        function onPointerDown(event: PointerEvent) {
+            if (!globalSearchOpen) return;
+            if (searchShellRef.current?.contains(event.target as Node)) return;
+
+            setGlobalSearchOpen(false);
+        }
+
+        document.addEventListener("pointerdown", onPointerDown);
+        return () => document.removeEventListener("pointerdown", onPointerDown);
+    }, [globalSearchOpen]);
 
     function toggleSidebar() {
         if (isTouchscreenDevice) {
@@ -102,6 +185,34 @@ const HomeContent = observer(() => {
                 </BrandGroup>
                 <DirectoryBadge>Directory</DirectoryBadge>
                 <HeaderSpacer />
+                <SearchShell ref={searchShellRef}>
+                    <HeaderSearchWrap>
+                        <Search size={16} className="icon" />
+                        <input
+                            value={globalSearchQuery}
+                            onInput={(e) => {
+                                const value = (e.currentTarget as HTMLInputElement).value;
+                                setGlobalSearchQuery(value);
+                                setGlobalSearchOpen(true);
+                            }}
+                            onFocus={() => setGlobalSearchOpen(true)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Escape") {
+                                    setGlobalSearchOpen(false);
+                                }
+                            }}
+                            placeholder="Search DMs..."
+                        />
+                    </HeaderSearchWrap>
+                    {globalSearchOpen && (
+                        <GlobalSearchOverlay>
+                            <GlobalDMSearch
+                                close={() => setGlobalSearchOpen(false)}
+                                initialQuery={globalSearchQuery}
+                            />
+                        </GlobalSearchOverlay>
+                    )}
+                </SearchShell>
                 <NavSubmitGroup>
                     <NavSubmitBtn onClick={() => openSubmit("vendor")}>+ Vendor</NavSubmitBtn>
                     <NavSubmitBtn onClick={() => openSubmit("reseller")}>+ Reseller</NavSubmitBtn>
