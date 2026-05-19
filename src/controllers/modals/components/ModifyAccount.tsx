@@ -26,14 +26,50 @@ interface FormInputs {
 }
 
 const StyledModal = styled(Modal)`
-    .updateHover:hover,
-    .updateHover:focus-visible,
-    .updateHover:active {
+    input {
+        background: #332e36 !important;
+        border: none !important;
+        box-shadow: inset 0 0 0 1px transparent !important;
+        color: var(--foreground) !important;
+
+        &:focus,
+        &:focus-visible {
+            background: #3d3941 !important;
+            box-shadow: inset 0 0 0 2px var(--accent) !important;
+        }
+
+        &::placeholder {
+            color: var(--secondary-foreground) !important;
+        }
+    }
+
+    .updateHover {
+        background: #242424 !important;
+
+        &:hover,
+        &:focus-visible,
+        &:active {
+            background: #2a2630 !important;
+            color: var(--foreground) !important;
+            text-decoration: none !important;
+            filter: none !important;
+            box-shadow: none !important;
+        }
+    }
+
+    .cancelButton {
         background: #242424 !important;
         color: var(--foreground) !important;
-        text-decoration: none !important;
-        filter: none !important;
-        box-shadow: none !important;
+
+        &:hover,
+        &:focus-visible,
+        &:active {
+            background: #2a2630 !important;
+            color: var(--foreground) !important;
+            text-decoration: none !important;
+            filter: none !important;
+            box-shadow: none !important;
+        }
     }
 `;
 
@@ -102,6 +138,7 @@ export default function ModifyAccount({
                     onClick: noopTrue,
                     children: <Text id="app.special.modals.actions.cancel" />,
                     palette: "plain",
+                    className: "cancelButton",
                 },
             ]}>
             {/* Preact / React typing incompatabilities */}

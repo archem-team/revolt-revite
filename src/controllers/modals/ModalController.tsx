@@ -46,6 +46,7 @@ import PendingFriendRequests from "./components/PendingFriendRequests";
 import ReportContent from "./components/Report";
 import ReportSuccess from "./components/ReportSuccess";
 import BlockedIncomingDM from "./components/BlockedIncomingDM";
+import PhoneVerification from "./components/PhoneVerification";
 import ServerIdentity from "./components/ServerIdentity";
 import ServerInfo from "./components/ServerInfo";
 import ShowToken from "./components/ShowToken";
@@ -297,6 +298,7 @@ export const modalController = new ModalControllerExtended({
     report: ReportContent,
     report_success: ReportSuccess,
     blocked_incoming_dm: BlockedIncomingDM,
+    phone_verification: PhoneVerification,
     modify_displayname: ModifyDisplayname,
     changelog_usernames: ChangelogUsernames,
 });

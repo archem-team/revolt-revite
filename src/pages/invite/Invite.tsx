@@ -37,6 +37,17 @@ export default function Invite() {
         undefined,
     );
 
+    function getErrorMessage(errorType: string): string {
+        switch (errorType) {
+            case "PhoneVerificationRequired":
+                return "app.special.invite.phone_verification_required";
+            case "AccountTooYoung":
+                return "app.special.invite.account_too_young";
+            default:
+                return undefined;
+        }
+    }
+
     useEffect(() => {
         if (typeof invite === "undefined") {
             client
@@ -188,7 +199,13 @@ export default function Invite() {
                             />
                         </h3>
                         <Category>
-                            <Error error={error} />
+                            <Error
+                                error={
+                                    error && getErrorMessage(error)
+                                        ? getErrorMessage(error)
+                                        : error
+                                }
+                            />
                         </Category>
                         <Button
                             palette="secondary"
