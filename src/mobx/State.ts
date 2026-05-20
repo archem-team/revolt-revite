@@ -12,6 +12,7 @@ import Persistent from "./interfaces/Persistent";
 import Syncable from "./interfaces/Syncable";
 import Auth from "./stores/Auth";
 import Changelog from "./stores/Changelog";
+import DMSearch from "./stores/DMSearch";
 import Draft from "./stores/Draft";
 import Experiments from "./stores/Experiments";
 import Layout from "./stores/Layout";
@@ -36,6 +37,7 @@ export default class State {
     auth: Auth;
     changelog: Changelog;
     draft: Draft;
+    dmSearch: DMSearch;
     locale: LocaleOptions;
     experiments: Experiments;
     layout: Layout;
@@ -60,6 +62,7 @@ export default class State {
         this.auth = new Auth();
         this.changelog = new Changelog();
         this.draft = new Draft();
+        this.dmSearch = new DMSearch();
         this.locale = new LocaleOptions();
         this.experiments = new Experiments();
         this.layout = new Layout();

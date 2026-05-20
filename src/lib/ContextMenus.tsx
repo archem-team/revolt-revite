@@ -30,6 +30,7 @@ import UserStatus from "../components/common/user/UserStatus";
 import { useSession } from "../controllers/client/ClientController";
 import { takeError } from "../controllers/client/jsx/error";
 import { modalController } from "../controllers/modals/ModalController";
+import { openDirectMessage } from "./openDirectMessage";
 import { internalEmit } from "./eventEmitter";
 import { getRenderer } from "./renderer/Singleton";
 
@@ -395,10 +396,7 @@ export default function ContextMenus() {
 
                 case "message_user":
                     {
-                        const channel = await data.user.openDM();
-                        if (channel) {
-                            history.push(`/channel/${channel._id}`);
-                        }
+                        await openDirectMessage(state.settings, history, data.user);
                     }
                     break;
 

@@ -12,6 +12,8 @@ import { Text } from "preact-i18n";
 import { IconButton } from "@revoltchat/ui";
 
 import { stopPropagation } from "../../lib/stopPropagation";
+import { useApplicationState } from "../../mobx/State";
+import { openDirectMessage } from "../../lib/openDirectMessage";
 
 import UserIcon from "../../components/common/user/UserIcon";
 import UserStatus from "../../components/common/user/UserStatus";
@@ -23,6 +25,7 @@ interface Props {
 
 export const Friend = observer(({ user }: Props) => {
     const history = useHistory();
+    const settings = useApplicationState().settings;
 
     const actions: Children[] = [];
     let subtext: Children = null;
@@ -37,11 +40,7 @@ export const Friend = observer(({ user }: Props) => {
                     onClick={(ev) =>
                         stopPropagation(
                             ev,
-                            user
-                                .openDM()
-                                .then((channel) =>
-                                    history.push(`/channel/${channel._id}`),
-                                ),
+                            openDirectMessage(settings, history, user),
                         )
                     }>
                     <Envelope size={20} />
@@ -85,9 +84,9 @@ export const Friend = observer(({ user }: Props) => {
                         ev,
                         user.relationship === "Friend"
                             ? modalController.push({
-                                  type: "unfriend_user",
-                                  target: user,
-                              })
+                                type: "unfriend_user",
+                                target: user,
+                            })
                             : user.removeFriend(),
                     )
                 }>
