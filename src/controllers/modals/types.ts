@@ -194,6 +194,10 @@ export type Modal = {
           type: "blocked_incoming_dm";
           user: User;
       }
+    | {
+          type: "phone_verification";
+          client: Client;
+      }
 );
 
 export type ModalProps<T extends Modal["type"]> = Modal & { type: T } & {

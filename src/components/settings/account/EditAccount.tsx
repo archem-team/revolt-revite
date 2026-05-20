@@ -1,5 +1,5 @@
 import { At } from "@styled-icons/boxicons-regular";
-import { Envelope, Key, Pencil } from "@styled-icons/boxicons-solid";
+import { Envelope, Key, Pencil, Phone, CheckCircle } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 
 import { Text } from "preact-i18n";
@@ -40,8 +40,8 @@ export default observer(() => {
                     [
                         "username",
                         client.user!.username +
-                            "#" +
-                            client.user!.discriminator,
+                        "#" +
+                        client.user!.discriminator,
                         At,
                     ],
                     ["email", email, Envelope],
@@ -73,6 +73,36 @@ export default observer(() => {
                     <Text id={`login.${field}`} />
                 </CategoryButton>
             ))}
+
+            {/* Phone Verification */}
+            <CategoryButton
+                icon={<Phone size={24} />}
+                description={
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        {(client.user as any)?.phone_verified ? (
+                            <>
+                                <CheckCircle size={16} style={{ color: "var(--success)" }} />
+                                <span style={{ color: "var(--success)" }}>
+                                    <Text id="app.settings.pages.account.phone.phone_verified" />
+                                </span>
+                            </>
+                        ) : (
+                            <span style={{ color: "var(--warning)" }}>
+                                <Text id="app.settings.pages.account.phone.phone_not_verified" />
+                            </span>
+                        )}
+                    </div>
+                }
+                account
+                action={<Pencil size={20} />}
+                onClick={() =>
+                    modalController.push({
+                        type: "phone_verification",
+                        client,
+                    })
+                }>
+                <Text id="app.settings.pages.account.phone.phone_verification" />
+            </CategoryButton>
         </>
     );
 });
