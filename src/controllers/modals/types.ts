@@ -1,5 +1,11 @@
 import { API, Client, User, Member, Channel, Server, Message } from "revolt.js";
 
+export interface MessageEditHistory {
+    content?: string;
+    embeds?: API.Embed[];
+    edited_at: string; // ISO 8601 timestamp
+}
+
 export type Modal = {
     key?: string;
 } & (
@@ -197,6 +203,10 @@ export type Modal = {
     | {
           type: "phone_verification";
           client: Client;
+      }
+    | {
+          type: "message_history";
+          message: Message;
       }
 );
 

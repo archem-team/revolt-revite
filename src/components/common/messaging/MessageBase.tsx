@@ -2,6 +2,7 @@ import { observer } from "mobx-react-lite";
 import { Message } from "revolt.js";
 import styled, { css, keyframes } from "styled-components/macro";
 import { decodeTime } from "ulid";
+import { modalController } from "../../../controllers/modals/ModalController";
 
 import { Text } from "preact-i18n";
 
@@ -164,13 +165,25 @@ export const MessageInfo = styled.div<{ click: boolean }>`
         opacity: 0;
     }
 
-    time,
-    .edited {
+    time {
         margin-top: 1px;
         cursor: default;
         display: inline;
         font-size: 10px;
         color: var(--tertiary-foreground);
+    }
+
+    .edited {
+        margin-top: 1px;
+        cursor: pointer;
+        display: inline;
+        font-size: 10px;
+        color: var(--tertiary-foreground);
+        transition: color 0.15s ease;
+
+        &:hover {
+            color: var(--accent);
+        }
     }
 
     time,
@@ -221,7 +234,13 @@ export const DetailBase = styled.div`
     color: var(--tertiary-foreground);
 
     .edited {
-        cursor: default;
+        cursor: pointer;
+        transition: color 0.15s ease;
+
+        &:hover {
+            color: var(--accent);
+        }
+
         &::selection {
             background-color: transparent;
             color: var(--tertiary-foreground);
@@ -244,7 +263,15 @@ export const MessageDetail = observer(
                             )}
                             <i className="copyBracket">]</i>
                         </time>
-                        <span className="edited">
+                        <span
+                            className="edited"
+                            onClick={() =>
+                                modalController.push({
+                                    type: "message_history",
+                                    message,
+                                })
+                            }
+                        >
                             <Tooltip
                                 content={dayjs(message.edited).format("LLLL")}>
                                 <Text id="app.main.channel.edited" />
@@ -271,7 +298,15 @@ export const MessageDetail = observer(
                 <time>{dayjs(decodeTime(message._id)).calendar()}</time>
                 {message.edited && (
                     <Tooltip content={dayjs(message.edited).format("LLLL")}>
-                        <span className="edited">
+                        <span
+                            className="edited"
+                            onClick={() =>
+                                modalController.push({
+                                    type: "message_history",
+                                    message,
+                                })
+                            }
+                        >
                             <Text id="app.main.channel.edited" />
                         </span>
                     </Tooltip>

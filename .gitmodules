@@ -5,7 +5,7 @@
 [submodule "external/components"]
 	path = external/components
 	url = https://github.com/archem-team/components
-	branch = bug/deleted_account_notif
+	branch = master
 [submodule "external/revolt.js"]
 	path = external/revolt.js
 	url = https://github.com/archem-team/revolt.js
