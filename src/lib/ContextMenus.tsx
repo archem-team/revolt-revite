@@ -67,6 +67,7 @@ type Action =
     | { action: "reply_message"; target: Message }
     | { action: "quote_message"; content: string }
     | { action: "edit_message"; id: string }
+    | { action: "view_edit_history"; message: Message }
     | { action: "delete_message"; target: Message }
     | { action: "open_file"; attachment: API.File }
     | { action: "save_file"; attachment: API.File }
@@ -322,6 +323,15 @@ export default function ContextMenus() {
                     }
                     break;
 
+                case "view_edit_history":
+                    {
+                        modalController.push({
+                            type: "message_history",
+                            message: data.message,
+                        });
+                    }
+                    break;
+
                 case "open_file":
                     {
                         window
@@ -559,6 +569,8 @@ export default function ContextMenus() {
                                         "Open in Admin Panel"
                                     ) : locale === "admin_system" ? (
                                         "Open User in Admin Panel"
+                                    ) : action.action === "view_edit_history" ? (
+                                        "View Edit History"
                                     ) : (
                                         <Text
                                             id={`app.context_menu.${locale ?? action.action
@@ -908,6 +920,13 @@ export default function ContextMenus() {
                             generateAction({
                                 action: "edit_message",
                                 id: message._id,
+                            });
+                        }
+
+                        if (message.edited) {
+                            generateAction({
+                                action: "view_edit_history",
+                                message: message,
                             });
                         }
 
