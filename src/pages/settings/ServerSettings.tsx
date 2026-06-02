@@ -30,6 +30,7 @@ import { Invites } from "./server/Invites";
 import { Members } from "./server/Members";
 import { Overview } from "./server/Overview";
 import { Roles } from "./server/Roles";
+import { VendorInfo } from "./server/VendorInfo";
 
 export default observer(() => {
     const { server: sid } = useParams<{ server: string }>();
@@ -80,6 +81,15 @@ export default observer(() => {
                     icon: <HappyBeaming size={20} />,
                     title: <Text id="app.settings.server_pages.emojis.title" />,
                 },
+                // Vendor Info tab — only for Verified GB / Verified Vendor servers
+                ...(server.flags && (server.flags & 3)
+                    ? [{
+                        category: <div>Directory</div>,
+                        id: "vendor-info",
+                        icon: <InfoCircle size={20} />,
+                        title: <span>Vendor Info</span>,
+                    }]
+                    : []),
                 {
                     category: (
                         <Text id="app.settings.server_pages.management.title" />
@@ -132,6 +142,9 @@ export default observer(() => {
                         <RequiresOnline>
                             <Emojis server={server} />
                         </RequiresOnline>
+                    </Route>
+                    <Route path="/server/:server/settings/vendor-info">
+                        <VendorInfo server={server} />
                     </Route>
                     <Route>
                         <Overview server={server} />
