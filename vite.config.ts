@@ -115,6 +115,18 @@ export default defineConfig({
             preventAssignment: true,
         }) as any,
     ],
+    server: {
+        // Proxy the directory "manage" API in dev so /api/* requests reach the
+        // real backend instead of falling through to the SPA index.html.
+        // Production uses the absolute API_BASE (see src/pages/directory/types.ts).
+        proxy: {
+            "/api": {
+                target: "https://manageapi.peptide.chat",
+                changeOrigin: true,
+                secure: true,
+            },
+        },
+    },
     build: {
         sourcemap: true,
         rollupOptions: {
