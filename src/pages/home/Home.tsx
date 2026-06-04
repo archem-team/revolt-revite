@@ -53,6 +53,11 @@ interface Server {
     sortorder: number;
 }
 
+interface CachedData {
+    timestamp: number;
+    data: Server[];
+}
+
 // Add a styled component for the new text color
 const NewServerWrapper = styled.div`
     color: #fadf4f;
@@ -101,52 +106,80 @@ const Home: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
+    const cacheAndSetServers = (data: Server[]) => {
+        // Sort the servers by sortorder before caching
+        const sortedData = [...data].sort(
+            (a, b) => (a.sortorder || 0) - (b.sortorder || 0),
+        );
+
+        const cacheData: CachedData = {
+            timestamp: Date.now(),
+            data: sortedData,
+        };
+
+        safeStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+        setServers(sortedData);
+        setLoading(false);
+    };
+
+    // Fallback: load the server list from the published Google Sheets CSV.
+    const fetchFromSheet = () => {
+        const csvUrl =
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vRY41D-NgTE6bC3kTN3dRpisI-DoeHG8Eg7n31xb1CdydWjOLaphqYckkTiaG9oIQSWP92h3NE-7cpF/pub?gid=0&single=true&output=csv";
+
+        // Add cache-busting parameter to prevent browser caching
+        const urlWithCacheBust = `${csvUrl}&_cb=${Date.now()}`;
+
+        Papa.parse<Server>(urlWithCacheBust, {
+            download: true,
+            header: true,
+            dynamicTyping: true,
+            complete: (result) => {
+                if (result.errors.length > 0) {
+                    console.error("CSV parsing errors:", result.errors);
+                    setError("Error parsing server data");
+                    setLoading(false);
+                    return;
+                }
+
+                cacheAndSetServers(result.data);
+            },
+            error: (err) => {
+                console.error("Error fetching CSV:", err);
+                setError(
+                    "Failed to load server data. Please try again later.",
+                );
+                setLoading(false);
+            },
+        });
+    };
+
     const fetchAndCacheData = async () => {
+        // Primary source: the directory servers API. Field names match the
+        // Server interface directly, so no transform is needed.
         try {
-            const csvUrl =
-                "https://docs.google.com/spreadsheets/d/e/2PACX-1vRY41D-NgTE6bC3kTN3dRpisI-DoeHG8Eg7n31xb1CdydWjOLaphqYckkTiaG9oIQSWP92h3NE-7cpF/pub?gid=0&single=true&output=csv";
+            const response = await fetch(
+                "https://manage.peptide.chat/api/directory/servers",
+            );
 
-            // Add cache-busting parameter to prevent browser caching
-            const urlWithCacheBust = `${csvUrl}&_cb=${Date.now()}`;
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
 
-            Papa.parse<Server>(urlWithCacheBust, {
-                download: true,
-                header: true,
-                dynamicTyping: true,
-                complete: (result) => {
-                    if (result.errors.length > 0) {
-                        console.error("CSV parsing errors:", result.errors);
-                        setError("Error parsing server data");
-                        setLoading(false);
-                        return;
-                    }
+            const json = await response.json();
 
-                    // Sort the servers by sortorder before caching
-                    const sortedData = [...result.data].sort(
-                        (a, b) => (a.sortorder || 0) - (b.sortorder || 0),
-                    );
+            if (!json?.success || !Array.isArray(json.data)) {
+                throw new Error("Unexpected response shape");
+            }
 
-                    const cacheData: CachedData = {
-                        timestamp: Date.now(),
-                        data: sortedData,
-                    };
-
-                    safeStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-                    setServers(sortedData);
-                    setLoading(false);
-                },
-                error: (err) => {
-                    console.error("Error fetching CSV:", err);
-                    setError(
-                        "Failed to load server data. Please try again later.",
-                    );
-                    setLoading(false);
-                },
-            });
+            cacheAndSetServers(json.data as Server[]);
         } catch (err) {
-            console.error("Unexpected error:", err);
-            setError("An unexpected error occurred. Please try again later.");
-            setLoading(false);
+            // Fall back to the Google Sheets CSV on any failure.
+            console.warn(
+                "Server list API failed, falling back to CSV:",
+                err,
+            );
+            fetchFromSheet();
         }
     };
 
