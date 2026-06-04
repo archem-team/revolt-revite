@@ -1,0 +1,111 @@
+/* ============================================================
+   Zeko Chat (PepChat) - Design Tokens
+   Source of truth: github.com/archem-team/pepchat-ios
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Mukta+Mahee:wght@300;400;600;700&display=swap");
+
+:root {
+    /* Colors */
+    --color-bg: #100518;
+    --color-surface: #332e36;
+    --color-surface-alt: #1c1720;
+    --color-surface-inverse: #f3f2f3;
+    --color-accent: #662d91;
+    --color-accent-deep: #492069;
+    --color-accent-darker: #3b1954;
+
+    --color-text-primary: #fffffd;
+    --color-text-secondary: #a3a1a4;
+    --color-text-tertiary: #d0cfd0;
+    --color-text-disabled: #605c62;
+    --color-text-inverse: #100518;
+
+    --color-icon-primary: #fffffd;
+    --color-icon-secondary: #8c8a8e;
+    --color-icon-tertiary: #d0cfd0;
+    --color-icon-inverse: #06000a;
+
+    --color-border: #49454c;
+    --color-border-quiet: #332e36;
+    --color-border-strong: #605c62;
+
+    --color-success: #3cc374;
+    --color-success-border: #246b44;
+    --color-warning: #ffde17;
+    --color-warning-pressed: #dabd15;
+    --color-danger: #c63945;
+    --color-danger-pressed: #a9303c;
+    --color-danger-subtle: #531722;
+    --color-danger-border: #701f2a;
+    --color-info: #17a6ff;
+    --color-caution: #ffb617;
+
+    --color-scrim: rgba(16, 5, 24, 0.6);
+
+    /* Typography */
+    --font-family: "Mukta Mahee", "MuktaMahee", system-ui, -apple-system,
+        sans-serif;
+    --font-weight-light: 300;
+    --font-weight-regular: 400;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    --font-size-large-title: 32px;
+    --font-size-title-1: 26px;
+    --font-size-title-2: 20px;
+    --font-size-title-3: 18px;
+    --font-size-title-4: 18px;
+    --font-size-headline: 15px;
+    --font-size-body: 15px;
+    --font-size-body-1: 18px;
+    --font-size-body-2: 16px;
+    --font-size-body-3: 15px;
+    --font-size-body-4: 14px;
+    --font-size-button: 15px;
+    --font-size-callout: 14px;
+    --font-size-subhead: 13px;
+    --font-size-footnote: 12px;
+    --font-size-caption-1: 11px;
+
+    --line-height-tight: 1.2;
+    --line-height-normal: 1.35;
+    --line-height-loose: 1.5;
+
+    /* Spacing */
+    --space-0: 0;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+
+    /* Radius */
+    --radius-xs: 2px;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 20px;
+    --radius-pill: 999px;
+
+    /* Elevation */
+    --shadow-sm: 0 0 2px rgba(16, 5, 24, 0.2);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+html,
+body {
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-regular);
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-normal);
+    -webkit-font-smoothing: antialiased;
+}

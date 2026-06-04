@@ -1,3 +1,4 @@
+import "./styles/tokens.css";
 import "./styles/index.scss";
 import { render } from "preact";
 

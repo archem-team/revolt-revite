@@ -3,8 +3,8 @@
      * Appearance
      */
     --ligatures: none;
-    --text-size: 14px;
-    --font: "Open Sans";
+    --text-size: var(--font-size-body-4);
+    --font: var(--font-family);
     --sidebar-active: var(--secondary-background);
 
     /**
@@ -18,24 +18,25 @@
      * Layout
      */
     --app-height: 100vh;
-    --scrollbar-thickness: 3px;
+    --scrollbar-thickness: var(--space-1);
     --scrollbar-thickness-ff: thin;
-    --border-radius: 6px;
+    --border-radius: var(--radius-md);
     --border-radius-half: 50%;
 
     --border-radius-user-icon: var(--border-radius-half);
     --border-radius-channel-icon: var(--border-radius-half);
     --border-radius-server-icon: var(--border-radius-half);
 
-    --input-border-width: 2px;
-    --textarea-padding: 16px;
-    --textarea-line-height: 20px;
-    --message-box-padding: 14px 14px 14px 0;
+    --input-border-width: 1px;
+    --textarea-padding: var(--space-4);
+    --textarea-line-height: var(--space-5);
+    --message-box-padding: var(--space-3) var(--space-3) var(--space-3)
+        var(--space-0);
 
     --attachment-max-width: 400px;
     --attachment-max-height: 300px;
     --attachment-default-width: 400px;
     --attachment-max-text-width: 800px;
 
-    --bottom-navigation-height: 50px;
+    --bottom-navigation-height: var(--space-12);
 }

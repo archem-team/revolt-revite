@@ -16,54 +16,8 @@ import type {
 } from "./types";
 import { GUARANTEE_TEXT_DEFAULTS } from "./types";
 
-// ─── CSV Parser ───────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export function parseCSV(text: string): Record<string, string>[] {
-    const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
-    if (lines.length < 2) return [];
-    const headers = splitCSVRow(lines[0]);
-    const rows: Record<string, string>[] = [];
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        const values = splitCSVRow(line);
-        const row: Record<string, string> = {};
-        headers.forEach((h, idx) => {
-            row[h.trim()] = values[idx]?.trim() ?? "";
-        });
-        rows.push(row);
-    }
-    return rows;
-}
-
-function splitCSVRow(line: string): string[] {
-    const result: string[] = [];
-    let cur = "";
-    let inQuote = false;
-    for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') {
-            if (inQuote && line[i + 1] === '"') {
-                cur += '"';
-                i++;
-            } else inQuote = !inQuote;
-        } else if (ch === "," && !inQuote) {
-            result.push(cur);
-            cur = "";
-        } else {
-            cur += ch;
-        }
-    }
-    result.push(cur);
-    return result;
-}
-
-function toBool(v: string): boolean {
-    return v === "TRUE" || v === "true" || v === "1";
-}
-function toNum(v: string): number {
-    return parseFloat(v) || 0;
-}
 function toText(v: string | undefined, fallback: string): string {
     const trimmed = (v ?? "").trim();
     return trimmed || fallback;
@@ -79,99 +33,6 @@ function mapGuaranteeTexts(
     };
 }
 
-export function rowToCommunity(r: Record<string, string>): Community | null {
-    const type = r["type"] as "vendor" | "reseller" | "other";
-    if (!type || !r["id"]) return null;
-    const base: CommunityBase = {
-        id: r["id"],
-        type,
-        name: r["name"] || "",
-        logo: r["logo"] || null,
-        inviteLink: r["inviteLink"] || "",
-        serverId: r["serverId"] || null,
-        ageDays: toNum(r["ageDays"]),
-        verified: toBool(r["verified"]),
-        memberCount: toNum(r["memberCount"]),
-        onlineCount: toNum(r["onlineCount"]),
-        rating: toNum(r["rating"]),
-        notes: r["notes"] || "",
-    };
-    if (type === "other") return base as OtherCommunity;
-    const commerce = {
-        ...base,
-        payment: {
-            cc: toBool(r["cc"]),
-            btc: toBool(r["btc"]),
-            pp: toBool(r["pp"]),
-            zelle: toBool(r["zelle"]),
-            venmo: toBool(r["venmo"]),
-            bt: toBool(r["bt"]),
-            chk: toBool(r["chk"]),
-        },
-        warehouses: {
-            us: toBool(r["us"]),
-            eu: toBool(r["eu"]),
-            aus: toBool(r["aus"]),
-        },
-        products: {
-            pep: toBool(r["pep"]),
-            oil: toBool(r["oil"]),
-            tabs: toBool(r["tabs"]),
-            raw: toBool(r["raw"]),
-            amn: toBool(r["amn"]),
-            sup: toBool(r["sup"]),
-            aas: toBool(r["aas"]),
-        },
-        guarantees: {
-            purity: toBool(r["guaranteePurity"]),
-            volume: toBool(r["guaranteeVolume"]),
-            reship: toBool(r["guaranteeReship"]),
-        },
-        guaranteeTexts: {
-            purity: toText(
-                r["guaranteePurityText"],
-                GUARANTEE_TEXT_DEFAULTS.purity,
-            ),
-            volume: toText(
-                r["guaranteeVolumeText"],
-                GUARANTEE_TEXT_DEFAULTS.volume,
-            ),
-            reship: toText(
-                r["guaranteeReshipText"],
-                GUARANTEE_TEXT_DEFAULTS.reship,
-            ),
-        },
-        shippingTime: r["shippingTime"] || "",
-        freeShipping: toBool(r["freeShipping"]),
-        freeShippingThreshold: r["freeShippingThreshold"] || "",
-    };
-    if (type === "reseller") {
-        return {
-            ...commerce,
-            type: "reseller",
-            orderTypes: {
-                single: toBool(r["orderSingle"]),
-                halfkit: toBool(r["orderHalfkit"]),
-                fullkit: toBool(r["orderFullkit"]),
-            },
-        } as ResellerCommunity;
-    }
-    return { ...commerce, type: "vendor", orderTypes: null } as VendorCommunity;
-}
-
-export function rowToReview(r: Record<string, string>): Review | null {
-    if (!r["id"] || !r["vendorId"]) return null;
-    return {
-        id: r["id"],
-        vendorId: r["vendorId"],
-        vendorType: r["vendorType"] || "vendor",
-        reviewerName: r["reviewerName"] || "Anonymous",
-        rating: toNum(r["rating"]) || 5,
-        text: r["text"] || "",
-        date: r["date"] || "",
-    };
-}
-
 // ─── Default map values ───────────────────────────────────────────────────────
 
 export const defPay: Payment = {
@@ -184,7 +45,13 @@ export const defPay: Payment = {
     chk: false,
     custom: [],
 };
-export const defWh: Warehouses = { us: false, eu: false, aus: false, cn: false, custom: [] };
+export const defWh: Warehouses = {
+    us: false,
+    eu: false,
+    aus: false,
+    cn: false,
+    custom: [],
+};
 export const defPr: Products = {
     pep: false,
     oil: false,
@@ -194,7 +61,7 @@ export const defPr: Products = {
     sup: false,
     aas: false,
     custom: [],
-};;
+};
 export const defGu: Guarantees = {
     purity: false,
     volume: false,
@@ -216,7 +83,7 @@ export function apiToCommunity(c: any): Community {
         type: c.type,
         name: c.name || "",
         logo: c.logo || null,
-        inviteLink: c.inviteLink || "",
+        inviteLink: c.inviteLink || null,
         serverId: c.serverId || null,
         ageDays: c.ageDays || 0,
         verified: c.verified || false,
@@ -224,6 +91,9 @@ export function apiToCommunity(c: any): Community {
         onlineCount: c.onlineCount || 0,
         rating: c.rating || 0,
         notes: c.notes || "",
+        sortorder: c.sortorder || 0,
+        locked: c.locked ?? false,
+        joinable: c.joinable ?? true,
     };
     if (c.type === "other") return base as OtherCommunity;
 
