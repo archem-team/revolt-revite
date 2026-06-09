@@ -155,7 +155,7 @@ const HomeContent = observer(() => {
     }
 
     return (
-        <Page $dark={darkMode} style={{ height: "auto", overflow: "visible" }}>
+        <Page $dark={darkMode} style={{ minHeight: "100%", height: "auto", overflowX: "hidden", overflowY: "visible" }}>
             <Header>
                 <BrandGroup>
                     <SidebarToggle
