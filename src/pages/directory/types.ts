@@ -263,13 +263,6 @@ export const LEGEND = [
     },
 ];
 
-// ─── Sheet URLs ───────────────────────────────────────────────────────────────
-
-export const SHEET_COMMUNITIES =
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vRIOkigL7Zu8jsYMF0AKu8CAw1az-8EFiAhHCrXBzSASrhQDocU-U5mezf2u08uO_imVvWvmi3rH-NX/pub?gid=0&single=true&output=csv";
-export const SHEET_REVIEWS =
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vRIOkigL7Zu8jsYMF0AKu8CAw1az-8EFiAhHCrXBzSASrhQDocU-U5mezf2u08uO_imVvWvmi3rH-NX/pub?gid=1967322747&single=true&output=csv";
-
 // ─── Live API ─────────────────────────────────────────────────────────────────
 
 export const API_BASE =

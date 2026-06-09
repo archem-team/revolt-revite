@@ -18,6 +18,7 @@ import Developer from "./developer/Developer";
 import Discover from "./discover/Discover";
 import Friends from "./friends/Friends";
 import Home from "./home/Home";
+import HomeNew from "./home/HomeNew";
 import InviteBot from "./invite/InviteBot";
 import ChannelSettings from "./settings/ChannelSettings";
 import ServerSettings from "./settings/ServerSettings";
@@ -90,6 +91,7 @@ export default function App() {
     const path = useLocation().pathname;
     const fixedBottomNav =
         path === "/" ||
+        path === "/home" ||
         path === "/settings" ||
         path.startsWith("/friends") ||
         path.startsWith("/discover");
@@ -219,6 +221,7 @@ export default function App() {
                             <Route path="/friends" component={Friends} />
                             <Route path="/open/:id" component={Open} />
                             <Route path="/bot/:id" component={InviteBot} />
+                            <Route path="/home" component={HomeNew} />
                             <Route path="/" component={Home} />
                         </Switch>
                     </Routes>

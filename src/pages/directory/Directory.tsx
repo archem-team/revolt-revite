@@ -1030,6 +1030,10 @@ const TableMeta = styled.div`
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
+import { Page, Header, LogoImg, DirectoryBadge, HeaderSpacer, HeaderNav, NavBtn, DesktopAuthGroup, MobileAuthBtn } from "./stylesLayout";
+import { Hero, HeroInner, HeroTitle, HeroSub, TabToggle, ToggleTab, Main, SectionHeader, FilterWrap, SearchWrap, SearchInput, FilterToggleBtn, MobileBreak, FilterPills, Pill, ClearBtn, LegendToggle, LegendBox, LegendCat } from "./stylesHero";
+import { EmptyState, TableWrap, Table, CardGrid } from "./stylesCommunity";
+import { Footer, FooterLinks, BottomNav, BottomTab, FAB, ThemeToggle, NavDivider, NavSubmitGroup, NavSubmitBtn } from "./stylesNav";
 
 function Directory() {
     const {
@@ -1097,7 +1101,7 @@ function Directory() {
                         <span className="icon">🔍</span>
                         <SearchInput
                             value={search}
-                            onInput={(e) => setSearch((e.target as HTMLInputElement).value)}
+                            onInput={(e) => setSearch((e.currentTarget as HTMLInputElement).value)}
                             placeholder="Search communities..."
                         />
                     </SearchWrap>
