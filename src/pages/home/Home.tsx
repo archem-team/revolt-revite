@@ -1,277 +1,391 @@
-import {
-    Home as HomeIcon,
-    MessageDots,
-    MessageAdd,
-    Lock,
-} from "@styled-icons/boxicons-solid";
+import React, { useEffect } from "react";
 import { observer } from "mobx-react-lite";
-import Papa from "papaparse";
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Home as HomeIcon } from "@styled-icons/boxicons-solid";
+import {
+    ChevronLeft,
+    ChevronRight,
+    Menu,
+    Search,
+} from "@styled-icons/boxicons-regular";
+import { Text } from "preact-i18n";
+import { useEffect as usePreactEffect, useRef, useState } from "preact/hooks";
 import styled from "styled-components/macro";
 
-import styles from "./Home.module.scss";
-import { Text } from "preact-i18n";
-
-import { CategoryButton } from "@revoltchat/ui";
-
 import { PageHeader } from "../../components/ui/Header";
-import { useClient } from "../../controllers/client/ClientController";
+import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
+import { useApplicationState } from "../../mobx/State";
+import { SIDEBAR_CHANNELS } from "../../mobx/stores/Layout";
+import { useDirectory } from "../directory/useDirectory";
+import { CommunityCard, CommunityRow } from "../directory/CommunityCard";
+import { ReviewsModal } from "../directory/ReviewsModal";
+import { SubmitModal } from "../directory/SubmitModal";
+import { COMMERCE_FILTERS, LEGEND } from "../directory/types";
+
+import {
+    Page,
+    Header,
+    DirectoryBadge,
+    HeaderSpacer,
+    BrandGroup,
+    BrandText,
+    SidebarToggle,
+} from "../directory/stylesLayout";
+import { ThemeToggle, NavSubmitGroup, NavSubmitBtn } from "../directory/stylesNav";
+import { TabToggle, ToggleTab, Main, FilterWrap, SearchWrap, SearchInput, FilterPills, FilterToggleBtn, MobileBreak, Pill, ClearBtn, LegendToggle, LegendBox, LegendCat } from "../directory/stylesHero";
+import { EmptyState, TableWrap, Table, CardGrid } from "../directory/stylesCommunity";
+import directoryStyles from "../directory/Directory.module.scss";
+import { GlobalDMSearch } from "../../components/navigation/right/GlobalDMSearch";
 
 const Overlay = styled.div`
-    display: grid;
+    display: flex;
+    flex-direction: column;
     height: 100%;
-    overflow-y: scroll;
-
-    > * {
-        grid-area: 1 / 1;
-    }
-
-    .content {
-        z-index: 1;
-    }
-
-    h3 {
-        padding-top: 1rem;
-    }
+    overflow-y: auto;
+    background: var(--background);
 `;
 
-const DisabledWrapper = styled.div`
-    opacity: 0.5;
-    pointer-events: none;
-    margin-bottom: -10px;
+const GlobalSearchOverlay = styled.div`
+    position: absolute;
+    top: calc(100% + 16px);
+    right: -8px;
+    width: min(300px, calc(100vw - 24px));
+    max-height: min(460px, calc(100vh - 120px));
+    z-index: 40;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 72px rgba(0, 0, 0, 0.45);
 `;
 
-interface Server {
-    id: string;
-    name: string;
-    description: string;
-    inviteCode: string;
-    disabled: boolean;
-    new: boolean;
-    showcolor: string;
-    sortorder: number;
-}
+const HeaderSearchWrap = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    flex: 0 1 260px;
+    min-width: 180px;
+    max-width: 280px;
+    margin-right: 8px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 
-interface CachedData {
-    timestamp: number;
-    data: Server[];
-}
-
-// Add a styled component for the new text color
-const NewServerWrapper = styled.div`
-    color: #fadf4f;
-    display: contents;
-
-    a {
-        color: #fadf4f;
+    .icon {
+        flex-shrink: 0;
+        opacity: 0.75;
     }
-`;
 
-// Dynamic color wrapper component
-const ColorWrapper = styled.div<{ color: string }>`
-    color: ${props => props.color};
-    display: contents;
+    input {
+        width: 100%;
+        height: 38px;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--foreground);
+        font-size: 14px;
 
-    a {
-        color: ${props => props.color};
-    }
-`;
-
-const CACHE_KEY = "server_list_cache";
-const CACHE_DURATION = 1 * 60 * 1000; // 1 minutes in milliseconds
-
-// Safe localStorage wrapper
-const safeStorage = {
-    getItem: (key: string): string | null => {
-        try {
-            return localStorage.getItem(key);
-        } catch (e) {
-            console.warn("Failed to read from localStorage:", e);
-            return null;
+        &::placeholder {
+            color: var(--secondary-foreground);
         }
-    },
-    setItem: (key: string, value: string): void => {
-        try {
-            localStorage.setItem(key, value);
-        } catch (e) {
-            console.warn("Failed to write to localStorage:", e);
-        }
-    },
-};
+    }
 
-const Home: React.FC = () => {
-    const client = useClient();
-    const [servers, setServers] = useState<Server[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+    @media (max-width: 1200px) {
+        flex-basis: 220px;
+        max-width: 240px;
+    }
 
-    const cacheAndSetServers = (data: Server[]) => {
-        // Sort the servers by sortorder before caching
-        const sortedData = [...data].sort(
-            (a, b) => (a.sortorder || 0) - (b.sortorder || 0),
-        );
+    @media (max-width: 900px) {
+        display: none;
+    }
+`;
 
-        const cacheData: CachedData = {
-            timestamp: Date.now(),
-            data: sortedData,
-        };
+const SearchShell = styled.div`
+    position: relative;
+    display: flex;
+    align-items: center;
+`;
 
-        safeStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-        setServers(sortedData);
-        setLoading(false);
-    };
 
-    // Fallback: load the server list from the published Google Sheets CSV.
-    const fetchFromSheet = () => {
-        const csvUrl =
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vRY41D-NgTE6bC3kTN3dRpisI-DoeHG8Eg7n31xb1CdydWjOLaphqYckkTiaG9oIQSWP92h3NE-7cpF/pub?gid=0&single=true&output=csv";
 
-        // Add cache-busting parameter to prevent browser caching
-        const urlWithCacheBust = `${csvUrl}&_cb=${Date.now()}`;
+const HomeContent = observer(() => {
+    const layout = useApplicationState().layout;
+    const sidebarVisible = layout.getSectionState(SIDEBAR_CHANNELS, true);
+    const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+    const [globalSearchQuery, setGlobalSearchQuery] = useState("");
+    const searchShellRef = useRef<HTMLDivElement>(null);
 
-        Papa.parse<Server>(urlWithCacheBust, {
-            download: true,
-            header: true,
-            dynamicTyping: true,
-            complete: (result) => {
-                if (result.errors.length > 0) {
-                    console.error("CSV parsing errors:", result.errors);
-                    setError("Error parsing server data");
-                    setLoading(false);
-                    return;
-                }
+    const {
+        tab, search, setSearch, activeFilters, setActiveFilters, sortCol, sortDir,
+        loading, loadError, showLegend, setShowLegend, showFilters, setShowFilters,
+        reviewModal, setReviewModal, submitOpen, setSubmitOpen,
+        submitInitialType, darkMode, setDarkMode,
+        filtered, reviews, openSubmit, toggleFilter, handleSort, switchTab,
+        reviewCount, handleSubmitReview, handleSubmitListing,
+    } = useDirectory();
 
-                cacheAndSetServers(result.data);
-            },
-            error: (err) => {
-                console.error("Error fetching CSV:", err);
-                setError(
-                    "Failed to load server data. Please try again later.",
-                );
-                setLoading(false);
-            },
-        });
-    };
-
-    const fetchAndCacheData = async () => {
-        // Primary source: the directory servers API. Field names match the
-        // Server interface directly, so no transform is needed.
-        try {
-            const response = await fetch(
-                "https://manage.peptide.chat/api/directory/servers",
-            );
-
-            if (!response.ok) {
-                throw new Error(`Request failed with status ${response.status}`);
-            }
-
-            const json = await response.json();
-
-            if (!json?.success || !Array.isArray(json.data)) {
-                throw new Error("Unexpected response shape");
-            }
-
-            cacheAndSetServers(json.data as Server[]);
-        } catch (err) {
-            // Fall back to the Google Sheets CSV on any failure.
-            console.warn(
-                "Server list API failed, falling back to CSV:",
-                err,
-            );
-            fetchFromSheet();
-        }
-    };
+    const si = (col: "rating" | "name") => sortCol === col ? (sortDir === "asc" ? " ↑" : " ↓") : "";
 
     useEffect(() => {
-        const getCachedOrFetchData = async () => {
-            try {
-                const cachedData = safeStorage.getItem(CACHE_KEY);
+        if (!darkMode) {
+            setDarkMode(true);
+        }
+    }, [darkMode, setDarkMode]);
 
-                if (cachedData) {
-                    const parsed: CachedData = JSON.parse(cachedData);
-                    const isExpired =
-                        Date.now() - parsed.timestamp > CACHE_DURATION;
+    usePreactEffect(() => {
+        function onPointerDown(event: PointerEvent) {
+            if (!globalSearchOpen) return;
+            if (searchShellRef.current?.contains(event.target as Node)) return;
 
-                    if (!isExpired && Array.isArray(parsed.data)) {
-                        setServers(parsed.data);
-                        setLoading(false);
-                        return;
-                    }
-                }
-            } catch (err) {
-                console.warn("Error reading cache:", err);
-                // Continue to fetch fresh data if cache read fails
-            }
-
-            await fetchAndCacheData();
-        };
-
-        getCachedOrFetchData();
-    }, []);
-
-    const renderServerButton = (server: Server) => {
-        const isServerJoined = client.servers.get(server.id);
-        const linkTo = isServerJoined
-            ? `/server/${server.id}`
-            : `/invite/${server.inviteCode}`;
-
-        const buttonContent = (
-            <CategoryButton
-                action={server.disabled ? undefined : "chevron"}
-                icon={
-                    server.disabled ? (
-                        <Lock size={32} />
-                    ) : isServerJoined ? (
-                        <MessageDots size={32} />
-                    ) : (
-                        <MessageAdd size={32} />
-                    )
-                }
-                description={server.description}>
-                {server.name}
-            </CategoryButton>
-        );
-
-        let content = server.disabled ? (
-            <DisabledWrapper>{buttonContent}</DisabledWrapper>
-        ) : (
-            <Link to={linkTo}>{buttonContent}</Link>
-        );
-
-        if (server.showcolor && server.showcolor.trim()) {
-            content = <ColorWrapper color={server.showcolor}>{content}</ColorWrapper>;
-        } else if (server.new) {
-            content = <NewServerWrapper>{content}</NewServerWrapper>;
+            setGlobalSearchOpen(false);
         }
 
-        return content;
-    };
+        document.addEventListener("pointerdown", onPointerDown);
+        return () => document.removeEventListener("pointerdown", onPointerDown);
+    }, [globalSearchOpen]);
 
-    if (loading) {
-        return <div>Loading...</div>;
-    }
+    function toggleSidebar() {
+        if (isTouchscreenDevice) {
+            document
+                .querySelector("#app > div > div > div")
+                ?.scrollTo({ behavior: "smooth", left: 0 });
+            return;
+        }
 
-    if (error) {
-        return <div>{error}</div>;
+        layout.toggleSectionState(SIDEBAR_CHANNELS, true);
     }
 
     return (
-        <div className={styles.home}>
-            <Overlay>
-                <div className="content">
-                    <PageHeader icon={<HomeIcon size={24} />} withTransparency>
-                        <Text id="app.navigation.tabs.home" />
-                    </PageHeader>
-                    <div className={styles.homeScreen}>
-                        <div className={styles.actions}>
-                            {servers.map(renderServerButton)}
-                        </div>
-                    </div>
+        <Page $dark={darkMode} style={{ minHeight: "100%", height: "auto", overflowX: "hidden", overflowY: "visible" }}>
+            <Header>
+                <BrandGroup>
+                    <SidebarToggle
+                        onClick={toggleSidebar}
+                        title="Toggle sidebar"
+                        aria-label="Toggle sidebar"
+                    >
+                        {isTouchscreenDevice ? (
+                            <Menu size={26} />
+                        ) : (
+                            <>
+                                {sidebarVisible ? (
+                                    <>
+                                        <ChevronLeft size={26} />
+                                        <HomeIcon size={22} />
+                                    </>
+                                ) : (
+                                    <>
+                                        <HomeIcon size={22} />
+                                        <ChevronRight size={26} />
+                                    </>
+                                )}
+                            </>
+                        )}
+                    </SidebarToggle>
+                    <BrandText>PepChat</BrandText>
+                </BrandGroup>
+                <DirectoryBadge>Directory</DirectoryBadge>
+                <HeaderSpacer />
+                <SearchShell ref={searchShellRef}>
+                    <HeaderSearchWrap>
+                        <Search size={16} className="icon" />
+                        <input
+                            value={globalSearchQuery}
+                            onInput={(e) => {
+                                const value = (e.currentTarget as HTMLInputElement).value;
+                                setGlobalSearchQuery(value);
+                                setGlobalSearchOpen(true);
+                            }}
+                            onFocus={() => setGlobalSearchOpen(true)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Escape") {
+                                    setGlobalSearchOpen(false);
+                                }
+                            }}
+                            placeholder="Search DMs..."
+                        />
+                    </HeaderSearchWrap>
+                    {globalSearchOpen && (
+                        <GlobalSearchOverlay>
+                            <GlobalDMSearch
+                                close={() => setGlobalSearchOpen(false)}
+                                initialQuery={globalSearchQuery}
+                            />
+                        </GlobalSearchOverlay>
+                    )}
+                </SearchShell>
+                <NavSubmitGroup>
+                    <NavSubmitBtn onClick={() => openSubmit("vendor")}>+ Vendor</NavSubmitBtn>
+                    <NavSubmitBtn onClick={() => openSubmit("reseller")}>+ Reseller</NavSubmitBtn>
+                </NavSubmitGroup>
+                <ThemeToggle onClick={() => setDarkMode((d) => !d)} title={darkMode ? "Light mode" : "Dark mode"}>
+                    {darkMode ? "☀" : "☾"}
+                </ThemeToggle>
+            </Header>
+            <Main>
+                <div style={{ marginBottom: "16px" }}>
+                    <TabToggle>
+                        <ToggleTab $active={tab === "vendors"} onClick={() => switchTab("vendors")}>Vendors</ToggleTab>
+                        <ToggleTab $active={tab === "resellers"} onClick={() => switchTab("resellers")}>Resellers</ToggleTab>
+                        <ToggleTab $active={tab === "other"} onClick={() => switchTab("other")}>Other</ToggleTab>
+                    </TabToggle>
                 </div>
-            </Overlay>
-        </div>
+
+                <FilterWrap>
+                    <SearchWrap>
+                        <span className="icon">🔍</span>
+                        <SearchInput
+                            value={search}
+                            onInput={(e) => setSearch((e.currentTarget as HTMLInputElement).value)}
+                            placeholder="Search communities..."
+                        />
+                    </SearchWrap>
+                    {tab !== "other" && (
+                        <FilterToggleBtn
+                            onClick={() => setShowFilters(!showFilters)}
+                            $active={showFilters}
+                            title="Filters"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M3 4C3 3.44772 3.44772 3 4 3H20C20.5523 3 21 3.44772 21 4V6.58579C21 6.851 20.8946 7.10536 20.7071 7.29289L14.2929 13.7071C14.1054 13.8946 14 14.149 14 14.4142V19.5528C14 19.818 13.8946 20.0724 13.7071 20.2599L10.7071 23.2599C10.3166 23.6505 9.68342 23.6505 9.29289 23.2599C9.10536 23.0724 9 22.818 9 22.5528V14.4142C9 14.149 8.89464 13.8946 8.70711 13.7071L2.29289 7.29289C2.10536 7.10536 2 6.851 2 6.58579V4C2 3.44772 2.44772 3 3 3Z" />
+                            </svg>
+                        </FilterToggleBtn>
+                    )}
+                    <MobileBreak />
+                    {tab !== "other" && (
+                        <FilterPills $showMobile={showFilters}>
+                            {COMMERCE_FILTERS.map((f) => (
+                                <Pill key={f.key} $active={activeFilters.has(f.key)} onClick={() => toggleFilter(f.key)}>
+                                    {f.key === "us" || f.key === "eu" || f.key === "aus"
+                                        ? f.label
+                                        : `${f.emoji} ${f.label}`}
+                                </Pill>
+                            ))}
+                            {activeFilters.size > 0 && (
+                                <ClearBtn onClick={() => setActiveFilters(new Set())}>
+                                    ✕ Clear ({activeFilters.size})
+                                </ClearBtn>
+                            )}
+                        </FilterPills>
+                    )}
+                    <LegendToggle onClick={() => setShowLegend((s) => !s)}>
+                        {showLegend ? "Hide Legend" : "? Legend"}
+                    </LegendToggle>
+                </FilterWrap>
+
+                {showLegend && (
+                    <LegendBox>
+                        {LEGEND.map((cat) => (
+                            <LegendCat key={cat.category}>
+                                <h4>{cat.category}</h4>
+                                <ul>
+                                    {cat.items.map((item) => (
+                                        <li key={item.abbr}><span>{item.abbr}</span>{item.label}</li>
+                                    ))}
+                                </ul>
+                            </LegendCat>
+                        ))}
+                    </LegendBox>
+                )}
+
+                {loading ? (
+                    <EmptyState>
+                        <span className="icon" style={{ fontSize: "2rem", animation: "spin 1s linear infinite" }}>⟳</span>
+                        Loading directory…
+                        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                    </EmptyState>
+                ) : loadError ? (
+                    <EmptyState>
+                        <span className="icon">⚠️</span>
+                        Failed to load directory data. Please refresh and try again.
+                    </EmptyState>
+                ) : filtered.length === 0 ? (
+                    <EmptyState>
+                        <span className="icon">🔍</span>
+                        No communities match your search or filters.
+                    </EmptyState>
+                ) : (
+                    <>
+                        <TableWrap className={directoryStyles.desktopTable}>
+                            <Table>
+                                <thead>
+                                    <tr>
+                                        <th onClick={() => handleSort("rating")}>Rating{si("rating")}</th>
+                                        <th onClick={() => handleSort("name")}>Name{si("name")}</th>
+                                        {tab !== "other" && (
+                                            <>
+                                                <th>Payment</th>
+                                                <th>Countries</th>
+                                                <th>Products</th>
+                                                <th>Guarantee</th>
+                                                {tab === "resellers" && <th>Order Types</th>}
+                                                <th>Free Ship</th>
+                                                <th>Ship Time</th>
+                                            </>
+                                        )}
+                                        {tab === "other" && <th>About</th>}
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.map((c) => (
+                                        <CommunityRow
+                                            key={c.id}
+                                            community={c}
+                                            reviewCount={reviewCount(c.id, c.type)}
+                                            isReseller={tab === "resellers"}
+                                            onReview={() => setReviewModal(c)}
+                                        />
+                                    ))}
+                                </tbody>
+                            </Table>
+                        </TableWrap>
+
+                        <CardGrid className={directoryStyles.mobileCards}>
+                            {filtered.map((c) => (
+                                <CommunityCard
+                                    key={c.id}
+                                    community={c}
+                                    reviewCount={reviewCount(c.id, c.type)}
+                                    onReview={() => setReviewModal(c)}
+                                />
+                            ))}
+                        </CardGrid>
+                    </>
+                )}
+            </Main>
+
+            {/* ── Modals ── */}
+            {reviewModal && (
+                <ReviewsModal
+                    community={reviewModal}
+                    reviews={reviews.filter(
+                        (r) => r.vendorId === reviewModal.id && r.vendorType === reviewModal.type,
+                    )}
+                    onClose={() => setReviewModal(null)}
+                    onSubmit={handleSubmitReview}
+                />
+            )}
+
+            {submitOpen && (
+                <SubmitModal
+                    onClose={() => setSubmitOpen(false)}
+                    onSubmit={handleSubmitListing}
+                    initialType={submitInitialType}
+                />
+            )}
+        </Page>
+    );
+});
+
+const Home: React.FC = () => {
+    return (
+        <Overlay>
+            <PageHeader icon={<HomeIcon size={24} />} withTransparency>
+                <Text id="app.navigation.tabs.home" />
+            </PageHeader>
+            <HomeContent />
+        </Overlay>
     );
 };
 
-export default observer(Home);
+export default Home;

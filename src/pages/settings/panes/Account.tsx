@@ -6,6 +6,7 @@ import { Text } from "preact-i18n";
 import { Tip } from "@revoltchat/ui";
 
 import AccountManagement from "../../../components/settings/account/AccountManagement";
+import DirectMessagePrivacy from "../../../components/settings/account/DirectMessagePrivacy";
 import EditAccount from "../../../components/settings/account/EditAccount";
 import MultiFactorAuthentication from "../../../components/settings/account/MultiFactorAuthentication";
 
@@ -16,6 +17,9 @@ export function Account() {
             <hr />
 
             <MultiFactorAuthentication />
+            <hr />
+
+            <DirectMessagePrivacy />
             <hr />
 
             <AccountManagement />

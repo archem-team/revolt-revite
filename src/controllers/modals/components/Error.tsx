@@ -15,11 +15,13 @@ export default function Error({ error, ...props }: ModalProps<"error">) {
                 {
                     onClick: noopTrue,
                     confirmation: true,
+                    style: { background: "#363636" },
                     children: <Text id="app.special.modals.actions.ok" />,
                 },
                 {
                     palette: "plain-secondary",
                     onClick: () => location.reload(),
+                    style: { background: "#363636" },
                     children: <Text id="app.special.modals.actions.reload" />,
                 },
             ]}>

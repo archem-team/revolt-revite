@@ -64,7 +64,7 @@ export const StatusBar = styled.div`
     }
 `;
 
-const Routes = styled.div.attrs({ "data-component": "routes" })<{
+const Routes = styled.div.attrs({ "data-component": "routes" }) <{
     borders: boolean;
 }>`
     min-width: 0;
@@ -153,7 +153,7 @@ export default function App() {
                             : { width: 290, component: <LeftSidebar /> }
                     }
                     rightPanel={
-                        !inSpecial && inChannel
+                        !inSpecial
                             ? { width: 236, component: <RightSidebar /> }
                             : undefined
                     }

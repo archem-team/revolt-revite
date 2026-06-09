@@ -10,7 +10,9 @@ import { decodeTime } from "ulid";
 import { Text } from "preact-i18n";
 import { useEffect, useState } from "preact/hooks";
 
-import { MessageDivider, Preloader } from "@revoltchat/ui";
+import { MessageDivider } from "@revoltchat/ui";
+
+import { SkeletonMessages } from "../../../components/common/messaging/SkeletonMessage";
 
 import { internalSubscribe, internalEmit } from "../../../lib/eventEmitter";
 import { ChannelRenderer } from "../../../lib/renderer/Singleton";
@@ -84,9 +86,11 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
         render.push(<ConversationStart channel={renderer.channel} />);
     } else {
         render.push(
-            <RequiresOnline>
-                <Preloader type="ring" />
-            </RequiresOnline>,
+            <div data-skeleton="top">
+                <RequiresOnline>
+                    <SkeletonMessages align="end" contained />
+                </RequiresOnline>
+            </div>,
         );
     }
 
@@ -254,9 +258,11 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
         }
     } else {
         render.push(
-            <RequiresOnline>
-                <Preloader type="ring" />
-            </RequiresOnline>,
+            <div data-skeleton="bottom">
+                <RequiresOnline>
+                    <SkeletonMessages align="start" contained />
+                </RequiresOnline>
+            </div>,
         );
     }
 

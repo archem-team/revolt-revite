@@ -122,6 +122,7 @@ export const Header = styled.header`
     border-bottom: 1px solid var(--dir-border-nav);
     padding: 0 var(--space-6);
     height: calc(var(--space-12) + var(--space-2));
+    min-height: calc(var(--space-12) + var(--space-2));
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -129,6 +130,7 @@ export const Header = styled.header`
     position: sticky;
     top: 0;
     z-index: 100;
+    flex-shrink: 0;
 
     @media (max-width: 767px) {
         padding-left: var(--space-3);

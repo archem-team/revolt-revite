@@ -2,12 +2,18 @@ import { Message } from "revolt.js";
 
 import { ChannelRenderer } from "./Singleton";
 
+export interface DOMUpdate {
+    /** Element ID to anchor scroll position to */
+    scrollAnchorId: string | null;
+    /** Apply the state changes to trigger a DOM update */
+    commitToDOM(): void;
+}
+
 export type ScrollState =
     | { type: "Free" }
     | { type: "Bottom"; scrollingUntil?: number }
     | { type: "ScrollToBottom" | "StayAtBottom"; smooth?: boolean }
     | { type: "ScrollToView"; id: string }
-    | { type: "OffsetTop"; previousHeight: number }
     | { type: "ScrollTop"; y: number };
 
 export type RenderState =
@@ -38,10 +44,8 @@ export interface RendererRoutines {
 
     loadTop: (
         renderer: ChannelRenderer,
-        generateScroll: (end: string) => ScrollState,
-    ) => Promise<void | true>;
+    ) => Promise<DOMUpdate | undefined>;
     loadBottom: (
         renderer: ChannelRenderer,
-        generateScroll: (start: string) => ScrollState,
-    ) => Promise<void | true>;
+    ) => Promise<DOMUpdate | undefined>;
 }

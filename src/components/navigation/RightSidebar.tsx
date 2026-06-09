@@ -7,9 +7,10 @@ import { internalSubscribe } from "../../lib/eventEmitter";
 import SidebarBase from "./SidebarBase";
 import MemberSidebar from "./right/MemberSidebar";
 import { SearchSidebar } from "./right/Search";
+import { GlobalDMSearch } from "./right/GlobalDMSearch";
 
 export default function RightSidebar() {
-    const [sidebar, setSidebar] = useState<"search" | undefined>();
+    const [sidebar, setSidebar] = useState<"search" | "global_dm_search" | undefined>();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchParams, setSearchParams] = useState<any>(null);
     const close = () => {
@@ -21,7 +22,7 @@ export default function RightSidebar() {
     useEffect(
         () =>
             internalSubscribe("RightSidebar", "open", (type: string, data?: any) => {
-                setSidebar(type as "search" | undefined);
+                setSidebar(type as "search" | "global_dm_search" | undefined);
                 if (type === "search") {
                     if (typeof data === "string") {
                         // Legacy support for string queries
@@ -45,13 +46,15 @@ export default function RightSidebar() {
         [],
     );
 
-    const content =
+    const searchContent =
         sidebar === "search" ? (
-            <SearchSidebar 
-                close={close} 
+            <SearchSidebar
+                close={close}
                 initialQuery={searchQuery}
                 searchParams={searchParams}
             />
+        ) : sidebar === "global_dm_search" ? (
+            <GlobalDMSearch close={close} />
         ) : (
             <MemberSidebar />
         );
@@ -59,8 +62,9 @@ export default function RightSidebar() {
     return (
         <SidebarBase>
             <Switch>
-                <Route path="/server/:server/channel/:channel">{content}</Route>
-                <Route path="/channel/:channel">{content}</Route>
+                <Route path="/server/:server/channel/:channel">{searchContent}</Route>
+                <Route path="/channel/:channel">{searchContent}</Route>
+                <Route path="/">{searchContent}</Route>
             </Switch>
         </SidebarBase>
     );

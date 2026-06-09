@@ -7,10 +7,14 @@ import styles from "./Panes.module.scss";
 import { Text } from "preact-i18n";
 import { useEffect, useState } from "preact/hooks";
 
-import { Button, ComboBox, InputBox } from "@revoltchat/ui";
+import { Button, Checkbox, ComboBox, InputBox } from "@revoltchat/ui";
 
 import TextAreaAutoSize from "../../../lib/TextAreaAutoSize";
 import { noop } from "../../../lib/js";
+import {
+    hasServerJoinApproval,
+    setServerJoinApproval,
+} from "../../../lib/serverFlags";
 
 import { ChannelName } from "../../../controllers/client/jsx/ChannelName";
 import { FileUploader } from "../../../controllers/client/jsx/legacy/FileUploads";
@@ -25,6 +29,9 @@ export const Overview = observer(({ server }: Props) => {
     const [systemMessages, setSystemMessages] = useState(
         server.system_messages,
     );
+    const [joinApproval, setJoinApproval] = useState(
+        hasServerJoinApproval(server.flags),
+    );
 
     useEffect(() => setName(server.name), [server.name]);
     useEffect(
@@ -35,6 +42,10 @@ export const Overview = observer(({ server }: Props) => {
         () => setSystemMessages(server.system_messages),
         [server.system_messages],
     );
+    useEffect(
+        () => setJoinApproval(hasServerJoinApproval(server.flags)),
+        [server.flags],
+    );
 
     const [changed, setChanged] = useState(false);
     function save() {
@@ -44,6 +55,9 @@ export const Overview = observer(({ server }: Props) => {
             changes.description = description;
         if (!isEqual(systemMessages, server.system_messages))
             changes.system_messages = systemMessages ?? undefined;
+
+        const nextFlags = setServerJoinApproval(server.flags, joinApproval);
+        if (nextFlags !== server.flags) changes.flags = nextFlags;
 
         server.edit(changes);
         setChanged(false);
@@ -142,7 +156,7 @@ export const Overview = observer(({ server }: Props) => {
                     <ComboBox
                         value={
                             systemMessages?.[
-                                key as keyof typeof systemMessages
+                            key as keyof typeof systemMessages
                             ] ?? "disabled"
                         }
                         onChange={(e) => {
@@ -178,6 +192,24 @@ export const Overview = observer(({ server }: Props) => {
                     </ComboBox>
                 </p>
             ))}
+
+            <hr />
+            <h3>
+                <Text id="app.settings.server_pages.overview.join_approval" />
+            </h3>
+            <Checkbox
+                value={joinApproval}
+                onChange={(value) => {
+                    setJoinApproval(value);
+                    if (!changed) setChanged(true);
+                }}
+                title={
+                    <Text id="app.settings.server_pages.overview.join_approval" />
+                }
+                description={
+                    <Text id="app.settings.server_pages.overview.join_approval_desc" />
+                }
+            />
 
             <p>
                 <Button onClick={save} palette="secondary" disabled={!changed}>

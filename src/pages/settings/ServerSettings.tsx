@@ -7,6 +7,8 @@ import {
     UserX,
     Trash,
     HappyBeaming,
+    CheckShield,
+    Shield,
 } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import { Route, Switch, useHistory, useParams } from "react-router-dom";
@@ -27,9 +29,11 @@ import { Bans } from "./server/Bans";
 import { Categories } from "./server/Categories";
 import { Emojis } from "./server/Emojis";
 import { Invites } from "./server/Invites";
+import { JoinRequests } from "./server/JoinRequests";
 import { Members } from "./server/Members";
 import { Overview } from "./server/Overview";
 import { Roles } from "./server/Roles";
+import { Security } from "./server/Security";
 import { VendorInfo } from "./server/VendorInfo";
 
 export default observer(() => {
@@ -101,6 +105,20 @@ export default observer(() => {
                     ),
                 },
                 {
+                    id: "join_requests",
+                    icon: <CheckShield size={20} />,
+                    title: (
+                        <Text id="app.settings.server_pages.join_requests.title" />
+                    ),
+                },
+                {
+                    id: "security",
+                    icon: <Shield size={20} />,
+                    title: (
+                        <Text id="app.settings.server_pages.security.title" />
+                    ),
+                },
+                {
                     id: "invites",
                     icon: <Envelope size={20} />,
                     title: (
@@ -121,6 +139,16 @@ export default observer(() => {
                     <Route path="/server/:server/settings/members">
                         <RequiresOnline>
                             <Members server={server} />
+                        </RequiresOnline>
+                    </Route>
+                    <Route path="/server/:server/settings/join_requests">
+                        <RequiresOnline>
+                            <JoinRequests server={server} />
+                        </RequiresOnline>
+                    </Route>
+                    <Route path="/server/:server/settings/security">
+                        <RequiresOnline>
+                            <Security server={server} />
                         </RequiresOnline>
                     </Route>
                     <Route path="/server/:server/settings/invites">

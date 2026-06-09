@@ -1,4 +1,5 @@
 import { useHistory } from "react-router-dom";
+import { useState } from "preact/hooks";
 
 import { Text } from "preact-i18n";
 
@@ -16,6 +17,7 @@ export default function CreateServer({
 }: ModalProps<"create_server">) {
     const history = useHistory();
     const client = useClient();
+    const [isHovering, setIsHovering] = useState(false);
 
     return (
         <ModalForm
@@ -40,6 +42,19 @@ export default function CreateServer({
                     field: (
                         <Text id="app.main.servers.name" />
                     ) as React.ReactChild,
+                    style: {
+                        background: "#1C1720",
+                        color: "#fffffd",
+                        padding: "11px 16px",
+                        border: "1px solid #332e36",
+                        borderRadius: "6px",
+                        fontSize: "0.9375rem",
+                        fontFamily: "inherit",
+                        fontWeight: "500",
+                        boxSizing: "border-box",
+                        outline: "none",
+                        width: "100%"
+                    } as any
                 },
             }}
             callback={async ({ name }) => {
@@ -53,7 +68,22 @@ export default function CreateServer({
             }}
             submit={{
                 children: <Text id="app.special.modals.actions.create" />,
+                palette: "accent",
             }}
+            actions={[
+                {
+                    onClick: () => true,
+                    children: "Cancel",
+                    palette: "secondary",
+                    style: {
+                        background: isHovering ? "#b91c1c" : "#dc2626",
+                        color: "#ffffff",
+                        transition: "background-color 0.2s ease",
+                    },
+                    onMouseEnter: () => setIsHovering(true),
+                    onMouseLeave: () => setIsHovering(false),
+                }
+            ]}
         />
     );
 }

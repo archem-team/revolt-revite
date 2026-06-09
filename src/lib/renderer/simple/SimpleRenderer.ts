@@ -1,7 +1,7 @@
 import { runInAction } from "mobx";
 
 import { SMOOTH_SCROLL_ON_RECEIVE } from "../Singleton";
-import { RendererRoutines } from "../types";
+import { DOMUpdate, RendererRoutines } from "../types";
 
 export const SimpleRenderer: RendererRoutines = {
     init: async (renderer, nearby, smooth) => {
@@ -93,49 +93,48 @@ export const SimpleRenderer: RendererRoutines = {
             });
         }
     },
-    loadTop: async (renderer, generateScroll) => {
-        const channel = renderer.channel;
-        if (!channel) return true;
-
-        if (renderer.state !== "RENDER") return true;
-        if (renderer.atTop) return true;
+    loadTop: async (renderer): Promise<DOMUpdate | undefined> => {
+        if (renderer.state !== "RENDER") return;
+        if (renderer.atTop) return;
 
         const { messages: data } =
             await renderer.channel.fetchMessagesWithUsers({
                 before: renderer.messages[0]._id,
             });
 
-        runInAction(() => {
-            if (data.length === 0) {
+        if (data.length === 0) {
+            runInAction(() => {
                 renderer.atTop = true;
-                return;
-            }
+            });
+            return;
+        }
 
-            data.reverse();
-            renderer.messages = [...data, ...renderer.messages];
+        data.reverse();
 
-            if (data.length < 50) {
-                renderer.atTop = true;
-            }
+        // Anchor to the oldest currently-visible message
+        const anchorId = renderer.messages[0]._id;
 
-            if (renderer.messages.length > 150) {
-                renderer.messages = renderer.messages.slice(0, 150);
-                renderer.atBottom = false;
-            }
+        return {
+            scrollAnchorId: anchorId,
+            commitToDOM() {
+                runInAction(() => {
+                    renderer.messages = [...data, ...renderer.messages];
 
-            renderer.emitScroll(
-                generateScroll(
-                    renderer.messages[renderer.messages.length - 1]._id,
-                ),
-            );
-        });
+                    if (data.length < 50) {
+                        renderer.atTop = true;
+                    }
+
+                    if (renderer.messages.length > 150) {
+                        renderer.messages = renderer.messages.slice(0, 150);
+                        renderer.atBottom = false;
+                    }
+                });
+            },
+        };
     },
-    loadBottom: async (renderer, generateScroll) => {
-        const channel = renderer.channel;
-        if (!channel) return true;
-
-        if (renderer.state !== "RENDER") return true;
-        if (renderer.atBottom) return true;
+    loadBottom: async (renderer): Promise<DOMUpdate | undefined> => {
+        if (renderer.state !== "RENDER") return;
+        if (renderer.atBottom) return;
 
         const { messages: data } =
             await renderer.channel.fetchMessagesWithUsers({
@@ -143,24 +142,35 @@ export const SimpleRenderer: RendererRoutines = {
                 sort: "Oldest",
             });
 
-        runInAction(() => {
-            if (data.length === 0) {
+        if (data.length === 0) {
+            runInAction(() => {
                 renderer.atBottom = true;
-                return;
-            }
+            });
+            return;
+        }
 
-            renderer.messages.splice(renderer.messages.length, 0, ...data);
+        // Anchor to the newest currently-visible message
+        const anchorId =
+            renderer.messages[renderer.messages.length - 1]._id;
 
-            if (data.length < 50) {
-                renderer.atBottom = true;
-            }
+        return {
+            scrollAnchorId: anchorId,
+            commitToDOM() {
+                runInAction(() => {
+                    let messages = [...renderer.messages, ...data];
 
-            if (renderer.messages.length > 150) {
-                renderer.messages.splice(0, renderer.messages.length - 150);
-                renderer.atTop = false;
-            }
+                    if (data.length < 50) {
+                        renderer.atBottom = true;
+                    }
 
-            renderer.emitScroll(generateScroll(renderer.messages[0]._id));
-        });
+                    if (messages.length > 150) {
+                        messages = messages.slice(messages.length - 150);
+                        renderer.atTop = false;
+                    }
+
+                    renderer.messages = messages;
+                });
+            },
+        };
     },
 };

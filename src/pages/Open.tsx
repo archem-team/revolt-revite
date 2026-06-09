@@ -8,9 +8,12 @@ import { Header } from "@revoltchat/ui";
 
 import { useSession } from "../controllers/client/ClientController";
 import { modalController } from "../controllers/modals/ModalController";
+import { useApplicationState } from "../mobx/State";
+import { openDirectMessage } from "../lib/openDirectMessage";
 
 export default function Open() {
     const history = useHistory();
+    const settings = useApplicationState().settings;
     const session = useSession()!;
     const client = session.client!;
     const { id } = useParams<{ id: string }>();
@@ -33,7 +36,8 @@ export default function Open() {
             }
 
             client
-                .user!.openDM()
+                .user!
+                .openDM()
                 .then((channel) => history.push(`/channel/${channel?._id}`))
                 .catch((error) =>
                     modalController.push({
@@ -58,16 +62,16 @@ export default function Open() {
             if (channel) {
                 history.push(`/channel/${channel}`);
             } else {
-                client.users
-                    .get(id)
-                    ?.openDM()
-                    .then((channel) => history.push(`/channel/${channel?._id}`))
-                    .catch((error) =>
-                        modalController.push({
-                            type: "error",
-                            error,
-                        }),
+                const target = client.users.get(id);
+                if (target) {
+                    openDirectMessage(settings, history, target).catch(
+                        (error) =>
+                            modalController.push({
+                                type: "error",
+                                error,
+                            }),
                     );
+                }
             }
 
             return;

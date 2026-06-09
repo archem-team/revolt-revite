@@ -3,8 +3,8 @@ name: Docker
 on:
     push:
         branches:
-            - "master"
-            - "pre-production"
+
+            - "stage"
         tags:
             - "*"
         paths-ignore:
@@ -18,8 +18,7 @@ on:
             - "README"
     pull_request:
         branches:
-            - "master"
-            - "pre-production"
+            - "stage"
         paths-ignore:
             - ".github/**"
             - "!.github/workflows/docker.yml"
@@ -30,6 +29,8 @@ on:
             - "LICENSE"
             - "README"
     workflow_dispatch:
+
+
 
 jobs:
     # test:
@@ -56,13 +57,13 @@ jobs:
     #           with:
     #               context: .
     #               platforms: ${{ matrix.architecture }}
-    #               cache-from: type=local,src=/tmp/.buildx-cache/${{ matrix.architecture }}
-    #               cache-to: type=local,dest=/tmp/.buildx-cache-new/${{ matrix.architecture }},mode=max
-    #         - name: Move cache
-    #           run: |
-    #               rm -rf /tmp/.buildx-cache/${{ matrix.architecture }}
-    #               mv /tmp/.buildx-cache-new/${{ matrix.architecture }} /tmp/.buildx-cache/${{ matrix.architecture }}
-
+    #         #       cache-from: type=local,src=/tmp/.buildx-cache/${{ matrix.architecture }}
+    #         #       cache-to: type=local,dest=/tmp/.buildx-cache-new/${{ matrix.architecture }},mode=max
+    #         # - name: Move cache
+    #         #   run: |
+    #         #       rm -rf /tmp/.buildx-cache/${{ matrix.architecture }}
+    #         #       mv /tmp/.buildx-cache-new/${{ matrix.architecture }} /tmp/.buildx-cache/${{ matrix.architecture }}
+    
     publish:
         # needs: [test]
         runs-on: ubuntu-latest
@@ -85,7 +86,7 @@ jobs:
               id: meta
               uses: docker/metadata-action@v3
               with:
-                  images: ghcr.io/abronstudio/revolt-revite-pre
+                  images: ghcr.io/abronstudio/revolt-revite-stage
                   tags: |
                     type=raw,value=${{ github.sha }}
             # - name: Login to DockerHub
@@ -117,7 +118,7 @@ jobs:
         needs: [publish]
         runs-on: ubuntu-latest
         env:
-          CONFIG_BRANCH: main
+          CONFIG_BRANCH: stage
           CLONE_DIR: $GITHUB_WORKSPACE/config
           CONFIG_FILE: $GITHUB_WORKSPACE/config/apps/pepchat/kustomization.yaml
         if: github.event_name != 'pull_request'
@@ -138,7 +139,8 @@ jobs:
             - name: Update Image Tag in kustomization.yaml
               run: |
                   awk -v value="  newTag: ${{ github.sha }}" '{sub(/^  newTag: .*/, value); print}' $CONFIG_FILE > temp.yml && mv temp.yml $CONFIG_FILE
-                  awk -v value="  newName: ghcr.io/abronstudio/revolt-revite-pre" '{sub(/^  newName: .*/, value); print}' $CONFIG_FILE > temp.yml && mv temp.yml $CONFIG_FILE
+
+                  awk -v value="  newName: ghcr.io/abronstudio/revolt-revite-stage" '{sub(/^  newName: .*/, value); print}' $CONFIG_FILE > temp.yml && mv temp.yml $CONFIG_FILE
 
 
             - name: Commit & Push Changes
@@ -146,4 +148,9 @@ jobs:
                   cd $CLONE_DIR
                   git add .
                   git commit -am "Update image tag to ${{ github.sha }}"
-                  git push origin $CONFIG_BRANCH              
+         
+                  git push origin $CONFIG_BRANCH  
+                  
+          
+                  
+    

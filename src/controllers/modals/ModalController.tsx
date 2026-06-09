@@ -32,6 +32,7 @@ import CreateRole from "./components/CreateRole";
 import CreateServer from "./components/CreateServer";
 import CustomStatus from "./components/CustomStatus";
 import DeleteMessage from "./components/DeleteMessage";
+import MessageHistory from "./components/MessageHistory";
 import Error from "./components/Error";
 import ImageViewer from "./components/ImageViewer";
 import KickMember from "./components/KickMember";
@@ -45,6 +46,8 @@ import OutOfDate from "./components/OutOfDate";
 import PendingFriendRequests from "./components/PendingFriendRequests";
 import ReportContent from "./components/Report";
 import ReportSuccess from "./components/ReportSuccess";
+import BlockedIncomingDM from "./components/BlockedIncomingDM";
+import PhoneVerification from "./components/PhoneVerification";
 import ServerIdentity from "./components/ServerIdentity";
 import ServerInfo from "./components/ServerInfo";
 import ShowToken from "./components/ShowToken";
@@ -275,6 +278,7 @@ export const modalController = new ModalControllerExtended({
     create_bot: CreateBot,
     custom_status: CustomStatus,
     delete_message: DeleteMessage,
+    message_history: MessageHistory,
     error: Error,
     image_viewer: ImageViewer,
     kick_member: KickMember,
@@ -295,6 +299,8 @@ export const modalController = new ModalControllerExtended({
     user_profile: UserProfile,
     report: ReportContent,
     report_success: ReportSuccess,
+    blocked_incoming_dm: BlockedIncomingDM,
+    phone_verification: PhoneVerification,
     modify_displayname: ModifyDisplayname,
     changelog_usernames: ChangelogUsernames,
 });
