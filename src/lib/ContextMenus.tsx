@@ -80,6 +80,8 @@ type Action =
     | { action: "message_user"; user: User }
     | { action: "block_user"; user: User }
     | { action: "unblock_user"; user: User }
+    | { action: "mute_user"; user: User }
+    | { action: "unmute_user"; user: User }
     | { action: "add_friend"; user: User }
     | { action: "remove_friend"; user: User }
     | { action: "cancel_friend"; user: User }
@@ -417,6 +419,17 @@ export default function ContextMenus() {
                 case "unblock_user":
                     await data.user.unblockUser();
                     break;
+                case "mute_user":
+                    modalController.push({
+                        type: "mute_user",
+                        target: data.user,
+                    });
+                    break;
+                case "unmute_user":
+                    await data.user.client.api.delete(
+                        `/users/${data.user._id}/mute` as any,
+                    );
+                    break;
                 case "remove_friend":
                     modalController.push({
                         type: "unfriend_user",
@@ -743,6 +756,24 @@ export default function ContextMenus() {
                                     user,
                                 } as unknown as Action);
                             }
+                        }
+
+                        if (
+                            user._id !== userId &&
+                            client.user?.privileged &&
+                            !user.privileged
+                        ) {
+                            const isMuted = ((user.flags ?? 0) & 16) !== 0;
+                            const muteAction: Action = isMuted
+                                ? { action: "unmute_user", user }
+                                : { action: "mute_user", user };
+                            generateAction(
+                                muteAction,
+                                undefined,
+                                undefined,
+                                undefined,
+                                isMuted ? undefined : "var(--error)",
+                            );
                         }
 
                         if (user._id !== userId) {

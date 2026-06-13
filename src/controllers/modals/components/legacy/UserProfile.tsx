@@ -331,6 +331,11 @@ export const UserProfile = observer(
                                         <Error error="User is banned" />
                                     </Category>
                                 ) : undefined}
+                                {flags & 16 ? (
+                                    <Category>
+                                        <Error error="User is muted" />
+                                    </Category>
+                                ) : undefined}
                                 {user.bot ? (
                                     <>
                                         {/* FIXME: this too */}

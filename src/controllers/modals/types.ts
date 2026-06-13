@@ -170,6 +170,10 @@ export type Modal = {
           target: User;
       }
     | {
+          type: "mute_user";
+          target: User;
+      }
+    | {
           type: "create_channel";
           target: Server;
           cb?: (channel: Channel) => void;

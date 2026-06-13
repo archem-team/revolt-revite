@@ -265,6 +265,7 @@ export const modalController = new ModalControllerExtended({
     delete_channel: Confirmation,
     delete_bot: Confirmation,
     block_user: Confirmation,
+    mute_user: Confirmation,
     unfriend_user: Confirmation,
     create_category: CreateCategory,
     create_channel: CreateChannel,

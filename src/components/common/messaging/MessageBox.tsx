@@ -94,6 +94,14 @@ const Blocked = styled.div`
         padding: var(--message-box-padding);
     }
 
+    .icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+    }
+
     > div > div {
         cursor: default;
     }
@@ -229,6 +237,24 @@ export default observer(({ channel }: Props) => {
     const closePicker = useCallback(() => setPicker(false), []);
 
     const renderer = getRenderer(channel);
+
+    if (
+        channel.channel_type !== "SavedMessages" &&
+        ((client.user?.flags ?? 0) & 16) !== 0
+    ) {
+        return (
+            <Base>
+                <Blocked>
+                    <div className="icon">
+                        <ShieldX size={22} />
+                    </div>
+                    <div className="text">
+                        <Text id="app.main.channel.misc.muted" />
+                    </div>
+                </Blocked>
+            </Base>
+        );
+    }
 
     if (channel.server?.member?.timeout) {
         return (

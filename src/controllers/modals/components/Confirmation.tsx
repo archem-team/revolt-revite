@@ -20,6 +20,7 @@ export default function Confirmation(
         | "delete_bot"
         | "block_user"
         | "unfriend_user"
+        | "mute_user"
     >,
 ) {
     const history = useHistory();
@@ -31,6 +32,7 @@ export default function Confirmation(
         delete_bot: ["confirm_delete", "delete"],
         unfriend_user: ["unfriend_user", "remove"],
         block_user: ["block_user", "block"],
+        mute_user: ["mute_user", "mute"],
     };
 
     const event = EVENTS[props.type];
@@ -38,6 +40,7 @@ export default function Confirmation(
     switch (props.type) {
         case "unfriend_user":
         case "block_user":
+        case "mute_user":
             name = props.target.username;
             break;
         case "close_dm":
@@ -74,6 +77,11 @@ export default function Confirmation(
                         break;
                     case "block_user":
                         await props.target.blockUser();
+                        break;
+                    case "mute_user":
+                        await props.target.client.api.put(
+                            `/users/${props.target._id}/mute` as any,
+                        );
                         break;
                     case "close_dm":
                     case "delete_channel":
