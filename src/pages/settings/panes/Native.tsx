@@ -77,8 +77,8 @@ export function Native() {
                         build,
                     });
                 }}
-                title="Revolt Nightly"
-                description="Use the beta branch of Revolt."
+                title="PepChat Nightly"
+                description="Use the beta branch of PepChat."
             /> */}
 
             <h3>Titlebar</h3>

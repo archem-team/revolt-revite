@@ -52,16 +52,16 @@ export default observer(() => {
             <div className={styles.login}>
                 <Helmet>
                     <title>PepChat – Home of the Peptide Community</title>
-                    <meta name="description" content="Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source, powered by Revolt." />
+                    <meta name="description" content="Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source." />
                     <meta name="keywords" content="peptide, chat, community, group buy, research, discussion, open source" />
                     <meta property="og:title" content="PepChat – Home of the Peptide Community" />
-                    <meta property="og:description" content="Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source, powered by Revolt." />
+                    <meta property="og:description" content="Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source." />
                     <meta property="og:type" content="website" />
                     <meta property="og:url" content="https://peptide.chat" />
                     <meta property="og:site_name" content="PepChat" />
                     <meta name="twitter:card" content="summary_large_image" />
                     <meta name="twitter:title" content="PepChat – Home of the Peptide Community" />
-                    <meta name="twitter:description" content="Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source, powered by Revolt." />
+                    <meta name="twitter:description" content="Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source." />
                     <meta
                         name="theme-color"
                         content={theme.getVariable("background")}

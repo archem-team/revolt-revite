@@ -39,7 +39,7 @@ export function OnboardingModal({
         <div className={styles.onboarding}>
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <h1>{"Welcome to Revolt."}</h1>
+                    <h1>{"Welcome to PepChat."}</h1>
                 </div>
                 <div className={styles.form}>
                     {loading ? (

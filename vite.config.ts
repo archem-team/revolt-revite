@@ -57,7 +57,7 @@ export default defineConfig({
                 name: "PepChat – Home of the Peptide Community",
                 short_name: "PepChat",
                 description:
-                    "Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source, powered by Revolt.",
+                    "Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source.",
                 categories: ["communication", "chat", "messaging"],
                 start_url: "/",
                 orientation: "portrait",

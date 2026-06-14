@@ -127,7 +127,7 @@ export function SubmitModal({
                                     placeholder="https://peptide.chat/invite/code" />
                             </FormGroup>
                             <FormGroup>
-                                <label>Revolt Server ID (optional — enables live member stats)</label>
+                                <label>PepChat Server ID (optional — enables live member stats)</label>
                                 <input type="text" value={form.serverId}
                                     onInput={(e) => setForm((f) => ({ ...f, serverId: (e.target as HTMLInputElement).value }))}
                                     placeholder="01JABCDE..." />
