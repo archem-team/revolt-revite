@@ -1,8 +1,7 @@
 import {
     Home as HomeIcon,
-    MessageDots,
-    MessageAdd,
     Lock,
+    MessageAdd,
 } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import Papa from "papaparse";
@@ -51,6 +50,7 @@ interface Server {
     new: boolean;
     showcolor: string;
     sortorder: number;
+    logo?: string;
 }
 
 interface CachedData {
@@ -78,8 +78,23 @@ const ColorWrapper = styled.div<{ color: string }>`
     }
 `;
 
+function ServerIcon({ logo, size }: { logo: string; size: number }) {
+    return (
+        <img
+            src={logo}
+            style={{
+                width: size,
+                height: size,
+                borderRadius: "50%",
+                objectFit: "cover",
+                flexShrink: 0,
+            }}
+        />
+    );
+}
+
 const CACHE_KEY = "server_list_cache";
-const CACHE_DURATION = 1 * 60 * 1000; // 1 minutes in milliseconds
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Safe localStorage wrapper
 const safeStorage = {
@@ -155,30 +170,59 @@ const Home: React.FC = () => {
     };
 
     const fetchAndCacheData = async () => {
-        // Primary source: the directory servers API. Field names match the
-        // Server interface directly, so no transform is needed.
+        const serversUrl = import.meta.env.DEV
+            ? "/api/directory/servers"
+            : "https://manage.peptide.chat/api/directory/servers";
+        const communitiesUrl = import.meta.env.DEV
+            ? "/api/directory/communities?limit=200"
+            : "https://manageapi.peptide.chat/api/directory/communities?limit=200";
+
         try {
-            const response = await fetch(
-                "https://manage.peptide.chat/api/directory/servers",
-            );
+            const [serversRes, communitiesRes] = await Promise.all([
+                fetch(serversUrl),
+                fetch(communitiesUrl),
+            ]);
 
-            if (!response.ok) {
-                throw new Error(`Request failed with status ${response.status}`);
+            if (!serversRes.ok) {
+                throw new Error(`Servers request failed with status ${serversRes.status}`);
             }
 
-            const json = await response.json();
-
-            if (!json?.success || !Array.isArray(json.data)) {
-                throw new Error("Unexpected response shape");
+            const serversJson = await serversRes.json();
+            if (!serversJson?.success || !Array.isArray(serversJson.data)) {
+                throw new Error("Unexpected servers response shape");
             }
 
-            cacheAndSetServers(json.data as Server[]);
+            let servers: Server[] = serversJson.data;
+
+            // Merge logos from communities API
+            if (communitiesRes.ok) {
+                const communitiesJson = await communitiesRes.json();
+                const communitiesList = Array.isArray(communitiesJson.data)
+                    ? communitiesJson.data
+                    : communitiesJson.data?.items ?? [];
+
+                const logoByServerId: Record<string, string> = {};
+                for (const c of communitiesList) {
+                    if (c.serverId && c.logo) {
+                        logoByServerId[c.serverId] = c.logo;
+                    }
+                }
+
+                const autumnUrl = client.configuration?.features.autumn?.url ||
+                    "https://peptide.chat/autumn";
+
+                servers = servers.map((s) => {
+                    const logoId = logoByServerId[s.id];
+                    return logoId
+                        ? { ...s, logo: `${autumnUrl}/icons/${logoId}?max_side=256` }
+                        : s;
+                });
+
+            }
+
+            cacheAndSetServers(servers);
         } catch (err) {
-            // Fall back to the Google Sheets CSV on any failure.
-            console.warn(
-                "Server list API failed, falling back to CSV:",
-                err,
-            );
+            console.warn("Server list API failed, falling back to CSV:", err);
             fetchFromSheet();
         }
     };
@@ -210,6 +254,12 @@ const Home: React.FC = () => {
         getCachedOrFetchData();
     }, []);
 
+    useEffect(() => {
+        for (const s of servers) {
+            if (s.logo) new Image().src = s.logo;
+        }
+    }, [servers]);
+
     const renderServerButton = (server: Server) => {
         const isServerJoined = client.servers.get(server.id);
         const linkTo = isServerJoined
@@ -222,10 +272,19 @@ const Home: React.FC = () => {
                 icon={
                     server.disabled ? (
                         <Lock size={32} />
-                    ) : isServerJoined ? (
-                        <MessageDots size={32} />
                     ) : (
-                        <MessageAdd size={32} />
+                        (() => {
+                            if (server.logo) {
+                                return <ServerIcon logo={server.logo} size={32} />;
+                            }
+                            if (isServerJoined) {
+                                const url = client.servers
+                                    .get(server.id)!
+                                    .generateIconURL({ max_side: 256 });
+                                if (url) return <ServerIcon logo={url} size={32} />;
+                            }
+                            return <MessageAdd size={32} />;
+                        })()
                     )
                 }
                 description={server.description}>
