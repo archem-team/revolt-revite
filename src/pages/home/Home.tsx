@@ -93,6 +93,27 @@ function ServerIcon({ logo, size }: { logo: string; size: number }) {
     );
 }
 
+// Holds the avatar so we can overlay a state badge in its corner.
+const AvatarWrap = styled.div`
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+`;
+
+// Small corner badge (e.g. lock) layered over the brand logo.
+const LockBadge = styled.div`
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--secondary-header);
+    display: grid;
+    place-items: center;
+    color: var(--foreground);
+`;
+
 const CACHE_KEY = "server_list_cache";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
@@ -266,27 +287,49 @@ const Home: React.FC = () => {
             ? `/server/${server.id}`
             : `/invite/${server.inviteCode}`;
 
+        // Brand identity (logo) lives in the icon slot, independent of state.
+        // Prefer the directory logo, then the joined server's own icon.
+        let avatarUrl: string | undefined = server.logo;
+        if (!avatarUrl && isServerJoined) {
+            avatarUrl =
+                isServerJoined.generateIconURL({ max_side: 256 }) ?? undefined;
+        }
+
+        const avatar = avatarUrl ? (
+            <ServerIcon logo={avatarUrl} size={32} />
+        ) : server.disabled ? (
+            <Lock size={32} />
+        ) : (
+            <MessageAdd size={32} />
+        );
+
+        // Keep the logo for locked servers, but mark it with a corner lock badge.
+        const icon =
+            server.disabled && avatarUrl ? (
+                <AvatarWrap>
+                    {avatar}
+                    <LockBadge>
+                        <Lock size={10} />
+                    </LockBadge>
+                </AvatarWrap>
+            ) : (
+                avatar
+            );
+
+        // Right-side action encodes the user's relationship to the server:
+        // locked → lock, joined → enter (chevron), otherwise → join (+).
+        const action = server.disabled ? (
+            <Lock size={20} />
+        ) : isServerJoined ? (
+            "chevron"
+        ) : (
+            <MessageAdd size={20} />
+        );
+
         const buttonContent = (
             <CategoryButton
-                action={server.disabled ? undefined : "chevron"}
-                icon={
-                    server.disabled ? (
-                        <Lock size={32} />
-                    ) : (
-                        (() => {
-                            if (server.logo) {
-                                return <ServerIcon logo={server.logo} size={32} />;
-                            }
-                            if (isServerJoined) {
-                                const url = client.servers
-                                    .get(server.id)!
-                                    .generateIconURL({ max_side: 256 });
-                                if (url) return <ServerIcon logo={url} size={32} />;
-                            }
-                            return <MessageAdd size={32} />;
-                        })()
-                    )
-                }
+                action={action}
+                icon={icon}
                 description={server.description}>
                 {server.name}
             </CategoryButton>
