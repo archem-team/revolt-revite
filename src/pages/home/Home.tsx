@@ -1,3 +1,4 @@
+import { Search, X } from "@styled-icons/boxicons-regular";
 import {
     Home as HomeIcon,
     Lock,
@@ -5,14 +6,14 @@ import {
 } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import Papa from "papaparse";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components/macro";
 
 import styles from "./Home.module.scss";
 import { Text } from "preact-i18n";
 
-import { CategoryButton } from "@revoltchat/ui";
+import { CategoryButton, InputBox, Preloader } from "@revoltchat/ui";
 
 import { PageHeader } from "../../components/ui/Header";
 import { useClient } from "../../controllers/client/ClientController";
@@ -114,6 +115,60 @@ const LockBadge = styled.div`
     color: var(--foreground);
 `;
 
+// Search field sitting above the directory grid. Mirrors the site's input
+// styling (secondary background, accent focus ring) and stays full-width on
+// narrow screens while capping to the grid width on desktop.
+const SearchWrapper = styled.div`
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 650px;
+    margin: 0 auto 20px;
+
+    input {
+        padding-left: 42px;
+        padding-right: 42px;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 14px;
+        color: var(--tertiary-foreground);
+        pointer-events: none;
+    }
+
+    .clear {
+        position: absolute;
+        right: 12px;
+        display: flex;
+        cursor: pointer;
+        color: var(--tertiary-foreground);
+        transition: color 0.1s ease-in-out;
+
+        &:hover {
+            color: var(--foreground);
+        }
+    }
+`;
+
+const NoResults = styled.div`
+    color: var(--tertiary-foreground);
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 30px;
+`;
+
+// Holds the circular loader in the content area while the directory loads,
+// so the header and search bar above it stay mounted.
+const LoaderWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: 48px;
+`;
+
 const CACHE_KEY = "server_list_cache";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
@@ -141,6 +196,18 @@ const Home: React.FC = () => {
     const [servers, setServers] = useState<Server[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [query, setQuery] = useState<string>("");
+
+    // Filter by name or description, case-insensitive.
+    const filteredServers = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        if (!q) return servers;
+        return servers.filter(
+            (s) =>
+                s.name?.toLowerCase().includes(q) ||
+                s.description?.toLowerCase().includes(q),
+        );
+    }, [servers, query]);
 
     const cacheAndSetServers = (data: Server[]) => {
         // Sort the servers by sortorder before caching
@@ -350,14 +417,6 @@ const Home: React.FC = () => {
         return content;
     };
 
-    if (loading) {
-        return <div>Loading...</div>;
-    }
-
-    if (error) {
-        return <div>{error}</div>;
-    }
-
     return (
         <div className={styles.home}>
             <Overlay>
@@ -366,9 +425,40 @@ const Home: React.FC = () => {
                         <Text id="app.navigation.tabs.home" />
                     </PageHeader>
                     <div className={styles.homeScreen}>
-                        <div className={styles.actions}>
-                            {servers.map(renderServerButton)}
-                        </div>
+                        <SearchWrapper>
+                            <Search size={18} className="search-icon" />
+                            <InputBox
+                                palette="secondary"
+                                value={query}
+                                onChange={(e) =>
+                                    setQuery(e.currentTarget.value)
+                                }
+                                placeholder="Search communities…"
+                            />
+                            {query && (
+                                <div
+                                    className="clear"
+                                    onClick={() => setQuery("")}>
+                                    <X size={18} />
+                                </div>
+                            )}
+                        </SearchWrapper>
+                        {loading ? (
+                            <LoaderWrapper>
+                                <Preloader type="ring" />
+                            </LoaderWrapper>
+                        ) : error ? (
+                            <NoResults>{error}</NoResults>
+                        ) : (
+                            <>
+                                <div className={styles.actions}>
+                                    {filteredServers.map(renderServerButton)}
+                                </div>
+                                {filteredServers.length === 0 && (
+                                    <NoResults>No communities found.</NoResults>
+                                )}
+                            </>
+                        )}
                     </div>
                 </div>
             </Overlay>
