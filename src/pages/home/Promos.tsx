@@ -6,7 +6,11 @@ import {
     Search,
     X,
 } from "@styled-icons/boxicons-regular";
-import { BadgeCheck, ChevronRight } from "@styled-icons/boxicons-solid";
+import {
+    BadgeCheck,
+    ChevronRight,
+    ChevronDown,
+} from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import { Link } from "react-router-dom";
 import styled from "styled-components/macro";
@@ -409,6 +413,39 @@ const ItemNote = styled.div`
     background: var(--primary-background);
 `;
 
+// Long promos can list a dozen-plus products; we collapse to a handful and
+// reveal the rest on demand so cards stay scannable.
+const ITEM_PREVIEW_COUNT = 5;
+
+const ItemToggle = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 9px 12px;
+    border: none;
+    border-top: 1px solid var(--secondary-background);
+    background: var(--primary-background);
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+        background: var(--secondary-background);
+    }
+
+    svg {
+        transition: transform 0.15s ease;
+    }
+
+    &[data-expanded="true"] svg {
+        transform: rotate(180deg);
+    }
+`;
+
 const MetaRow = styled.div`
     display: flex;
     flex-wrap: wrap;
@@ -502,6 +539,7 @@ const PromoCard = observer(
         onOpenImage: (src: string) => void;
     }) => {
     const client = useClient();
+    const [expanded, setExpanded] = useState(false);
     const autumn =
         client.configuration?.features.autumn?.url ||
         "https://peptide.chat/autumn";
@@ -551,44 +589,73 @@ const PromoCard = observer(
                 )}
             </CardHead>
 
-            {promo.items.length > 0 && (
-                <ItemTable>
-                    {promo.items.map((it, i) => {
-                        const moq =
-                            it.moqKits || it.moqTotal
-                                ? `MOQ ${[
-                                      it.moqKits ? `${it.moqKits} kits` : null,
-                                      it.moqTotal ? money(it.moqTotal) : null,
-                                  ]
-                                      .filter(Boolean)
-                                      .join(" / ")}`
-                                : null;
-                        return (
-                            <div key={i}>
-                                <ItemRow>
-                                    <span className="product">
-                                        {it.product}
-                                    </span>
-                                    {it.dosage && (
-                                        <span className="dosage">
-                                            {it.dosage}
-                                        </span>
-                                    )}
-                                    {moq && <span className="moq">{moq}</span>}
-                                    <span className="price">
-                                        {money(it.price)}
-                                        <span className="unit">
-                                            {" "}
-                                            / {it.unit || "kit"}
-                                        </span>
-                                    </span>
-                                </ItemRow>
-                                {it.note && <ItemNote>{it.note}</ItemNote>}
-                            </div>
-                        );
-                    })}
-                </ItemTable>
-            )}
+            {promo.items.length > 0 &&
+                (() => {
+                    const collapsible =
+                        promo.items.length > ITEM_PREVIEW_COUNT + 1;
+                    const visible =
+                        collapsible && !expanded
+                            ? promo.items.slice(0, ITEM_PREVIEW_COUNT)
+                            : promo.items;
+                    return (
+                        <ItemTable>
+                            {visible.map((it, i) => {
+                                const moq =
+                                    it.moqKits || it.moqTotal
+                                        ? `MOQ ${[
+                                              it.moqKits
+                                                  ? `${it.moqKits} kits`
+                                                  : null,
+                                              it.moqTotal
+                                                  ? money(it.moqTotal)
+                                                  : null,
+                                          ]
+                                              .filter(Boolean)
+                                              .join(" / ")}`
+                                        : null;
+                                return (
+                                    <div key={i}>
+                                        <ItemRow>
+                                            <span className="product">
+                                                {it.product}
+                                            </span>
+                                            {it.dosage && (
+                                                <span className="dosage">
+                                                    {it.dosage}
+                                                </span>
+                                            )}
+                                            {moq && (
+                                                <span className="moq">
+                                                    {moq}
+                                                </span>
+                                            )}
+                                            <span className="price">
+                                                {money(it.price)}
+                                                <span className="unit">
+                                                    {" "}
+                                                    / {it.unit || "kit"}
+                                                </span>
+                                            </span>
+                                        </ItemRow>
+                                        {it.note && (
+                                            <ItemNote>{it.note}</ItemNote>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            {collapsible && (
+                                <ItemToggle
+                                    data-expanded={expanded}
+                                    onClick={() => setExpanded((v) => !v)}>
+                                    {expanded
+                                        ? "Show less"
+                                        : `Show all ${promo.items.length} products`}
+                                    <ChevronDown size={14} />
+                                </ItemToggle>
+                            )}
+                        </ItemTable>
+                    );
+                })()}
 
             <MetaRow>
                 {typeof promo.shippingFee === "number" && (
