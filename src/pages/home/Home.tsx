@@ -1,9 +1,5 @@
 import { Search, X } from "@styled-icons/boxicons-regular";
-import {
-    Home as HomeIcon,
-    Lock,
-    MessageAdd,
-} from "@styled-icons/boxicons-solid";
+import { Lock, MessageAdd } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import Papa from "papaparse";
 import React, { useEffect, useMemo, useState } from "react";
@@ -17,6 +13,7 @@ import { CategoryButton, InputBox, Preloader } from "@revoltchat/ui";
 
 import { PageHeader } from "../../components/ui/Header";
 import { useClient } from "../../controllers/client/ClientController";
+import Promos from "./Promos";
 
 const Overlay = styled.div`
     display: grid;
@@ -159,6 +156,59 @@ const NoResults = styled.div`
     margin-bottom: 30px;
 `;
 
+// Tab strip living in the page header, letting the user switch between the
+// community directory ("Home") and the upcoming promos surface.
+const TabBar = styled.div`
+    display: flex;
+    align-items: stretch;
+    gap: 24px;
+    height: 100%;
+`;
+
+const Tab = styled.div<{ active: boolean }>`
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    color: ${(props) =>
+        props.active ? "var(--foreground)" : "var(--tertiary-foreground)"};
+    transition: color 0.1s ease-in-out;
+
+    &:hover {
+        color: var(--foreground);
+    }
+
+    &::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--accent);
+        opacity: ${(props) => (props.active ? 1 : 0)};
+        transition: opacity 0.1s ease-in-out;
+    }
+`;
+
+// Small accent "NEW" pill shown on the Promos tab.
+const NewChip = styled.span`
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 3px 6px;
+    border-radius: 6px;
+    color: var(--accent-contrast, #11171c);
+    background: var(--accent);
+`;
+
+
 // Holds the circular loader in the content area while the directory loads,
 // so the header and search bar above it stay mounted.
 const LoaderWrapper = styled.div`
@@ -197,6 +247,7 @@ const Home: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [query, setQuery] = useState<string>("");
+    const [tab, setTab] = useState<"home" | "promos">("home");
 
     // Filter by name or description, case-insensitive.
     const filteredServers = useMemo(() => {
@@ -421,43 +472,68 @@ const Home: React.FC = () => {
         <div className={styles.home}>
             <Overlay>
                 <div className="content">
-                    <PageHeader icon={<HomeIcon size={24} />} withTransparency>
-                        <Text id="app.navigation.tabs.home" />
+                    <PageHeader icon={<></>} withTransparency>
+                        <TabBar>
+                            <Tab
+                                active={tab === "home"}
+                                onClick={() => setTab("home")}>
+                                <Text id="app.navigation.tabs.home" />
+                            </Tab>
+                            <Tab
+                                active={tab === "promos"}
+                                onClick={() => setTab("promos")}>
+                                Promos
+                                <NewChip>New</NewChip>
+                            </Tab>
+                        </TabBar>
                     </PageHeader>
                     <div className={styles.homeScreen}>
-                        <SearchWrapper>
-                            <Search size={18} className="search-icon" />
-                            <InputBox
-                                palette="secondary"
-                                value={query}
-                                onChange={(e) =>
-                                    setQuery(e.currentTarget.value)
-                                }
-                                placeholder="Search communities…"
-                            />
-                            {query && (
-                                <div
-                                    className="clear"
-                                    onClick={() => setQuery("")}>
-                                    <X size={18} />
-                                </div>
-                            )}
-                        </SearchWrapper>
-                        {loading ? (
-                            <LoaderWrapper>
-                                <Preloader type="ring" />
-                            </LoaderWrapper>
-                        ) : error ? (
-                            <NoResults>{error}</NoResults>
-                        ) : (
+                        {tab === "home" ? (
                             <>
-                                <div className={styles.actions}>
-                                    {filteredServers.map(renderServerButton)}
-                                </div>
-                                {filteredServers.length === 0 && (
-                                    <NoResults>No communities found.</NoResults>
+                                <SearchWrapper>
+                                    <Search
+                                        size={18}
+                                        className="search-icon"
+                                    />
+                                    <InputBox
+                                        palette="secondary"
+                                        value={query}
+                                        onChange={(e) =>
+                                            setQuery(e.currentTarget.value)
+                                        }
+                                        placeholder="Search communities…"
+                                    />
+                                    {query && (
+                                        <div
+                                            className="clear"
+                                            onClick={() => setQuery("")}>
+                                            <X size={18} />
+                                        </div>
+                                    )}
+                                </SearchWrapper>
+                                {loading ? (
+                                    <LoaderWrapper>
+                                        <Preloader type="ring" />
+                                    </LoaderWrapper>
+                                ) : error ? (
+                                    <NoResults>{error}</NoResults>
+                                ) : (
+                                    <>
+                                        <div className={styles.actions}>
+                                            {filteredServers.map(
+                                                renderServerButton,
+                                            )}
+                                        </div>
+                                        {filteredServers.length === 0 && (
+                                            <NoResults>
+                                                No communities found.
+                                            </NoResults>
+                                        )}
+                                    </>
                                 )}
                             </>
+                        ) : (
+                            <Promos />
                         )}
                     </div>
                 </div>
