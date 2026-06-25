@@ -12,13 +12,13 @@ import BottomNavigation from "../components/navigation/BottomNavigation";
 import LeftSidebar from "../components/navigation/LeftSidebar";
 import RightSidebar from "../components/navigation/RightSidebar";
 import { useSystemAlert } from "../updateWorker";
+import { useRouteAnalytics } from "../analytics/useRouteAnalytics";
 import Open from "./Open";
 import Channel from "./channels/Channel";
 import Developer from "./developer/Developer";
 import Discover from "./discover/Discover";
 import Friends from "./friends/Friends";
 import Home from "./home/Home";
-import HomeNew from "./home/HomeNew";
 import InviteBot from "./invite/InviteBot";
 import ChannelSettings from "./settings/ChannelSettings";
 import ServerSettings from "./settings/ServerSettings";
@@ -64,7 +64,7 @@ export const StatusBar = styled.div`
     }
 `;
 
-const Routes = styled.div.attrs({ "data-component": "routes" })<{
+const Routes = styled.div.attrs({ "data-component": "routes" }) <{
     borders: boolean;
 }>`
     min-width: 0;
@@ -91,7 +91,6 @@ export default function App() {
     const path = useLocation().pathname;
     const fixedBottomNav =
         path === "/" ||
-        path === "/home" ||
         path === "/settings" ||
         path.startsWith("/friends") ||
         path.startsWith("/discover");
@@ -101,6 +100,9 @@ export default function App() {
         (path.startsWith("/friends") && isTouchscreenDevice) ||
         path.startsWith("/invite") ||
         path.includes("/settings");
+
+    // Track page views and page load time
+    useRouteAnalytics();
 
     const alert = useSystemAlert();
     const [statusBar, setStatusBar] = useState(false);
@@ -153,7 +155,7 @@ export default function App() {
                             : { width: 290, component: <LeftSidebar /> }
                     }
                     rightPanel={
-                        !inSpecial && inChannel
+                        !inSpecial
                             ? { width: 236, component: <RightSidebar /> }
                             : undefined
                     }
@@ -221,7 +223,6 @@ export default function App() {
                             <Route path="/friends" component={Friends} />
                             <Route path="/open/:id" component={Open} />
                             <Route path="/bot/:id" component={InviteBot} />
-                            <Route path="/home" component={HomeNew} />
                             <Route path="/" component={Home} />
                         </Switch>
                     </Routes>
