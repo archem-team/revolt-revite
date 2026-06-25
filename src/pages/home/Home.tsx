@@ -3,7 +3,7 @@ import { Lock, MessageAdd } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import Papa from "papaparse";
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useHistory, useLocation } from "react-router-dom";
 import styled from "styled-components/macro";
 
 import styles from "./Home.module.scss";
@@ -13,6 +13,7 @@ import { CategoryButton, InputBox, Preloader } from "@revoltchat/ui";
 
 import { PageHeader } from "../../components/ui/Header";
 import { useClient } from "../../controllers/client/ClientController";
+import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
 import Promos from "./Promos";
 
 const Overlay = styled.div`
@@ -247,7 +248,34 @@ const Home: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [query, setQuery] = useState<string>("");
-    const [tab, setTab] = useState<"home" | "promos">("home");
+
+    // Drive the active tab from the URL (?tab=promos) rather than local state,
+    // so a refresh or navigating into a community (e.g. via a promo's join
+    // button) and pressing back both restore the Promos view instead of
+    // dropping the user back on Home.
+    const history = useHistory();
+    const location = useLocation();
+    const tab: "home" | "promos" =
+        new URLSearchParams(location.search).get("tab") === "promos"
+            ? "promos"
+            : "home";
+    const setTab = (next: "home" | "promos") =>
+        history.replace(next === "promos" ? "/?tab=promos" : "/");
+
+    // On mobile the overlapping panels default to the sidebar; when landing on
+    // the Promos tab (e.g. after a refresh), bring the content panel into view
+    // so the user sees the promos rather than the channel list. Deferred to the
+    // next frame so the panel container has laid out before we scroll it.
+    useEffect(() => {
+        if (!isTouchscreenDevice || tab !== "promos") return;
+        const raf = requestAnimationFrame(() => {
+            const panels = document.querySelector("#app > div > div > div");
+            // No right panel on home, so the max scroll position lands on the
+            // main (content) panel.
+            panels?.scrollTo({ left: panels.scrollWidth, behavior: "auto" });
+        });
+        return () => cancelAnimationFrame(raf);
+    }, [tab]);
 
     // Filter by name or description, case-insensitive.
     const filteredServers = useMemo(() => {

@@ -5,6 +5,7 @@ import {
     Store,
     Search,
     X,
+    Plus,
 } from "@styled-icons/boxicons-regular";
 import {
     BadgeCheck,
@@ -103,11 +104,29 @@ const safeStorage = {
 
 const Wrapper = styled.div`
     width: 100%;
-    max-width: 650px;
+    max-width: 1100px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 16px;
+`;
+
+// Promos vary a lot in content (2 vs 14 products, image or not), so a fixed
+// grid would either clip content or leave big empty gaps. Instead we use a
+// masonry (CSS multi-column) layout: cards keep their natural height and pack
+// tightly top-to-bottom with no wasted space. Single column on mobile, two on
+// tablet, three on desktop.
+const Grid = styled.div`
+    column-count: 1;
+    column-gap: 12px;
+
+    @media (min-width: 720px) {
+        column-count: 2;
+    }
+
+    @media (min-width: 1080px) {
+        column-count: 3;
+    }
 `;
 
 const Toolbar = styled.div`
@@ -290,21 +309,25 @@ const Glyph = styled.div`
 const Card = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    padding: 18px;
+    gap: 12px;
+    padding: 14px;
     border-radius: 10px;
     background: var(--secondary-background);
+    /* Masonry layout: keep each card whole within its column and use a bottom
+       margin for the vertical gap (column-gap only spaces columns). */
+    break-inside: avoid;
+    margin-bottom: 12px;
 `;
 
 const CardHead = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 `;
 
 const Logo = styled.img`
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0;
@@ -312,14 +335,44 @@ const Logo = styled.img`
 `;
 
 const LogoFallback = styled.div`
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     flex-shrink: 0;
     display: grid;
     place-items: center;
     background: var(--primary-background);
     color: var(--tertiary-foreground);
+`;
+
+// Compact circular call-to-action in the card header (replaces the old
+// full-width footer button). Rendered as an anchor via `as={Link}`.
+const ActionIcon = styled.div`
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.15s ease;
+
+    /* Rendered as an <a> via react-router Link; the global a:link rule
+       (color: accent) outweighs the component class, which would tint the
+       icon the same red as the background. Force the contrast colour on the
+       svg directly so the glyph is visible, and block-display it so it
+       centres without inline-baseline offset. */
+    & > svg {
+        display: block;
+        color: var(--accent-contrast, #11171c);
+    }
+
+    &:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+    }
 `;
 
 const VendorMeta = styled.div`
@@ -413,9 +466,42 @@ const ItemNote = styled.div`
     background: var(--primary-background);
 `;
 
-// Long promos can list a dozen-plus products; we collapse to a handful and
-// reveal the rest on demand so cards stay scannable.
-const ITEM_PREVIEW_COUNT = 5;
+// Long promos can list a dozen-plus priced variants. Rather than show the
+// whole table up front, we collapse to one chip per distinct compound and
+// reveal the full pricing on demand so cards stay scannable. Small promos
+// (few line items) skip the chip summary and show the table directly.
+const COLLAPSE_THRESHOLD = 5;
+
+const ProductSummary = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const CompoundChips = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+`;
+
+const CompoundChip = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 7px 10px;
+    border-radius: 7px;
+    color: var(--foreground);
+    background: var(--primary-background);
+
+    .count {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--tertiary-foreground);
+    }
+`;
 
 const ItemToggle = styled.button`
     display: flex;
@@ -446,6 +532,27 @@ const ItemToggle = styled.button`
     }
 `;
 
+// Standalone (not table-attached) variant of the toggle, used under the
+// compound-chip summary.
+const SummaryToggle = styled.button`
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+`;
+
 const MetaRow = styled.div`
     display: flex;
     flex-wrap: wrap;
@@ -465,8 +572,8 @@ const Gallery = styled.div`
 
     .hero {
         width: 100%;
-        height: clamp(220px, 44vw, 340px);
-        border-radius: 10px;
+        height: clamp(150px, 28vw, 220px);
+        border-radius: 8px;
         object-fit: cover;
         cursor: zoom-in;
         background: var(--primary-background);
@@ -474,28 +581,18 @@ const Gallery = styled.div`
 
     .thumbs {
         display: flex;
-        gap: 8px;
+        gap: 6px;
         overflow-x: auto;
 
         img {
-            width: 72px;
-            height: 72px;
-            border-radius: 8px;
+            width: 52px;
+            height: 52px;
+            border-radius: 6px;
             object-fit: cover;
             flex-shrink: 0;
             cursor: pointer;
             background: var(--primary-background);
         }
-    }
-`;
-
-const Footer = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    a {
-        margin-left: auto;
     }
 `;
 
@@ -581,25 +678,71 @@ const PromoCard = observer(
                         <span className="title">{promo.title}</span>
                     )}
                 </VendorMeta>
-                {promo.warehouse && (
-                    <Chip>
-                        <MapPin size={12} />
-                        {promo.warehouse}
-                    </Chip>
+                {linkTo && (
+                    <ActionIcon
+                        as={Link}
+                        to={linkTo}
+                        title={
+                            joined ? "Open community" : "Join community"
+                        }>
+                        {joined ? (
+                            <ChevronRight size={20} />
+                        ) : (
+                            <Plus size={20} />
+                        )}
+                    </ActionIcon>
                 )}
             </CardHead>
 
             {promo.items.length > 0 &&
                 (() => {
+                    // One entry per distinct compound, preserving first-seen
+                    // order, with a count of priced variants.
+                    const compounds: { name: string; count: number }[] = [];
+                    const index = new Map<string, number>();
+                    for (const it of promo.items) {
+                        const name = it.product;
+                        const at = index.get(name);
+                        if (at === undefined) {
+                            index.set(name, compounds.length);
+                            compounds.push({ name, count: 1 });
+                        } else {
+                            compounds[at].count++;
+                        }
+                    }
+
                     const collapsible =
-                        promo.items.length > ITEM_PREVIEW_COUNT + 1;
-                    const visible =
-                        collapsible && !expanded
-                            ? promo.items.slice(0, ITEM_PREVIEW_COUNT)
-                            : promo.items;
+                        promo.items.length > COLLAPSE_THRESHOLD;
+
+                    // Collapsed: compact chip summary of the compounds.
+                    if (collapsible && !expanded) {
+                        return (
+                            <ProductSummary>
+                                <CompoundChips>
+                                    {compounds.map((c) => (
+                                        <CompoundChip key={c.name}>
+                                            {c.name}
+                                            {c.count > 1 && (
+                                                <span className="count">
+                                                    ×{c.count}
+                                                </span>
+                                            )}
+                                        </CompoundChip>
+                                    ))}
+                                </CompoundChips>
+                                <SummaryToggle
+                                    onClick={() => setExpanded(true)}>
+                                    {`Show all ${promo.items.length} prices`}
+                                    <ChevronDown size={14} />
+                                </SummaryToggle>
+                            </ProductSummary>
+                        );
+                    }
+
+                    // Expanded (or short promo): full pricing table.
                     return (
                         <ItemTable>
-                            {visible.map((it, i) => {
+                            {promo.items.map((it, i) => {
                                 const moq =
                                     it.moqKits || it.moqTotal
                                         ? `MOQ ${[
@@ -645,11 +788,9 @@ const PromoCard = observer(
                             })}
                             {collapsible && (
                                 <ItemToggle
-                                    data-expanded={expanded}
-                                    onClick={() => setExpanded((v) => !v)}>
-                                    {expanded
-                                        ? "Show less"
-                                        : `Show all ${promo.items.length} products`}
+                                    data-expanded={true}
+                                    onClick={() => setExpanded(false)}>
+                                    Show less
                                     <ChevronDown size={14} />
                                 </ItemToggle>
                             )}
@@ -658,6 +799,12 @@ const PromoCard = observer(
                 })()}
 
             <MetaRow>
+                {promo.warehouse && (
+                    <Chip>
+                        <MapPin size={12} />
+                        {promo.warehouse}
+                    </Chip>
+                )}
                 {typeof promo.shippingFee === "number" && (
                     <Chip>
                         {promo.shippingFee === 0
@@ -732,16 +879,6 @@ const PromoCard = observer(
                 </Gallery>
             )}
 
-            {linkTo && (
-                <Footer>
-                    <Link to={linkTo}>
-                        <Button compact palette="accent">
-                            {joined ? "Open community" : "Join community"}
-                            <ChevronRight size={16} />
-                        </Button>
-                    </Link>
-                </Footer>
-            )}
         </Card>
     );
 });
@@ -937,13 +1074,15 @@ const Promos: React.FC = () => {
                     </Empty>
                 )
             ) : (
-                filtered.map((p) => (
-                    <PromoCard
-                        key={p.id}
-                        promo={p}
-                        onOpenImage={setLightbox}
-                    />
-                ))
+                <Grid>
+                    {filtered.map((p) => (
+                        <PromoCard
+                            key={p.id}
+                            promo={p}
+                            onOpenImage={setLightbox}
+                        />
+                    ))}
+                </Grid>
             )}
 
             {lightbox && (
