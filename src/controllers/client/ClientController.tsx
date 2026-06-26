@@ -11,6 +11,7 @@ import { resetMemberSidebarFetched } from "../../components/navigation/right/Mem
 import { modalController } from "../modals/ModalController";
 import Session from "./Session";
 import { takeError } from "./jsx/error";
+import { trackLogin } from "../../analytics/events";
 
 /**
  * Controls the lifecycles of clients
@@ -144,6 +145,9 @@ class ClientController {
         knowledge: "new" | "existing",
     ) {
         const user_id = entry.session.user_id!;
+
+        // Track login with new vs returning distinction
+        trackLogin(knowledge === "existing");
 
         const session = new Session();
         this.sessions.set(user_id, session);
