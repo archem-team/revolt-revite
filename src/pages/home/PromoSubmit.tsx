@@ -33,6 +33,21 @@ const emptyItem = (): ItemForm => ({
 
 const MAX_IMAGES = 12;
 
+// Per-field validation errors. Items are keyed by their index in the form.
+interface ItemError {
+    product?: string;
+    price?: string;
+}
+
+interface FieldErrors {
+    items?: Record<number, ItemError>;
+    purityPct?: string;
+    volumePct?: string;
+    shippingFee?: string;
+    freeShippingThreshold?: string;
+    endDate?: string;
+}
+
 // ─── Styling ──────────────────────────────────────────────────────────────────
 
 const Head = styled.div`
@@ -91,6 +106,20 @@ const Select = styled.select`
     font-family: inherit;
     font-size: 0.875rem;
     cursor: pointer;
+`;
+
+// Read-only equivalent of Select, used when the submitter owns a single
+// community — the vendor is fixed, so there is nothing to choose.
+const StaticField = styled.div`
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--border-radius);
+    background: var(--secondary-background);
+    color: var(--foreground);
+    font-size: 0.875rem;
 `;
 
 const Grid = styled.div<{ cols?: number }>`
@@ -199,6 +228,12 @@ const Status = styled.span<{ ok?: boolean }>`
     color: ${(p) => (p.ok ? "var(--success)" : "var(--error)")};
 `;
 
+const FieldError = styled.span`
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--error);
+`;
+
 const Success = styled.div`
     display: flex;
     flex-direction: column;
@@ -253,16 +288,25 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
         "idle",
     );
     const [errMsg, setErrMsg] = useState("");
+    const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
     const sessionToken =
         typeof client.session === "string"
             ? client.session
             : (client.session as any)?.token ?? "";
 
-    const setItem = (i: number, patch: Partial<ItemForm>) =>
+    const setItem = (i: number, patch: Partial<ItemForm>) => {
         setItems((prev) =>
             prev.map((it, idx) => (idx === i ? { ...it, ...patch } : it)),
         );
+        // Clear this item's validation errors as the user edits it.
+        setFieldErrors((prev) => {
+            if (!prev.items?.[i]) return prev;
+            const items = { ...prev.items };
+            delete items[i];
+            return { ...prev, items };
+        });
+    };
 
     async function handleImagePick() {
         const input = document.createElement("input");
@@ -299,7 +343,7 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
     async function handleSubmit(e: Event) {
         e.preventDefault();
         if (!serverId) {
-            setErrMsg("Select a server.");
+            setErrMsg("Select a community.");
             setState("error");
             return;
         }
@@ -308,6 +352,78 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
             setState("error");
             return;
         }
+
+        // ─── Validate ───────────────────────────────────────────────────────
+        const errors: FieldErrors = {};
+        const itemErrors: Record<number, ItemError> = {};
+
+        let namedProducts = 0;
+        items.forEach((it, i) => {
+            const product = it.product.trim();
+            const e: ItemError = {};
+            if (product) {
+                namedProducts++;
+                const price = num(it.price);
+                if (!it.price.trim() || price == null) {
+                    e.price = "Enter a price.";
+                } else if (price < 0) {
+                    e.price = "Price can't be negative.";
+                }
+            } else if (
+                // A row with details but no name would be silently dropped —
+                // flag it so the submitter doesn't lose data unknowingly.
+                it.dosage.trim() ||
+                it.price.trim() ||
+                it.moqKits.trim() ||
+                it.moqTotal.trim() ||
+                it.note.trim()
+            ) {
+                e.product = "Add a product name for this item.";
+            }
+            if (e.product || e.price) itemErrors[i] = e;
+        });
+
+        if (namedProducts === 0) {
+            itemErrors[0] = {
+                ...itemErrors[0],
+                product: "Add at least one product.",
+            };
+        }
+
+        // Percentages must be 0–100.
+        const pct = (s: string, key: "purityPct" | "volumePct") => {
+            if (!s.trim()) return;
+            const n = num(s);
+            if (n == null || n < 0 || n > 100)
+                errors[key] = "Enter a value between 0 and 100.";
+        };
+        pct(purityPct, "purityPct");
+        pct(volumePct, "volumePct");
+
+        // Money fields can't be negative.
+        const nonNeg = (
+            s: string,
+            key: "shippingFee" | "freeShippingThreshold",
+        ) => {
+            if (!s.trim()) return;
+            const n = num(s);
+            if (n == null || n < 0) errors[key] = "Enter 0 or more.";
+        };
+        nonNeg(shippingFee, "shippingFee");
+        nonNeg(freeShippingThreshold, "freeShippingThreshold");
+
+        if (startDate && endDate && endDate < startDate)
+            errors.endDate = "End date can't be before the start date.";
+
+        if (Object.keys(itemErrors).length) errors.items = itemErrors;
+
+        if (Object.keys(errors).length) {
+            setFieldErrors(errors);
+            setErrMsg("Please fix the highlighted fields.");
+            setState("error");
+            return;
+        }
+        setFieldErrors({});
 
         const cleanItems = items
             .filter((it) => it.product.trim())
@@ -407,15 +523,19 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
 
             <Section>
                 <Label>Community</Label>
-                <Select
-                    value={serverId}
-                    onChange={(e) => setServerId(e.currentTarget.value)}>
-                    {servers.map((s) => (
-                        <option key={s._id} value={s._id}>
-                            {s.name}
-                        </option>
-                    ))}
-                </Select>
+                {servers.length > 1 ? (
+                    <Select
+                        value={serverId}
+                        onChange={(e) => setServerId(e.currentTarget.value)}>
+                        {servers.map((s) => (
+                            <option key={s._id} value={s._id}>
+                                {s.name}
+                            </option>
+                        ))}
+                    </Select>
+                ) : (
+                    <StaticField>{servers[0]?.name}</StaticField>
+                )}
             </Section>
 
             <Section>
@@ -510,6 +630,16 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
                                 }
                             />
                         </Grid>
+                        {fieldErrors.items?.[i]?.product && (
+                            <FieldError>
+                                {fieldErrors.items?.[i]?.product}
+                            </FieldError>
+                        )}
+                        {fieldErrors.items?.[i]?.price && (
+                            <FieldError>
+                                {fieldErrors.items?.[i]?.price}
+                            </FieldError>
+                        )}
                         <InputBox
                             palette="primary"
                             value={it.note}
@@ -554,6 +684,15 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
                         }
                     />
                 </Grid>
+                {fieldErrors.shippingFee && (
+                    <FieldError>Shipping fee: {fieldErrors.shippingFee}</FieldError>
+                )}
+                {fieldErrors.freeShippingThreshold && (
+                    <FieldError>
+                        Free shipping threshold:{" "}
+                        {fieldErrors.freeShippingThreshold}
+                    </FieldError>
+                )}
                 <InputBox
                     palette="secondary"
                     value={shippingNote}
@@ -590,6 +729,12 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
                         onChange={(e) => setVolumePct(e.currentTarget.value)}
                     />
                 </Grid>
+                {fieldErrors.purityPct && (
+                    <FieldError>Purity %: {fieldErrors.purityPct}</FieldError>
+                )}
+                {fieldErrors.volumePct && (
+                    <FieldError>Volume %: {fieldErrors.volumePct}</FieldError>
+                )}
                 <Checkbox
                     value={customsReship}
                     onChange={setCustomsReship}
@@ -641,6 +786,9 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
                         onChange={(e) => setEndDate(e.currentTarget.value)}
                     />
                 </Grid>
+                {fieldErrors.endDate && (
+                    <FieldError>{fieldErrors.endDate}</FieldError>
+                )}
                 <Checkbox
                     value={untilSoldOut}
                     onChange={setUntilSoldOut}
