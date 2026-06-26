@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 import styles from "../Login.module.scss";
 import { Text } from "preact-i18n";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 import { Button, Category, Preloader, Tip } from "@revoltchat/ui";
 
@@ -18,6 +18,10 @@ import { IS_REVOLT } from "../../../version";
 import FormField from "../FormField";
 import { CaptchaBlock, CaptchaProps } from "./CaptchaBlock";
 import { MailProvider } from "./MailProvider";
+import {
+    trackSignUpStarted,
+    trackSignUpCompleted,
+} from "../../../analytics/events";
 
 interface Props {
     page: "create" | "login" | "send_reset" | "reset" | "resend";
@@ -48,6 +52,13 @@ export const Form = observer(({ page, callback }: Props) => {
 
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState<string | undefined>(undefined);
+
+    // Track Sign Up Started when the create account page first mounts
+    useEffect(() => {
+        if (page === "create") {
+            trackSignUpStarted();
+        }
+    }, [page]);
     const [error, setGlobalError] = useState<string | undefined>(undefined);
     const [captcha, setCaptcha] = useState<CaptchaProps | undefined>(undefined);
 
@@ -102,6 +113,10 @@ export const Form = observer(({ page, callback }: Props) => {
                 });
             } else {
                 await callback(data);
+                // Track Sign Up Completed for registration pages
+                if (page === "create") {
+                    trackSignUpCompleted(data.email);
+                }
                 setSuccess(data.email);
             }
         } catch (err) {
