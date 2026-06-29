@@ -7,7 +7,9 @@ import { useState } from "preact/hooks";
 
 import { Button, Checkbox, InputBox } from "@revoltchat/ui";
 
-import { uploadFile } from "../../controllers/client/jsx/legacy/FileUploads";
+// FILE-UPLOAD (commented out) — uncomment to re-enable direct file upload to CDN:
+// import { uploadFile } from "../../controllers/client/jsx/legacy/FileUploads";
+
 import { useClient } from "../../controllers/client/ClientController";
 import { API_BASE } from "../directory/types";
 
@@ -130,10 +132,33 @@ const ItemCard = styled.div`
     }
 `;
 
+const ImageHint = styled.p`
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--secondary-foreground);
+
+    strong {
+        color: var(--foreground);
+    }
+`;
+
+const ImageUrlRow = styled.div`
+    display: flex;
+    gap: 8px;
+    align-items: center;
+
+    /* stretch the input, keep button fixed */
+    & > *:first-child {
+        flex: 1;
+    }
+`;
+
 const Thumbs = styled.div`
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    margin-top: 4px;
 
     .thumb {
         position: relative;
@@ -161,28 +186,6 @@ const Thumbs = styled.div`
             background: rgba(0, 0, 0, 0.6);
             color: #fff;
             cursor: pointer;
-        }
-    }
-
-    .add {
-        width: 72px;
-        height: 72px;
-        border-radius: 8px;
-        border: 1px dashed var(--tertiary-foreground);
-        background: transparent;
-        color: var(--tertiary-foreground);
-        cursor: pointer;
-        display: grid;
-        place-items: center;
-
-        &:hover {
-            color: var(--foreground);
-            border-color: var(--foreground);
-        }
-
-        &:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
         }
     }
 `;
@@ -223,9 +226,11 @@ interface Props {
 
 const PromoSubmit = observer(({ servers, onClose }: Props) => {
     const client = useClient();
-    const autumn =
-        client.configuration?.features.autumn?.url ||
-        "https://peptide.chat/autumn";
+
+    // FILE-UPLOAD (commented out) — autumn CDN base URL, needed by uploadFile:
+    // const autumn =
+    //     client.configuration?.features.autumn?.url ||
+    //     "https://peptide.chat/autumn";
 
     const [serverId, setServerId] = useState(servers[0]?._id ?? "");
     const [title, setTitle] = useState("");
@@ -245,10 +250,13 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
     const [untilSoldOut, setUntilSoldOut] = useState(false);
     const [timelineText, setTimelineText] = useState("");
     const [images, setImages] = useState<string[]>([]);
+    const [imageUrlInput, setImageUrlInput] = useState("");
     const [submitterContact, setSubmitterContact] = useState("");
     const [submitterNote, setSubmitterNote] = useState("");
 
-    const [uploading, setUploading] = useState(false);
+    // FILE-UPLOAD (commented out) — tracks in-progress CDN upload:
+    // const [uploading, setUploading] = useState(false);
+
     const [state, setState] = useState<"idle" | "saving" | "ok" | "error">(
         "idle",
     );
@@ -264,32 +272,54 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
             prev.map((it, idx) => (idx === i ? { ...it, ...patch } : it)),
         );
 
-    async function handleImagePick() {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "image/*";
-        input.multiple = true;
-        input.onchange = async () => {
-            const files = Array.from(input.files ?? []);
-            if (!files.length) return;
-            const room = MAX_IMAGES - images.length;
-            setUploading(true);
-            try {
-                const ids: string[] = [];
-                for (const file of files.slice(0, room)) {
-                    const id = await uploadFile(autumn, "attachments", file);
-                    ids.push(id);
-                }
-                setImages((prev) => [...prev, ...ids]);
-            } catch {
-                setErrMsg("Image upload failed.");
-                setState("error");
-            } finally {
-                setUploading(false);
-            }
-        };
-        input.click();
+    function addImageUrl() {
+        const url = imageUrlInput.trim();
+        if (!url) return;
+        if (images.length >= MAX_IMAGES) {
+            setErrMsg(`Maximum ${MAX_IMAGES} images allowed.`);
+            setState("error");
+            return;
+        }
+        if (!/^https?:\/\//i.test(url)) {
+            setErrMsg("Please enter a valid image URL starting with http:// or https://");
+            setState("error");
+            return;
+        }
+        setImages((prev) => [...prev, url]);
+        setImageUrlInput("");
+        // Clear any previous URL error when a valid one is added
+        if (state === "error") setState("idle");
     }
+
+    // FILE-UPLOAD (commented out) — picks a local file and uploads it to Autumn CDN.
+    // To re-enable: uncomment this function, the `uploading` state above, the
+    // `autumn` variable above, and the upload button in the Images section below.
+    // async function handleImagePick() {
+    //     const input = document.createElement("input");
+    //     input.type = "file";
+    //     input.accept = "image/*";
+    //     input.multiple = true;
+    //     input.onchange = async () => {
+    //         const files = Array.from(input.files ?? []);
+    //         if (!files.length) return;
+    //         const room = MAX_IMAGES - images.length;
+    //         setUploading(true);
+    //         try {
+    //             const ids: string[] = [];
+    //             for (const file of files.slice(0, room)) {
+    //                 const id = await uploadFile(autumn, "attachments", file);
+    //                 ids.push(id);
+    //             }
+    //             setImages((prev) => [...prev, ...ids]);
+    //         } catch {
+    //             setErrMsg("Image upload failed.");
+    //             setState("error");
+    //         } finally {
+    //             setUploading(false);
+    //         }
+    //     };
+    //     input.click();
+    // }
 
     const num = (s: string) => {
         const n = parseFloat(s);
@@ -661,29 +691,72 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
                 <Label>
                     Images ({images.length}/{MAX_IMAGES})
                 </Label>
-                <Thumbs>
-                    {images.map((id, i) => (
-                        <div className="thumb" key={id}>
-                            <img src={`${autumn}/attachments/${id}`} />
-                            <div
-                                className="x"
-                                onClick={() =>
-                                    setImages((prev) =>
-                                        prev.filter((_, idx) => idx !== i),
-                                    )
-                                }>
-                                <X size={12} />
-                            </div>
-                        </div>
-                    ))}
-                    <button
+                <ImageHint>
+                    <>
+                    Paste image links below (e.g. right-click an image in a PepChat message → <em>Copy image address</em>). Up to {MAX_IMAGES} images.
+                    </>
+                </ImageHint>
+                <ImageUrlRow>
+                    <InputBox
+                        palette="secondary"
+                        value={imageUrlInput}
+                        placeholder="Paste image link from a PepChat message…"
+                        disabled={images.length >= MAX_IMAGES}
+                        onChange={(e) =>
+                            setImageUrlInput(e.currentTarget.value)
+                        }
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                addImageUrl();
+                            }
+                        }}
+                    />
+                    <Button
                         type="button"
-                        className="add"
-                        disabled={uploading || images.length >= MAX_IMAGES}
-                        onClick={handleImagePick}>
-                        <Plus size={20} />
-                    </button>
-                </Thumbs>
+                        compact
+                        palette="secondary"
+                        disabled={
+                            !imageUrlInput.trim() ||
+                            images.length >= MAX_IMAGES
+                        }
+                        onClick={addImageUrl}>
+                        <>
+                            <Plus size={16} />
+                            Add
+                        </>
+                    </Button>
+                </ImageUrlRow>
+                {images.length > 0 && (
+                    <Thumbs>
+                        {images.map((url, i) => (
+                            <div className="thumb" key={i}>
+                                <img src={url} />
+                                <div
+                                    className="x"
+                                    onClick={() =>
+                                        setImages((prev) =>
+                                            prev.filter(
+                                                (_, idx) => idx !== i,
+                                            ),
+                                        )
+                                    }>
+                                    <X size={12} />
+                                </div>
+                            </div>
+                        ))}
+                        {/* FILE-UPLOAD (commented out) — dashed "+" button to pick & upload a local file.
+                            To re-enable: uncomment the button below and the handleImagePick function above.
+                        <button
+                            type="button"
+                            className="add"
+                            disabled={uploading || images.length >= MAX_IMAGES}
+                            onClick={handleImagePick}>
+                            <Plus size={20} />
+                        </button>
+                        */}
+                    </Thumbs>
+                )}
             </Section>
 
             <Divider />
@@ -707,10 +780,12 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
             </Section>
 
             <Actions>
+                {/* FILE-UPLOAD (commented out): to also block submit during upload,
+                    change the line below to: disabled={state === "saving" || uploading} */}
                 <Button
                     type="submit"
                     palette="accent"
-                    disabled={state === "saving" || uploading}>
+                    disabled={state === "saving"}>
                     {state === "saving" ? "Submitting…" : "Submit for review"}
                 </Button>
                 <Button type="button" palette="plain" onClick={onClose}>
