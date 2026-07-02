@@ -4,6 +4,10 @@
      */
     --ligatures: none;
     --text-size: var(--font-size-body-4);
+    /* user-adjustable message rendering (see appearance
+       settings); matching the M3 reference defaults. */
+    --message-size: 14px;
+    --message-group-spacing: 12px;
     --font: var(--font-family);
     --sidebar-active: var(--secondary-background);
 
@@ -30,7 +34,10 @@
     --input-border-width: 1px;
     --textarea-padding: var(--space-4);
     --textarea-line-height: var(--space-5);
-    --message-box-padding: var(--space-3) var(--space-3) var(--space-3)
+    /* Scale, nudged up: the reference single-line bar is 48px (40px
+       icon-buttons + 4px outer padding); ours runs one notch bigger at 52px
+       (16px + 20px line + 16px). */
+    --message-box-padding: var(--space-4) var(--space-3) var(--space-4)
         var(--space-0);
 
     --attachment-max-width: 400px;

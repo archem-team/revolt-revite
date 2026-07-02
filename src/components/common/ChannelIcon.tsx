@@ -1,8 +1,10 @@
-import { Hash, VolumeFull } from "@styled-icons/boxicons-regular";
+import { VolumeFull } from "@styled-icons/boxicons-regular";
 import { observer } from "mobx-react-lite";
 import { Channel } from "revolt.js";
 
 import fallback from "./assets/group.png";
+
+import { Grid3x3 } from "./Grid3x3";
 
 import { useClient } from "../../controllers/client/ClientController";
 import { ImageIconBase, IconBaseProps } from "./IconBase";
@@ -41,7 +43,7 @@ export default observer(
 
         if (typeof iconURL === "undefined") {
             if (isServerChannel) {
-                return <Hash size={size} />;
+                return <Grid3x3 size={size} />;
             }
         }
 

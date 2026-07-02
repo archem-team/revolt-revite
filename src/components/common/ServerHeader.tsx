@@ -27,17 +27,21 @@ const ServerBanner = styled.div<Omit<Props, "server">>`
     background-repeat: norepeat;
     background-position: center center;
 
+    /* The server header is a rounded card floating at
+       the top of the sidebar sheet (radius matches the panel scale, 16px). */
+    margin: var(--space-2);
+    border-radius: 16px;
+    overflow: hidden;
+
     ${(props) =>
         props.background
             ? css`
                   height: 120px;
 
+                  /* The name sits directly on the banner image
+                     (no gradient band); a soft text shadow keeps it legible. */
                   .container {
-                      background: linear-gradient(
-                          0deg,
-                          var(--secondary-background),
-                          transparent
-                      );
+                      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
                   }
               `
             : css`
@@ -108,7 +112,9 @@ export default observer(({ server }: Props) => {
                 {server.havePermission("ManageServer") && (
                     <Link to={`/server/${server._id}/settings`}>
                         <IconButton>
-                            <Cog size={20} />
+                            {/* Matches the reference header settings glyph
+                                (24px). */}
+                            <Cog size={24} />
                         </IconButton>
                     </Link>
                 )}

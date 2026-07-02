@@ -38,6 +38,11 @@ type UserProps = CommonProps & {
     channel?: Channel;
 };
 
+// Matches the rail's Unreads badge: counts cap at "9+".
+function formatAlertCount(count?: number) {
+    return typeof count === "number" && count > 9 ? "9+" : count;
+}
+
 // Helper function to convert mentions to usernames
 function convertMentionsToUsernames(content: string, client: any): string {
     const mentionRegex = /<@([A-z0-9]{26})>/g;
@@ -90,16 +95,22 @@ export const UserButton = observer((props: UserProps) => {
                 <div>
                     <Username user={user} showServerIdentity />
                 </div>
-                {
+                {/* Only show a second line when there is
+                    something to say — a custom status or a DM preview.
+                    Plain presence ("Online") stays on the avatar dot. */}
+                {typeof channel?.last_message?.content === "string" &&
+                alert ? (
                     <div className={styles.subText}>
-                        {typeof channel?.last_message?.content === "string" &&
-                            alert ? (
-                            convertMentionsToUsernames(channel.last_message.content, client).slice(0, 32)
-                        ) : (
-                            <UserStatus user={user} tooltip />
-                        )}
+                        {convertMentionsToUsernames(
+                            channel.last_message.content,
+                            client,
+                        ).slice(0, 32)}
                     </div>
-                }
+                ) : user.status?.text ? (
+                    <div className={styles.subText}>
+                        <UserStatus user={user} tooltip />
+                    </div>
+                ) : null}
             </div>
             <div className={styles.button}>
                 {context?.channel_type === "Group" &&
@@ -113,7 +124,7 @@ export const UserButton = observer((props: UserProps) => {
                     )}
                 {alert && (
                     <div className={styles.alert} data-style={alert}>
-                        {alertCount}
+                        {formatAlertCount(alertCount)}
                     </div>
                 )}
                 {!isTouchscreenDevice && channel && (
@@ -177,7 +188,9 @@ export const ChannelButton = observer((props: ChannelProps) => {
                 unread: !!alert,
             })}>
             <div className={styles.avatar}>
-                <ChannelIcon target={channel} size={compact ? 24 : 32} />
+                {/* Row icons stay ~24px even in full-height
+                    rows, so emoji/icons don't dominate the 42px pill. */}
+                <ChannelIcon target={channel} size={24} />
             </div>
             <div className={styles.name}>
                 <div>{channel.name}</div>
@@ -202,7 +215,7 @@ export const ChannelButton = observer((props: ChannelProps) => {
             <div className={styles.button}>
                 {alerting && (
                     <div className={styles.alert} data-style={alert}>
-                        {alertCount}
+                        {formatAlertCount(alertCount)}
                     </div>
                 )}
                 {!isTouchscreenDevice && channel.channel_type === "Group" && (
@@ -255,7 +268,7 @@ export default function ButtonItem(props: ButtonProps) {
             <div className={styles.content}>{children}</div>
             {alert && (
                 <div className={styles.alert} data-style={alert}>
-                    {alertCount}
+                    {formatAlertCount(alertCount)}
                 </div>
             )}
         </div>

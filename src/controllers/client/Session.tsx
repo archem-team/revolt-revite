@@ -5,14 +5,6 @@ import { state } from "../../mobx/State";
 
 import { resetMemberSidebarFetched } from "../../components/navigation/right/MemberSidebar";
 import { modalController } from "../modals/ModalController";
-import { handleIncomingDM } from "../../lib/incomingDMGuard";
-import analytics from "../../analytics/posthog";
-import {
-    trackSessionStarted,
-    trackSessionEnded,
-    trackSocketDisconnect,
-    trackMessageReceived,
-} from "../../analytics/events";
 
 /**
  * Current lifecycle state
@@ -24,22 +16,22 @@ type State = "Ready" | "Connecting" | "Online" | "Disconnected" | "Offline";
  */
 type Transition =
     | {
-        action: "LOGIN";
-        apiUrl?: string;
-        session: SessionPrivate;
-        configuration?: API.RevoltConfig;
+          action: "LOGIN";
+          apiUrl?: string;
+          session: SessionPrivate;
+          configuration?: API.RevoltConfig;
 
-        knowledge: "new" | "existing";
-    }
+          knowledge: "new" | "existing";
+      }
     | {
-        action:
-        | "SUCCESS"
-        | "DISCONNECT"
-        | "RETRY"
-        | "LOGOUT"
-        | "ONLINE"
-        | "OFFLINE";
-    };
+          action:
+              | "SUCCESS"
+              | "DISCONNECT"
+              | "RETRY"
+              | "LOGOUT"
+              | "ONLINE"
+              | "OFFLINE";
+      };
 
 /**
  * Client lifecycle finite state machine
@@ -48,8 +40,6 @@ export default class Session {
     state: State = window.navigator.onLine ? "Ready" : "Offline";
     user_id: string | null = null;
     client: Client | null = null;
-    /** Timestamp (ms) when the session became Online – used to compute duration */
-    private sessionStartedAt: number | null = null;
 
     /**
      * Create a new Session
@@ -109,48 +99,8 @@ export default class Session {
      */
     private onReady() {
         resetMemberSidebarFetched();
-        this.setupIncomingDMGuard();
-        this.setupMessageTracking();
         this.emit({
             action: "SUCCESS",
-        });
-    }
-
-    /**
-     * Listen for incoming messages and track Message Received events.
-     */
-    private setupMessageTracking() {
-        if (!this.client) return;
-        this.client.addListener("message", (message: any) => {
-            // Only track messages from other users (not our own)
-            if (message.author_id !== this.user_id) {
-                const channelType = this.client?.channels.get(message.channel_id)?.channel_type ?? "Unknown";
-                trackMessageReceived(channelType);
-            }
-        });
-    }
-
-    /**
-     * Set up listener for incoming DM channels to check privacy settings
-     */
-    private setupIncomingDMGuard() {
-        if (!this.client) return;
-
-        // Listen for when channels are added or updated
-        const checkChannel = (channel: any) => {
-            if (channel.channel_type === "DirectMessage") {
-                handleIncomingDM(state.settings, channel);
-            }
-        };
-
-        // Check existing DM channels that were just received
-        for (const channel of this.client.channels.values()) {
-            checkChannel(channel);
-        }
-
-        // Listen for new channels being added
-        this.client.addListener("channel", (channel: any) => {
-            checkChannel(channel);
         });
     }
 
@@ -262,12 +212,6 @@ export default class Session {
             case "SUCCESS": {
                 this.assert("Connecting");
                 this.state = "Online";
-
-                // Identify the user and track session start
-                if (this.user_id) {
-                    analytics.identify(this.user_id);
-                }
-                this.sessionStartedAt = trackSessionStarted();
                 break;
             }
             // Client got disconnected
@@ -275,9 +219,6 @@ export default class Session {
                 if (navigator.onLine) {
                     this.assert("Online");
                     this.state = "Disconnected";
-
-                    // Track socket disconnect for Platform Health
-                    trackSocketDisconnect("dropped");
 
                     setTimeout(() => {
                         // Check we are still disconnected before retrying.
@@ -302,15 +243,6 @@ export default class Session {
             case "LOGOUT": {
                 this.assert("Connecting", "Online", "Disconnected");
                 this.state = "Ready";
-
-                // Track session end with duration
-                if (this.sessionStartedAt !== null) {
-                    trackSessionEnded(this.sessionStartedAt);
-                    this.sessionStartedAt = null;
-                }
-                // Reset PostHog identity
-                analytics.reset();
-
                 this.destroyClient();
                 break;
             }

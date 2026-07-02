@@ -3,6 +3,7 @@ import { action, computed, makeAutoObservable, ObservableMap } from "mobx";
 import { mapToRecord } from "../../lib/conversion";
 
 import { Fonts, MonospaceFonts, Overrides } from "../../context/Theme";
+import { MaterialYouBase } from "../../context/materialTheme";
 
 import { EmojiPack, setGlobalEmojiPack } from "../../components/common/Emoji";
 import Persistent from "../interfaces/Persistent";
@@ -22,7 +23,7 @@ export interface ISettings {
     "appearance:show_send_button": boolean;
     "appearance:show_account_age": boolean;
 
-    "appearance:theme:base": "dark" | "light";
+    "appearance:theme:base": "dark" | "light" | MaterialYouBase;
     "appearance:theme:overrides": Partial<Overrides>;
     "appearance:theme:light": boolean;
     "appearance:theme:font": Fonts;

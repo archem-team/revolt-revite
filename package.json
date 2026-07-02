@@ -44,6 +44,7 @@
         }
     },
     "dependencies": {
+        "@material/material-color-utilities": "0.3.0",
         "@revoltchat/rehype-katex": "6.0.3-patch.1",
         "@sentry/react": "^8.51.0",
         "@sentry/tracing": "^7.120.3",
@@ -52,7 +53,6 @@
         "klaw": "^3.0.0",
         "lottie-react": "^2.4.0",
         "papaparse": "^5.4.1",
-        "posthog-js": "^1.393.4",
         "sirv-cli": "^1.0.14",
         "vite": "^3.0.5"
     },

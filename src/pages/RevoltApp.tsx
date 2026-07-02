@@ -12,13 +12,13 @@ import BottomNavigation from "../components/navigation/BottomNavigation";
 import LeftSidebar from "../components/navigation/LeftSidebar";
 import RightSidebar from "../components/navigation/RightSidebar";
 import { useSystemAlert } from "../updateWorker";
-import { useRouteAnalytics } from "../analytics/useRouteAnalytics";
 import Open from "./Open";
 import Channel from "./channels/Channel";
 import Developer from "./developer/Developer";
 import Discover from "./discover/Discover";
 import Friends from "./friends/Friends";
 import Home from "./home/Home";
+import HomeNew from "./home/HomeNew";
 import InviteBot from "./invite/InviteBot";
 import ChannelSettings from "./settings/ChannelSettings";
 import ServerSettings from "./settings/ServerSettings";
@@ -27,6 +27,10 @@ import Settings from "./settings/Settings";
 const AppContainer = styled.div`
     background-size: cover !important;
     background-position: center center !important;
+
+    /* The canvas the floating panels sit on — themed, so it follows the
+       active preset instead of the static token background. */
+    background-color: var(--background);
 `;
 
 export const StatusBar = styled.div`
@@ -64,33 +68,38 @@ export const StatusBar = styled.div`
     }
 `;
 
-const Routes = styled.div.attrs({ "data-component": "routes" }) <{
+const Routes = styled.div.attrs({ "data-component": "routes" })<{
     borders: boolean;
+    panel: boolean;
 }>`
     min-width: 0;
     display: flex;
     position: relative;
     flex-direction: column;
 
-    background: var(--primary-background);
-
-    ${() =>
-        isTouchscreenDevice &&
-        css`
-            overflow: hidden;
-        `}
+    /* Most pages are a floating rounded panel on the
+       canvas. Channel pages manage their own panel (the chat card) so the
+       member column can sit directly on the canvas beside it. */
+    background: ${(props) =>
+        props.panel ? "var(--primary-background)" : "transparent"};
 
     ${(props) =>
-        props.borders &&
+        !isTouchscreenDevice &&
+        props.panel &&
         css`
-            border-start-start-radius: 8px;
+            margin: var(--space-2);
+            /* The main content surface uses radius "xl" (28px). */
+            border-radius: 28px;
         `}
+
+    overflow: hidden;
 `;
 
 export default function App() {
     const path = useLocation().pathname;
     const fixedBottomNav =
         path === "/" ||
+        path === "/home" ||
         path === "/settings" ||
         path.startsWith("/friends") ||
         path.startsWith("/discover");
@@ -100,9 +109,6 @@ export default function App() {
         (path.startsWith("/friends") && isTouchscreenDevice) ||
         path.startsWith("/invite") ||
         path.includes("/settings");
-
-    // Track page views and page load time
-    useRouteAnalytics();
 
     const alert = useSystemAlert();
     const [statusBar, setStatusBar] = useState(false);
@@ -155,7 +161,7 @@ export default function App() {
                             : { width: 290, component: <LeftSidebar /> }
                     }
                     rightPanel={
-                        !inSpecial
+                        !inSpecial && inChannel
                             ? { width: 236, component: <RightSidebar /> }
                             : undefined
                     }
@@ -165,7 +171,9 @@ export default function App() {
                         height: 50,
                     }}
                     docked={isTouchscreenDevice ? Docked.None : Docked.Left}>
-                    <Routes borders={inServer}>
+                    <Routes
+                        borders={inServer}
+                        panel={!(inChannel || inServer)}>
                         <Switch>
                             <Route
                                 path="/server/:server/channel/:channel/settings/:page"
@@ -223,6 +231,7 @@ export default function App() {
                             <Route path="/friends" component={Friends} />
                             <Route path="/open/:id" component={Open} />
                             <Route path="/bot/:id" component={InviteBot} />
+                            <Route path="/home" component={HomeNew} />
                             <Route path="/" component={Home} />
                         </Switch>
                     </Routes>

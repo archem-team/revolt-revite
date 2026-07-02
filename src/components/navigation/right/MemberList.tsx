@@ -27,12 +27,16 @@ const ListCategory = styled.div<{ first?: boolean }>`
     padding-top: 12px;
 
     color: var(--secondary-foreground);
-    background: var(--secondary-background);
+    /* Role-group headers are plain text on the canvas.
+       They stay opaque (canvas colour, not transparent) because virtuoso pins
+       them as sticky headers over the scrolling rows. */
+    background: var(--background);
 
     ${(props) =>
         !props.first &&
         css`
-            padding-top: 16px;
+            /* Generous whitespace between role groups. */
+            padding-top: 22px;
         `}
 `;
 
