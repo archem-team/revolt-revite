@@ -5,6 +5,8 @@ dist_injected
 node_modules
 .env
 .env.local
+.yarn/cache
+.yarn/install-state.gz
 
 Dockerfile
 .dockerignore
