@@ -69,6 +69,18 @@ const Base = styled.div`
     align-items: flex-start;
     background: var(--message-box);
 
+    /* The composition bar floats as a near-pill —
+       The bar uses radius "xl" (28px); the panel
+       pads 8px inline and the bar keeps 8px to the bottom, so the bar runs
+       nearly edge-to-edge. */
+    ${() =>
+        !isTouchscreenDevice &&
+        css`
+            margin: 0 var(--space-2) var(--space-2);
+            border-radius: 28px;
+            overflow: hidden;
+        `}
+
     textarea {
         font-size: var(--text-size);
         background: transparent;
@@ -99,7 +111,7 @@ const Blocked = styled.div`
         align-items: center;
         justify-content: center;
         width: 48px;
-        height: 48px;
+        height: 52px;
     }
 
     > div > div {
@@ -113,16 +125,17 @@ const Blocked = styled.div`
 
 const Action = styled.div`
     > a {
-        height: 48px;
-        width: 48px;
+        /* 52px-tall bar, 42px-wide icon slots
+           (their InlineIcon width). */
+        height: 52px;
+        width: 42px;
         display: flex;
         align-items: center;
         justify-content: center;
-        /*padding: 14px 0 14px 14px;*/
     }
 
     .mobile {
-        width: 62px;
+        width: 56px;
     }
 
     ${() =>
@@ -136,8 +149,8 @@ const Action = styled.div`
 
 const FileAction = styled.div`
     > a {
-        height: 48px;
-        width: 62px;
+        height: 52px;
+        width: 56px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -825,7 +838,7 @@ export default observer(({ channel }: Props) => {
                         }
                         onClick={send}
                         onMouseDown={(e) => e.preventDefault()}>
-                        <Send size={20} />
+                        <Send size={24} />
                     </IconButton>
                 </Action>
             </Base>

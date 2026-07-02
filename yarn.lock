@@ -2177,6 +2177,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@material/material-color-utilities@npm:0.3.0":
+  version: 0.3.0
+  resolution: "@material/material-color-utilities@npm:0.3.0"
+  checksum: c27acab45bcaffb8f4ae0aba18851839895f56d75c814c87524945d616637315ad1b3ea9c44f9d9f332b9175f0e38f1922e19508139b0074438c64867b076a52
+  languageName: node
+  linkType: hard
+
 "@mdn/browser-compat-data@npm:^3.3.14":
   version: 3.3.14
   resolution: "@mdn/browser-compat-data@npm:3.3.14"
@@ -3860,6 +3867,7 @@ __metadata:
     "@fontsource/ubuntu-mono": ^4.4.5
     "@hcaptcha/react-hcaptcha": ^1.4.4
     "@insertish/vite-plugin-babel-macros": ^1.0.5
+    "@material/material-color-utilities": 0.3.0
     "@preact/preset-vite": ^2.0.0
     "@revoltchat/rehype-katex": 6.0.3-patch.1
     "@revoltchat/ui": ^1.0.77

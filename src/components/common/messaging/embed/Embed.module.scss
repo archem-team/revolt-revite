@@ -1,5 +1,8 @@
 .embed {
     margin: 0.2em 0;
+    // CSS guarantee: whatever the JS sizing computes, an embed can never
+    // spill outside the message column (media loads into a clamped box).
+    max-width: 100%;
 
     iframe {
         border: none;

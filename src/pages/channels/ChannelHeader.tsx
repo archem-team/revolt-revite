@@ -1,4 +1,4 @@
-import { At, Hash } from "@styled-icons/boxicons-regular";
+import { At } from "@styled-icons/boxicons-regular";
 import { Notepad, Group } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import { Channel, User } from "revolt.js";
@@ -6,6 +6,7 @@ import styled from "styled-components/macro";
 
 import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
 
+import { Grid3x3 } from "../../components/common/Grid3x3";
 import { useStatusColour } from "../../components/common/user/UserIcon";
 import UserStatus from "../../components/common/user/UserStatus";
 import Markdown from "../../components/markdown/Markdown";
@@ -76,7 +77,7 @@ export default observer(({ channel }: ChannelHeaderProps) => {
             icon = <Group size={24} />;
             break;
         case "TextChannel":
-            icon = <Hash size={24} />;
+            icon = <Grid3x3 size={24} />;
             break;
     }
 

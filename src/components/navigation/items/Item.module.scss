@@ -3,15 +3,20 @@
     display: flex;
     padding: 0 8px;
     user-select: none;
-    margin-bottom: 2px;
-    border-radius: var(--border-radius);
+    // Rows abut (42px pitch, no extra margin).
+    margin-bottom: 0;
+    // Navigation rows are full stadium pills (the nav-row
+    // uses radius-xl 28px on a 42px row, which clamps to a stadium).
+    border-radius: var(--radius-pill);
 
     gap: 8px;
     align-items: center;
     flex-direction: row;
 
     cursor: pointer;
-    font-size: 16px;
+    // 15px medium — crisper than 16px regular.
+    font-size: 15px;
+    font-weight: 500;
     transition: 0.1s ease-in-out background-color;
 
     color: var(--tertiary-foreground);
@@ -73,14 +78,16 @@
         &.name {
             flex-grow: 1;
             display: flex;
-            font-weight: 600;
-            font-size: 0.90625rem;
+            // 15px medium — this inner rule was
+            // overriding the row's font with a smaller, bolder face.
+            font-weight: 500;
+            font-size: 15px;
             flex-direction: column;
 
             .subText {
                 margin-top: -1px;
                 font-weight: 500;
-                font-size: 0.6875rem;
+                font-size: 12px;
                 color: var(--tertiary-foreground);
             }
         }
@@ -109,7 +116,10 @@
 
     &[data-active="true"] {
         cursor: default;
-        background: var(--hover);
+        // Themeable selection pill (Material You maps this to primary
+        // container); falls back to the classic hover wash.
+        background: var(--channel-active, var(--hover));
+        color: var(--channel-active-foreground, var(--foreground)) !important;
 
         .unread {
             display: none;
@@ -136,8 +146,11 @@
 }
 
 .alert {
-    width: 6px;
-    height: 6px;
+    // Unread marks (matching the server rail): a plain
+    // unread is a quiet 0.4rem on-surface dot; only mentions escalate to a
+    // 0.85rem error-red badge with the count in white.
+    width: 0.4rem;
+    height: 0.4rem;
     margin: 9px;
     flex-shrink: 0;
     background: var(--foreground);
@@ -149,9 +162,9 @@
     place-items: center;
 
     &[data-style="mention"] {
-        width: 16px;
-        height: 16px;
-        color: white;
+        width: 0.85rem;
+        height: 0.85rem;
+        color: #ffffff;
         background: var(--error);
     }
 }

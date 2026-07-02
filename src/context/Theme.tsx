@@ -34,7 +34,11 @@ export type Variables =
     | "status-focus"
     | "status-busy"
     | "status-streaming"
-    | "status-invisible";
+    | "status-invisible"
+    | "channel-active"
+    | "channel-active-foreground"
+    | "sidebar-active"
+    | "unreads";
 
 // While this isn't used, it'd be good to keep this up to date as a reference or for future use
 export type HiddenVariables =
@@ -288,34 +292,61 @@ export const PRESETS: Record<string, Theme> = {
         "status-busy": "#F84848",
         "status-streaming": "#977EFF",
         "status-invisible": "#A5A5A5",
+        "channel-active": "rgba(0, 0, 0, 0.08)",
+        "channel-active-foreground": "#000000",
+        "sidebar-active": "#F1F1F1",
+        unreads: "#FFDE18",
     },
+    // PepChat brand dark theme. Purple-tinted neutral ramp (#1A1523 →
+    // #3A2F52) so the whole app feels cohesive with the brand; the bright
+    // purple #8B4BC4 does the everyday accent work (links, mentions, buttons)
+    // because the logo purple #662D90 is too dark to read on these surfaces;
+    // the deep purple #3E1A5C is the selected-state background; brand yellow
+    // #FFDE18 is rationed to unread badges and notification dots (see
+    // `--unreads`).
+    // Surface separation rule: large surfaces are near-neutral
+    // (the brand hue at a whisper of saturation, like M3's neutral ladder);
+    // saturated colour is rationed to small elements — links/mentions
+    // (accent), the selected pill (channel-active), presence dots and unread
+    // signals (yellow).
+    // Surface ladder (M3 elevation model):
+    // rail = container-high (lightest), canvas/sidebar sheet/member area =
+    // container-low (middle), the chat column = container-lowest (DARKEST —
+    // content is recessed), and the message box pops back up at container-high.
     dark: {
-        accent: "#FD6671",
-        background: "#191919",
-        foreground: "#F6F6F6",
-        block: "#2D2D2D",
-        "message-box": "#363636",
-        mention: "rgba(251, 255, 0, 0.06)",
-        success: "#65E572",
-        warning: "#FAA352",
-        tooltip: "#000000",
+        accent: "#8B4BC4",
+        background: "#1B181F",
+        foreground: "#F2EFF7",
+        block: "#1B181F",
+        "message-box": "#26222C",
+        mention: "rgba(139, 75, 196, 0.15)",
+        success: "#3BA55D",
+        warning: "#FAA61A",
+        tooltip: "#2A2630",
         error: "#ED4245",
-        hover: "rgba(0, 0, 0, 0.1)",
-        "scrollbar-thumb": "#CA525A",
+        hover: "#211D28",
+        "scrollbar-thumb": "#662D90",
         "scrollbar-track": "transparent",
-        "primary-background": "#242424",
-        "primary-header": "#363636",
-        "secondary-background": "#1E1E1E",
-        "secondary-foreground": "#C8C8C8",
-        "secondary-header": "#2D2D2D",
-        "tertiary-background": "#4D4D4D",
-        "tertiary-foreground": "#848484",
-        "status-online": "#3ABF7E",
-        "status-idle": "#F39F00",
+        "primary-background": "#121014",
+        "primary-header": "#26222C",
+        "secondary-background": "#1B181F",
+        "secondary-foreground": "#A99CC4",
+        "secondary-header": "#1B181F",
+        "tertiary-background": "#2A2630",
+        // Near-neutral dimmed text (read/inactive rows dim
+        // into neutral gray, not into a coloured tint — colour reads as noise
+        // when repeated down a list).
+        "tertiary-foreground": "#8F8A99",
+        "status-online": "#3BA55D",
+        "status-idle": "#FAA61A",
         "status-focus": "#4799F0",
-        "status-busy": "#F84848",
+        "status-busy": "#ED4245",
         "status-streaming": "#977EFF",
         "status-invisible": "#A5A5A5",
+        "channel-active": "#3E1A5C",
+        "channel-active-foreground": "#F2EFF7",
+        "sidebar-active": "#3E1A5C",
+        unreads: "#FFDE18",
     },
 };
 

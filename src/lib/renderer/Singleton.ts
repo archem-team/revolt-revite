@@ -107,6 +107,9 @@ export class ChannelRenderer {
         if (this.fetching) return;
         this.fetching = true;
 
+        // Column-reverse scroller: prepending old messages grows the list
+        // upward and does NOT move the viewport — only the trim at the
+        // bottom (scroll origin side) shifts it, by the removed height.
         function generateScroll(end: string): ScrollState {
             if (ref) {
                 let heightRemoved = 0,
@@ -135,14 +138,11 @@ export class ChannelRenderer {
                 }
 
                 return {
-                    type: "OffsetTop",
-                    previousHeight: ref.scrollHeight - heightRemoved,
+                    type: "ScrollTop",
+                    y: ref.scrollTop - heightRemoved,
                 };
             }
-            return {
-                type: "OffsetTop",
-                previousHeight: 0,
-            };
+            return { type: "Free" };
         }
 
         if (await this.currentRenderer.loadTop(this, generateScroll)) {
@@ -154,6 +154,12 @@ export class ChannelRenderer {
         if (this.fetching) return;
         this.fetching = true;
 
+        // Column-reverse scroller: trimming the top (far side) doesn't move
+        // the viewport, but appending newer messages at the bottom (scroll
+        // origin side) shifts it by the added height. That height is only
+        // known after the DOM updates, so emit OffsetTop with the height the
+        // list would have WITHOUT the appended content — the consumer backs
+        // off by (newScrollHeight - previousHeight).
         function generateScroll(start: string): ScrollState {
             if (ref) {
                 let heightRemoved = 0,
@@ -187,8 +193,8 @@ export class ChannelRenderer {
                 }
 
                 return {
-                    type: "ScrollTop",
-                    y: ref.scrollTop - heightRemoved,
+                    type: "OffsetTop",
+                    previousHeight: ref.scrollHeight - heightRemoved,
                 };
             }
             return {

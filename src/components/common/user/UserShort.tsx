@@ -35,6 +35,9 @@ const BotBadge = styled.div`
     display: inline-block;
     flex-shrink: 0;
     height: 1.4em;
+    /* Centre the label in the pill regardless of the author row's
+       line-height (the .detail row runs a 20px line box). */
+    line-height: 1.4em;
     padding: 0 4px;
     font-size: 0.6em;
     user-select: none;
@@ -48,6 +51,9 @@ const NewHereBadge = styled.div`
     display: inline-block;
     flex-shrink: 0;
     height: 1.3em;
+    /* Centre the label in the pill regardless of the author row's
+       line-height (the .detail row runs a 20px line box). */
+    line-height: 1.3em;
     padding: 0 5px;
     font-size: 0.55em;
     font-weight: 600;

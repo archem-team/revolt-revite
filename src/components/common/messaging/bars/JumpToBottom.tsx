@@ -55,17 +55,21 @@ export const Bar = styled.div<{ position: "top" | "bottom"; accent?: boolean }>`
 
     > div {
         height: 28px;
-        width: 100%;
+        left: 8px;
+        width: calc(100% - 16px);
         position: absolute;
         display: flex;
         align-items: center;
         cursor: pointer;
         font-size: 12px;
         font-weight: 600;
-        padding: 0 8px;
+        padding: 0 12px;
         user-select: none;
         justify-content: space-between;
         transition: color ease-in-out 0.08s;
+
+        /* Floating pill banner. */
+        border-radius: var(--radius-pill);
 
         white-space: nowrap;
         overflow: hidden;
@@ -74,10 +78,12 @@ export const Bar = styled.div<{ position: "top" | "bottom"; accent?: boolean }>`
         ${(props) =>
             props.accent
                 ? css`
-                      color: var(--accent-contrast);
+                      /* Banner recipe: the accent knocked down to a
+                         ~55% translucent wash over the chat surface. */
+                      color: #ffffff;
                       background-color: rgba(
                           var(--accent-rgb),
-                          max(var(--min-opacity), 0.9)
+                          max(var(--min-opacity), 0.55)
                       );
                       backdrop-filter: blur(20px);
                   `
@@ -93,14 +99,9 @@ export const Bar = styled.div<{ position: "top" | "bottom"; accent?: boolean }>`
         ${(props) =>
             props.position === "top"
                 ? css`
-                      top: 48px;
-                      border-radius: 0 0 var(--border-radius)
-                          var(--border-radius);
+                      top: ${isTouchscreenDevice ? "48px" : "8px"};
                   `
-                : css`
-                      border-radius: var(--border-radius) var(--border-radius) 0
-                          0;
-                  `}
+                : css``}
 
                   ${() =>
             isTouchscreenDevice &&

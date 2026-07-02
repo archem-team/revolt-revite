@@ -28,6 +28,21 @@ import { GenericSidebarBase, GenericSidebarList } from "../SidebarBase";
 import ButtonItem, { ChannelButton } from "../items/ButtonItem";
 import ConnectionStatus from "../items/ConnectionStatus";
 
+/* The home sidebar is a
+   full-height sheet one surface step above the canvas, rounded on the side
+   that meets the server rail. */
+const HomeSidebarBase = styled(GenericSidebarBase)`
+    background: var(--secondary-background);
+
+    ${() =>
+        !isTouchscreenDevice &&
+        css`
+            /* Sidebar sheet: rounded only on the rail-facing side
+               (borderStartRadius, 16px) — right corners stay square. */
+            border-radius: 16px 0 0 16px;
+        `}
+`;
+
 const Navbar = styled.div`
     display: flex;
     align-items: center;
@@ -71,7 +86,7 @@ export default observer(() => {
     );
 
     return (
-        <GenericSidebarBase mobilePadding>
+        <HomeSidebarBase mobilePadding>
             <Navbar>
                 <Text id="app.home.directs" />
             </Navbar>
@@ -176,6 +191,6 @@ export default observer(() => {
                 })}
                 <PaintCounter />
             </GenericSidebarList>
-        </GenericSidebarBase>
+        </HomeSidebarBase>
     );
 });
