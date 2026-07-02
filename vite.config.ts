@@ -116,9 +116,13 @@ export default defineConfig({
         }) as any,
     ],
     server: {
-        // Proxy the directory "manage" API in dev so /api/* requests reach the
-        // real backend instead of falling through to the SPA index.html.
-        // Production uses the absolute API_BASE (see src/pages/directory/types.ts).
+        // Proxy the legacy "manage" admin API in dev so /api/* requests reach
+        // the real backend instead of falling through to the SPA index.html.
+        // This now only serves the LEGACY endpoints that were NOT ported to the
+        // Rust backend (community reviews, submissions, single-community detail,
+        // vendor owner) — see API_BASE in src/pages/directory/types.ts.
+        // The migrated directory/promo endpoints use BACKEND_API_BASE, an
+        // absolute URL that bypasses this proxy entirely.
         proxy: {
             "/api": {
                 target: "https://manageapi.peptide.chat",
