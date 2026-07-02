@@ -637,6 +637,10 @@ const PromoCard = observer(
     }) => {
     const client = useClient();
     const [expanded, setExpanded] = useState(false);
+    // Vendor logo ids can reference files missing from this environment's
+    // autumn (e.g. staging seeded from prod data), so a failed load falls
+    // back to the store glyph instead of a broken image.
+    const [logoFailed, setLogoFailed] = useState(false);
     const autumn =
         client.configuration?.features.autumn?.url ||
         "https://peptide.chat/autumn";
@@ -665,8 +669,12 @@ const PromoCard = observer(
     return (
         <Card>
             <CardHead>
-                {logoUrl ? (
-                    <Logo src={logoUrl} loading="lazy" />
+                {logoUrl && !logoFailed ? (
+                    <Logo
+                        src={logoUrl}
+                        loading="lazy"
+                        onError={() => setLogoFailed(true)}
+                    />
                 ) : (
                     <LogoFallback>
                         <Store size={22} />

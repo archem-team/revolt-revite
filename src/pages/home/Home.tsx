@@ -1,7 +1,6 @@
 import { Search, X } from "@styled-icons/boxicons-regular";
 import { Lock, MessageAdd } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
-import Papa from "papaparse";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useHistory, useLocation } from "react-router-dom";
 import styled from "styled-components/macro";
@@ -78,10 +77,26 @@ const ColorWrapper = styled.div<{ color: string }>`
     }
 `;
 
-function ServerIcon({ logo, size }: { logo: string; size: number }) {
+// Logo ids can reference files missing from this environment's autumn (e.g.
+// staging seeded from prod data), so a failed load falls back to the state
+// glyph instead of a broken image.
+function ServerIcon({
+    logo,
+    size,
+    fallback,
+}: {
+    logo: string;
+    size: number;
+    fallback: React.ReactNode;
+}) {
+    const [failed, setFailed] = useState(false);
+
+    if (failed) return <>{fallback}</>;
+
     return (
         <img
             src={logo}
+            onError={() => setFailed(true)}
             style={{
                 width: size,
                 height: size,
@@ -305,38 +320,6 @@ const Home: React.FC = () => {
         setLoading(false);
     };
 
-    // Fallback: load the server list from the published Google Sheets CSV.
-    const fetchFromSheet = () => {
-        const csvUrl =
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vRY41D-NgTE6bC3kTN3dRpisI-DoeHG8Eg7n31xb1CdydWjOLaphqYckkTiaG9oIQSWP92h3NE-7cpF/pub?gid=0&single=true&output=csv";
-
-        // Add cache-busting parameter to prevent browser caching
-        const urlWithCacheBust = `${csvUrl}&_cb=${Date.now()}`;
-
-        Papa.parse<Server>(urlWithCacheBust, {
-            download: true,
-            header: true,
-            dynamicTyping: true,
-            complete: (result) => {
-                if (result.errors.length > 0) {
-                    console.error("CSV parsing errors:", result.errors);
-                    setError("Error parsing server data");
-                    setLoading(false);
-                    return;
-                }
-
-                cacheAndSetServers(result.data);
-            },
-            error: (err) => {
-                console.error("Error fetching CSV:", err);
-                setError(
-                    "Failed to load server data. Please try again later.",
-                );
-                setLoading(false);
-            },
-        });
-    };
-
     const fetchAndCacheData = async () => {
         // Both directory endpoints are now served by the Rust backend
         // (BACKEND_API_BASE, absolute URL — bypasses the dev `/api` proxy) and
@@ -415,8 +398,9 @@ const Home: React.FC = () => {
 
             cacheAndSetServers(servers);
         } catch (err) {
-            console.warn("Server list API failed, falling back to CSV:", err);
-            fetchFromSheet();
+            console.error("Failed to load the community directory:", err);
+            setError("Failed to load communities. Please try again later.");
+            setLoading(false);
         }
     };
 
@@ -467,12 +451,16 @@ const Home: React.FC = () => {
                 isServerJoined.generateIconURL({ max_side: 256 }) ?? undefined;
         }
 
-        const avatar = avatarUrl ? (
-            <ServerIcon logo={avatarUrl} size={32} />
-        ) : server.disabled ? (
+        const fallbackGlyph = server.disabled ? (
             <Lock size={32} />
         ) : (
             <MessageAdd size={32} />
+        );
+
+        const avatar = avatarUrl ? (
+            <ServerIcon logo={avatarUrl} size={32} fallback={fallbackGlyph} />
+        ) : (
+            fallbackGlyph
         );
 
         // Keep the logo for locked servers, but mark it with a corner lock badge.
