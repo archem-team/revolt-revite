@@ -21,7 +21,7 @@ import { useEffect, useMemo, useState } from "preact/hooks";
 import { Button, InputBox, Preloader } from "@revoltchat/ui";
 
 import { useClient } from "../../controllers/client/ClientController";
-import { API_BASE } from "../directory/types";
+import { BACKEND_API_BASE } from "../directory/types";
 import ImageLightbox from "./ImageLightbox";
 import PromoSubmit from "./PromoSubmit";
 
@@ -931,7 +931,14 @@ const Promos: React.FC = () => {
                 setError(null);
             }
 
-            fetch(`${API_BASE}/promos?sort=${sort}&pageSize=100`)
+            const sessionToken =
+                typeof client.session === "string"
+                    ? client.session
+                    : (client.session as any)?.token ?? "";
+
+            fetch(`${BACKEND_API_BASE}/promos?sort=${sort}&pageSize=100`, {
+                headers: { "x-session-token": sessionToken },
+            })
                 .then((r) => r.json())
                 .then((res) => {
                     if (cancelled) return;

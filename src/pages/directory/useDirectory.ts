@@ -8,9 +8,15 @@ import type {
     FilterKey,
     SubmitForm,
 } from "./types";
-import { API_BASE } from "./types";
+import { API_BASE, BACKEND_API_BASE } from "./types";
+import { useClient } from "../../controllers/client/ClientController";
 
 export function useDirectory() {
+    const client = useClient();
+    const sessionToken =
+        typeof client.session === "string"
+            ? client.session
+            : (client.session as any)?.token ?? "";
     const [tab, setTab] = useState<"vendors" | "resellers" | "other">(
         "vendors",
     );
@@ -43,7 +49,11 @@ export function useDirectory() {
         setLoading(true);
         setLoadError(null);
 
-        fetch(`${API_BASE}/directory/communities?limit=100`)
+        // Community listing is served by the new Rust backend (BACKEND_API_BASE)
+        // and requires auth. pageSize replaces the legacy `limit` (max 100).
+        fetch(`${BACKEND_API_BASE}/directory/communities?pageSize=100`, {
+            headers: { "x-session-token": sessionToken },
+        })
             .then((r) => r.json())
             .then((json) => {
                 if (cancelled) return;

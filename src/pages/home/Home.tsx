@@ -15,6 +15,7 @@ import { PageHeader } from "../../components/ui/Header";
 import { useClient } from "../../controllers/client/ClientController";
 import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
 import Promos from "./Promos";
+import { BACKEND_API_BASE } from "../directory/types";
 
 const Overlay = styled.div`
     display: grid;
@@ -337,17 +338,47 @@ const Home: React.FC = () => {
     };
 
     const fetchAndCacheData = async () => {
-        const serversUrl = import.meta.env.DEV
-            ? "/api/directory/servers"
-            : "https://manage.peptide.chat/api/directory/servers";
-        const communitiesUrl = import.meta.env.DEV
-            ? "/api/directory/communities?limit=200"
-            : "https://manageapi.peptide.chat/api/directory/communities?limit=200";
+        // Both directory endpoints are now served by the Rust backend
+        // (BACKEND_API_BASE, absolute URL — bypasses the dev `/api` proxy) and
+        // require auth via the `x-session-token` header.
+        const sessionToken =
+            typeof client.session === "string"
+                ? client.session
+                : (client.session as any)?.token ?? "";
+        const authHeaders = { "x-session-token": sessionToken };
+
+        const serversUrl = `${BACKEND_API_BASE}/directory/servers`;
+        // The backend clamps pageSize to a max of 100 and ignores the legacy
+        // `limit` param, so fetch every page to get all communities for the
+        // logo merge below (preserves the old limit=200 "fetch everything").
+        const fetchAllCommunities = async () => {
+            const first = await fetch(
+                `${BACKEND_API_BASE}/directory/communities?pageSize=100`,
+                { headers: authHeaders },
+            );
+            if (!first.ok) return [];
+            const firstJson = await first.json();
+            const items = (list: any) =>
+                Array.isArray(list) ? list : list?.items ?? [];
+            const all = items(firstJson.data);
+            const totalPages =
+                firstJson.meta?.pagination?.totalPages ?? 1;
+            for (let page = 2; page <= totalPages; page++) {
+                const res = await fetch(
+                    `${BACKEND_API_BASE}/directory/communities?pageSize=100&page=${page}`,
+                    { headers: authHeaders },
+                );
+                if (!res.ok) break;
+                const json = await res.json();
+                all.push(...items(json.data));
+            }
+            return all;
+        };
 
         try {
-            const [serversRes, communitiesRes] = await Promise.all([
-                fetch(serversUrl),
-                fetch(communitiesUrl),
+            const [serversRes, communitiesList] = await Promise.all([
+                fetch(serversUrl, { headers: authHeaders }),
+                fetchAllCommunities(),
             ]);
 
             if (!serversRes.ok) {
@@ -362,12 +393,7 @@ const Home: React.FC = () => {
             let servers: Server[] = serversJson.data;
 
             // Merge logos from communities API
-            if (communitiesRes.ok) {
-                const communitiesJson = await communitiesRes.json();
-                const communitiesList = Array.isArray(communitiesJson.data)
-                    ? communitiesJson.data
-                    : communitiesJson.data?.items ?? [];
-
+            {
                 const logoByServerId: Record<string, string> = {};
                 for (const c of communitiesList) {
                     if (c.serverId && c.logo) {
