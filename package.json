@@ -10,8 +10,8 @@
         "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
         "fmt": "prettier --write 'src/**/*.{js,jsx,ts,tsx}'",
         "typecheck": "tsc --noEmit",
-        "start": "sirv dist --cors --single --host",
-        "start:inject": "node scripts/inject.js && sirv dist_injected --cors --single --host"
+        "start": "node scripts/serve.js dist",
+        "start:inject": "node scripts/inject.js && node scripts/serve.js dist_injected"
     },
     "eslintConfig": {
         "parser": "@typescript-eslint/parser",
