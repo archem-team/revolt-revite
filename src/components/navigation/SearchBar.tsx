@@ -16,10 +16,12 @@ const Container = styled.div`
     display: flex;
     align-items: center;
     background: var(--primary-header);
-    border-radius: var(--border-radius);
-    width: 220px;
-    height: 32px;
-    
+    /* Search is a rounded pill in the header.
+       Width tracks the 248px side column with a 12px inset. */
+    border-radius: var(--radius-pill);
+    width: 236px;
+    height: 38px;
+
     @media (max-width: 768px) {
         width: 180px;
     }

@@ -14,6 +14,12 @@ import {
     MonospaceFonts,
     ComputedVariables,
 } from "../../../context/Theme";
+import {
+    DEFAULT_MATERIAL_YOU_SEED,
+    MaterialYouBase,
+    createMaterialYouTheme,
+    isMaterialYouBase,
+} from "../../../context/materialTheme";
 
 import Settings from "../Settings";
 
@@ -85,8 +91,26 @@ export default class STheme {
     @computed isLight() {
         return (
             this.settings.get("appearance:theme:light") ??
-            this.getBase() === "light"
+            (this.getBase() === "light" || this.getBase() === "materialYouLight")
         );
+    }
+
+    /**
+     * Resolve the base theme: either a static preset or, for Material You
+     * bases, a theme generated from the user's accent colour (the accent
+     * override acts as the seed).
+     * @returns Base theme
+     */
+    @computed getBaseTheme(): Theme {
+        const base = this.getBase();
+        if (isMaterialYouBase(base)) {
+            const seed =
+                this.settings.get("appearance:theme:overrides")?.accent ??
+                DEFAULT_MATERIAL_YOU_SEED;
+            return createMaterialYouTheme(seed, base === "materialYouDark");
+        }
+
+        return PRESETS[base] ?? PRESETS["dark"];
     }
 
     /**
@@ -94,9 +118,23 @@ export default class STheme {
      * @returns Record of CSS variables
      */
     @computed getVariables(): Theme {
+        let overrides = this.settings.get("appearance:theme:overrides");
+
+        // Under Material You, the accent override is consumed as the palette
+        // seed (and scrollbar-thumb is derived by the generator), so neither
+        // should also be applied as a raw variable override.
+        if (overrides && isMaterialYouBase(this.getBase())) {
+            const {
+                accent: _accent,
+                "scrollbar-thumb": _thumb,
+                ...rest
+            } = overrides;
+            overrides = rest;
+        }
+
         return {
-            ...PRESETS[this.getBase()],
-            ...this.settings.get("appearance:theme:overrides"),
+            ...this.getBaseTheme(),
+            ...overrides,
             light: this.isLight(),
         };
     }
@@ -140,7 +178,7 @@ export default class STheme {
      */
     @computed getVariable(key: Variables) {
         return (this.settings.get("appearance:theme:overrides")?.[key] ??
-            PRESETS[this.getBase()]?.[key])!;
+            this.getBaseTheme()[key])!;
     }
 
     /**
@@ -161,7 +199,11 @@ export default class STheme {
      * @returns Current font
      */
     @computed getFont() {
-        return this.settings.get("appearance:theme:font") ?? DEFAULT_FONT;
+        return (
+            this.settings.get("appearance:theme:font") ??
+            this.getBaseTheme().font ??
+            DEFAULT_FONT
+        );
     }
 
     @action setMonospaceFont(font: MonospaceFonts) {
@@ -174,7 +216,9 @@ export default class STheme {
      */
     @computed getMonospaceFont() {
         return (
-            this.settings.get("appearance:theme:monoFont") ?? DEFAULT_MONO_FONT
+            this.settings.get("appearance:theme:monoFont") ??
+            this.getBaseTheme().monospaceFont ??
+            DEFAULT_MONO_FONT
         );
     }
 
@@ -201,7 +245,7 @@ export default class STheme {
         );
     }
 
-    @action setBase(base?: "light" | "dark") {
+    @action setBase(base?: "light" | "dark" | MaterialYouBase) {
         if (base) {
             this.settings.set("appearance:theme:base", base);
         } else {

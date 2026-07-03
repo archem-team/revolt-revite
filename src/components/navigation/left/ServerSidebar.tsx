@@ -22,14 +22,24 @@ import ConnectionStatus from "../items/ConnectionStatus";
 
 const ServerBase = styled.div`
     height: 100%;
-    width: 232px;
+    /* 248px channel sidebar (--layout-width-channel-sidebar). */
+    width: 248px;
     display: flex;
     flex-shrink: 0;
     flex-direction: column;
-    background: var(--secondary-background);
-    border-start-start-radius: 8px;
-    border-end-start-radius: 8px;
     overflow: hidden;
+
+    /* The channel list is a full-height "sheet" one
+       surface step above the canvas, rounded only on the side that meets the
+       server rail (surface-container-low, left radii only). */
+    background: var(--secondary-background);
+
+    ${!isTouchscreenDevice &&
+    css`
+        /* Sidebar sheet: rounded only on the rail-facing side
+           (borderStartRadius, 16px) — right corners stay square. */
+        border-radius: 16px 0 0 16px;
+    `}
 
     ${isTouchscreenDevice &&
     css`
@@ -38,12 +48,58 @@ const ServerBase = styled.div`
 `;
 
 const ServerList = styled.div`
-    padding: 6px;
+    padding: 6px 8px;
     flex-grow: 1;
     overflow-y: scroll;
+    overflow-x: hidden;
 
     > svg {
         width: 100%;
+    }
+
+    /* Category groups sit flat on the sidebar surface (no boxes), with
+       plain whitespace separating the groups; the header is a 13px label at
+       full foreground with a small trailing caret that rotates on collapse. */
+    details {
+        /* Group rhythm: ~18px between groups (8px here + the next
+           header's 10px top padding). */
+        margin-bottom: var(--space-2);
+    }
+
+    summary {
+        .padding {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            /* Two indent axes: the category label sits on the
+               same left axis as the channel-row icons (list padding 8px +
+               row padding 8px). Vertical: 10px above, 8px to the first row. */
+            padding: 10px 4px 8px 8px;
+            color: var(--foreground);
+
+            &:hover {
+                color: var(--secondary-foreground);
+            }
+
+            > svg {
+                order: 2;
+                width: 12px;
+                height: 12px;
+                flex-shrink: 0;
+            }
+
+            > div {
+                order: 1;
+                margin: 0;
+                padding: 0;
+                text-transform: none;
+                font-size: 13px;
+                font-weight: 500;
+                letter-spacing: 0.5px;
+                line-height: 16px;
+                color: inherit;
+            }
+        }
     }
 `;
 
@@ -104,7 +160,6 @@ export default observer(() => {
                             ? "unread"
                             : undefined
                     }
-                    compact
                     muted={state.notifications.isMuted(entry)}
                 />
             </ConditionalLink>

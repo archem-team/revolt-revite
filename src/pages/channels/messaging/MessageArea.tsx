@@ -1,7 +1,6 @@
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useHistory, useParams } from "react-router-dom";
-import { animateScroll } from "react-scroll";
 import { Channel } from "revolt.js";
 import styled from "styled-components/macro";
 import useResizeObserver from "use-resize-observer";
@@ -38,6 +37,17 @@ const Area = styled.div.attrs({ "data-scroll-offset": "with-padding" })`
 
     overflow-x: hidden;
     overflow-y: scroll;
+    /* Reverse-scroller architecture: in a
+       column-reverse scroll container scrollTop 0 IS the bottom, so the
+       list paints already at the newest messages (no restore pass), stays
+       pinned to the bottom natively, and loading older history grows
+       upward without moving the viewport. scrollTop runs [-max, 0]. */
+    display: flex;
+    flex-direction: column-reverse;
+    /* Scroll position is managed manually (restore, stay-at-bottom,
+       load-more offset math) — the browser's automatic scroll anchoring
+       double-corrects against it and causes small up/down jumps. */
+    overflow-anchor: none;
 
     &::-webkit-scrollbar-thumb {
         min-height: 150px;
@@ -49,6 +59,9 @@ const Area = styled.div.attrs({ "data-scroll-offset": "with-padding" })`
         padding-bottom: 26px;
         flex-direction: column;
         justify-content: flex-end;
+        /* The reverse scroller's single child must not shrink, or long
+           histories collapse to the container height. */
+        flex-shrink: 0;
     }
 `;
 
@@ -94,15 +107,19 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
             }
 
             defer(() => {
+                // Column-reverse scroller: the bottom is scrollTop 0 and
+                // positions are negative offsets from it.
                 if (scrollState.current.type === "ScrollToBottom") {
                     setScrollState({
                         type: "Bottom",
                         scrollingUntil: +new Date() + 150,
                     });
 
-                    animateScroll.scrollToBottom({
-                        container: ref.current,
-                        duration: scrollState.current.smooth ? 150 : 0,
+                    ref.current?.scrollTo({
+                        top: 0,
+                        behavior: scrollState.current.smooth
+                            ? "smooth"
+                            : "auto",
                     });
                 } else if (scrollState.current.type === "ScrollToView") {
                     document
@@ -111,27 +128,21 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
 
                     setScrollState({ type: "Free" });
                 } else if (scrollState.current.type === "OffsetTop") {
-                    animateScroll.scrollTo(
-                        Math.max(
-                            101,
-                            ref.current
-                                ? ref.current.scrollTop +
-                                (ref.current.scrollHeight -
-                                    scrollState.current.previousHeight)
-                                : 101,
-                        ),
-                        {
-                            container: ref.current,
-                            duration: 0,
-                        },
-                    );
+                    // Content was appended at the bottom (scroll origin)
+                    // side: keep the viewport on the same messages by
+                    // backing off by the added height.
+                    if (ref.current) {
+                        ref.current.scrollTop =
+                            ref.current.scrollTop -
+                            (ref.current.scrollHeight -
+                                scrollState.current.previousHeight);
+                    }
 
                     setScrollState({ type: "Free" });
                 } else if (scrollState.current.type === "ScrollTop") {
-                    animateScroll.scrollTo(scrollState.current.y, {
-                        container: ref.current,
-                        duration: 0,
-                    });
+                    if (ref.current) {
+                        ref.current.scrollTop = scrollState.current.y;
+                    }
 
                     setScrollState({ type: "Free" });
                 }
@@ -144,17 +155,17 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
     );
 
     // ? Determine if we are at the bottom of the scroll container.
-    // -> https://stackoverflow.com/a/44893438
+    // Column-reverse scroller: scrollTop is 0 at the bottom and negative
+    // when scrolled up into history.
     // By default, we assume we are at the bottom, i.e. when we first load.
     const atBottom = (offset = 0) =>
-        ref.current
-            ? Math.floor(ref.current?.scrollHeight - ref.current?.scrollTop) -
-            offset <=
-            ref.current?.clientHeight
-            : true;
+        ref.current ? ref.current.scrollTop >= -(offset + 1) : true;
 
     const atTop = (offset = 0) =>
-        ref.current ? ref.current.scrollTop <= offset : false;
+        ref.current
+            ? ref.current.scrollTop <=
+              ref.current.clientHeight - ref.current.scrollHeight + offset
+            : false;
     const client = useClient()
     function pin(message: Message) {
         client.api.post(`/channels/${message.channel_id}/messages/${message._id}/pin` as any)
@@ -199,14 +210,22 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
     );
 
     // ? Load channel initially.
-    useEffect(() => {
+    // Layout effect + direct scrollTop: cached channels must be positioned
+    // BEFORE first paint — the deferred scroll (setTimeout) lands a frame
+    // late and shows the list at the top before snapping to the bottom.
+    useLayoutEffect(() => {
         if (message) return;
         if (renderer.state === "RENDER") {
             runInAction(() => (renderer.fetching = true));
 
             if (renderer.scrollAnchored) {
+                // Reverse scroller paints at the bottom (0) natively.
+                if (ref.current) ref.current.scrollTop = 0;
                 setScrollState({ type: "ScrollToBottom" });
             } else {
+                // Saved positions are raw (negative) reverse offsets.
+                if (ref.current)
+                    ref.current.scrollTop = renderer.scrollPosition;
                 setScrollState({
                     type: "ScrollTop",
                     y: renderer.scrollPosition,
@@ -261,6 +280,13 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
         if (!current) return;
 
         async function onScroll() {
+            // Chromium overscrolls reverse-column flexboxes past the origin
+            // when content is added, breaking bottom-stick — clamp to 0.
+            // (See issues.chromium.org/40829494.)
+            if (current && current.scrollTop > 0) {
+                current.scrollTop = 0;
+            }
+
             if (scrollState.current.type === "Free" && atBottom()) {
                 setScrollState({ type: "Bottom" });
             } else if (scrollState.current.type === "Bottom" && !atBottom()) {
@@ -305,12 +331,10 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
     }, [ref, renderer]);
 
     // ? Scroll down whenever the message area resizes.
+    // (Reverse scroller keeps the bottom natively; this is a safety net.)
     const stbOnResize = useCallback(() => {
         if (!atBottom() && scrollState.current.type === "Bottom") {
-            animateScroll.scrollToBottom({
-                container: ref.current,
-                duration: 0,
-            });
+            if (ref.current) ref.current.scrollTop = 0;
 
             setScrollState({ type: "Bottom" });
         }
@@ -342,7 +366,11 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
 
     return (
         <MessageAreaWidthContext.Provider
-            value={(width ?? 0) - MESSAGE_AREA_PADDING}>
+            // Before the resize observer reports (first paint after mount)
+            // fall back to a width that sizes embeds/attachments at their
+            // usual maximum — never 0/negative, which let media render
+            // unconstrained for a frame and flash across the panel.
+            value={width ? width - MESSAGE_AREA_PADDING : 504}>
             <Area ref={ref}>
                 <div>
                     {renderer.state === "LOADING" && <Preloader type="ring" />}

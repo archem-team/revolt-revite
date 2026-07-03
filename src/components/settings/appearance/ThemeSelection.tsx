@@ -3,11 +3,13 @@ import { observer } from "mobx-react-lite";
 import { Link } from "react-router-dom";
 // @ts-expect-error shade-blend-color does not have typings.
 import pSBC from "shade-blend-color";
+import styled from "styled-components/macro";
 
 import { Text } from "preact-i18n";
 
-import { CategoryButton, ObservedInputElement } from "@revoltchat/ui";
+import { CategoryButton, Checkbox, ObservedInputElement } from "@revoltchat/ui";
 
+import { isMaterialYouBase } from "../../../context/materialTheme";
 import { useApplicationState } from "../../../mobx/State";
 
 import { ThemeBaseSelector } from "./legacy/ThemeBaseSelector";
@@ -18,13 +20,55 @@ import { ThemeBaseSelector } from "./legacy/ThemeBaseSelector";
  */
 export const ShimThemeBaseSelector = observer(() => {
     const theme = useApplicationState().settings.theme;
+    const base = theme.getBase();
+    const materialYou = isMaterialYouBase(base);
+    const mode: "light" | "dark" =
+        base === "light" || base === "materialYouLight" ? "light" : "dark";
+
     return (
         <ThemeBaseSelector
-            value={theme.isModified() ? undefined : theme.getBase()}
-            setValue={(base) => {
-                theme.setBase(base);
-                theme.reset();
+            value={materialYou || !theme.isModified() ? mode : undefined}
+            setValue={(newMode) => {
+                if (materialYou) {
+                    // Keep dynamic colour on; only switch light/dark.
+                    theme.setBase(
+                        newMode === "light"
+                            ? "materialYouLight"
+                            : "materialYouDark",
+                    );
+                } else {
+                    theme.setBase(newMode);
+                    theme.reset();
+                }
             }}
+        />
+    );
+});
+
+/**
+ * Toggle for the Material You dynamic colour theme.
+ */
+const MaterialYouToggle = observer(() => {
+    const theme = useApplicationState().settings.theme;
+    const base = theme.getBase();
+    const materialYou = isMaterialYouBase(base);
+    const mode: "light" | "dark" =
+        base === "light" || base === "materialYouLight" ? "light" : "dark";
+
+    return (
+        <Checkbox
+            value={materialYou}
+            title="Material You"
+            description="Generate the entire theme from your accent colour using Material 3 dynamic colour."
+            onChange={(enabled: boolean) =>
+                theme.setBase(
+                    enabled
+                        ? mode === "light"
+                            ? "materialYouLight"
+                            : "materialYouDark"
+                        : mode,
+                )
+            }
         />
     );
 });
@@ -36,6 +80,8 @@ export default function ThemeSelection() {
         <>
             {/** Allow users to change base theme */}
             <ShimThemeBaseSelector />
+            {/** Dynamic colour (Material 3) toggle */}
+            <MaterialYouToggle />
             {/** Provide a link to the theme shop */}
             <Link to="/discover/themes" replace>
                 <CategoryButton
@@ -56,7 +102,14 @@ export default function ThemeSelection() {
                 value={theme.getVariable("accent")}
                 onChange={(colour) => {
                     theme.setVariable("accent", colour as string);
-                    theme.setVariable("scrollbar-thumb", pSBC(-0.2, colour));
+                    // Under Material You the accent is the palette seed and
+                    // scrollbar colours are derived by the generator instead.
+                    if (!isMaterialYouBase(theme.getBase())) {
+                        theme.setVariable(
+                            "scrollbar-thumb",
+                            pSBC(-0.2, colour),
+                        );
+                    }
                 }}
             />
         </>

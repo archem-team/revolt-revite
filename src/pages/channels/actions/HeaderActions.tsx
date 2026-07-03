@@ -98,9 +98,11 @@ export default function HeaderActions({ channel }: ChannelHeaderProps) {
                         <Group size={25} />
                     </IconButton>
                 )}
-                {channel.channel_type !== "VoiceChannel" && (
-                    <SearchBar />
-                )}
+                {/* On desktop the search lives at the top of the member
+                    column; keep it in the header on
+                    touch devices where that column is hidden. */}
+                {channel.channel_type !== "VoiceChannel" &&
+                    isTouchscreenDevice && <SearchBar />}
             </Container>
         </>
     );

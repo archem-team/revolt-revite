@@ -34,6 +34,19 @@ export default styled.div<BaseMessageProps>`
     padding: 0.125rem;
     flex-direction: row;
     padding-inline-end: 16px;
+    /* The row wrapping the avatar column and the body carries an
+       default 8px gap (gap-md) — with the column's 4px inner padding the
+       avatar sits 12px from the username/messages. */
+    gap: 8px;
+
+    /* Message rows are rounded (radius "md") and inset from the
+       panel edges so the hover highlight reads as a rounded container. */
+    ${() =>
+        !isTouchscreenDevice &&
+        css`
+            margin-inline: 8px;
+            border-radius: 12px;
+        `}
 
     ${() =>
         isTouchscreenDevice &&
@@ -52,7 +65,10 @@ export default styled.div<BaseMessageProps>`
     ${(props) =>
         props.head &&
         css`
-            margin-top: 12px;
+            /* Only new author groups get the group-spacing margin;
+               grouped (tail) messages stack with just the 2px row padding
+               (measured 25px line pitch in their UI). */
+            margin-top: var(--message-group-spacing, 12px);
         `}
 
     ${(props) =>
@@ -94,16 +110,20 @@ export default styled.div<BaseMessageProps>`
         `}
 
     .detail {
-        gap: 8px;
+        /* Username · info sit close together (4px);
+           the header row is a 20px line box (their label-large). */
+        gap: 4px;
         display: flex;
         align-items: center;
         flex-shrink: 0;
+        line-height: 20px;
     }
 
     .author {
         overflow: hidden;
         cursor: pointer;
-        font-weight: 600 !important;
+        /* Usernames are label-large: 14px at weight 500. */
+        font-weight: 500 !important;
 
         display: -webkit-box;
         -webkit-line-clamp: 1;
@@ -135,12 +155,14 @@ export default styled.div<BaseMessageProps>`
 `;
 
 export const MessageInfo = styled.div<{ click: boolean }>`
-    width: 62px;
+    /* Info column: 54px wide, content pushed to the end so the
+       avatar (and the hover timestamp on tails) hugs the text edge. */
+    width: 54px;
     display: flex;
     flex-shrink: 0;
-    padding-top: 2px;
+    padding: 2px 4px;
     flex-direction: row;
-    justify-content: center;
+    justify-content: flex-end;
 
     .avatar {
         user-select: none;
@@ -169,7 +191,11 @@ export const MessageInfo = styled.div<{ click: boolean }>`
         margin-top: 1px;
         cursor: default;
         display: inline;
+        /* The tail hover-timestamp renders at ~0.7em and must
+           never wrap: even at opacity 0 a wrapped timestamp occupies layout
+           and silently inflates every grouped row (54px gutter). */
         font-size: 10px;
+        white-space: nowrap;
         color: var(--tertiary-foreground);
     }
 
@@ -210,13 +236,17 @@ export const MessageContent = styled.div`
     // overflow: hidden;
     flex-direction: column;
     justify-content: center;
-    font-size: var(--text-size);
+    /* Message text follows the user-adjustable message size,
+       at their inherited 1.5 line-height (measured 25px line pitch). */
+    font-size: var(--message-size, var(--text-size));
+    line-height: 1.5;
 `;
 
 export const DetailBase = styled.div`
     flex-shrink: 0;
     gap: 4px;
-    font-size: 10px;
+    /* Timestamps are body-small: 12px. */
+    font-size: 12px;
     display: inline-flex;
     color: var(--tertiary-foreground);
 
