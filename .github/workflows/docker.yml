@@ -85,7 +85,7 @@ jobs:
               id: meta
               uses: docker/metadata-action@v3
               with:
-                  images: ghcr.io/archem-team/revolt-revite-stage
+                  images: ghcr.io/archem-team/revolt-revite-pre
                   tags: |
                     type=raw,value=${{ github.sha }}
             # - name: Login to DockerHub
@@ -113,7 +113,7 @@ jobs:
         needs: [publish]
         runs-on: ubuntu-latest
         env:
-          CONFIG_BRANCH: stage
+          CONFIG_BRANCH: prod
           CLONE_DIR: $GITHUB_WORKSPACE/config
           CONFIG_FILE: $GITHUB_WORKSPACE/config/apps/pepchat/kustomization.yaml
         if: github.event_name != 'pull_request'
@@ -140,7 +140,7 @@ jobs:
               run: |
                   awk -v value="  newTag: ${{ github.sha }}" '{sub(/^  newTag: .*/, value); print}' $CONFIG_FILE > temp.yml && mv temp.yml $CONFIG_FILE
 
-                  awk -v value="  newName: ghcr.io/archem-team/revolt-revite-stage" '{sub(/^  newName: .*/, value); print}' $CONFIG_FILE > temp.yml && mv temp.yml $CONFIG_FILE
+                  awk -v value="  newName: ghcr.io/archem-team/revolt-revite-pre" '{sub(/^  newName: .*/, value); print}' $CONFIG_FILE > temp.yml && mv temp.yml $CONFIG_FILE
 
 
             - name: Commit & Push Changes
