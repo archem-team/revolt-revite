@@ -3,6 +3,41 @@
     <head>
         <meta charset="UTF-8" />
 
+        <!--Stale-release recovery: each release replaces every hashed file
+            under /assets, so a document restored from bfcache, an old PWA
+            service worker or a mid-session deploy can reference assets that
+            no longer exist. If any hashed asset fails to load, force one
+            fresh reload (index.html is served no-cache, so the reload gets
+            the current release). sessionStorage guards against loops.-->
+        <script>
+            (function () {
+                var KEY = "stale-asset-reload-at";
+                window.addEventListener(
+                    "error",
+                    function (event) {
+                        var el = event.target;
+                        if (
+                            !el ||
+                            (el.tagName !== "SCRIPT" && el.tagName !== "LINK")
+                        )
+                            return;
+                        var url = el.src || el.href || "";
+                        if (url.indexOf("/assets/") === -1) return;
+                        var last = 0;
+                        try {
+                            last = +sessionStorage.getItem(KEY) || 0;
+                        } catch (e) {}
+                        if (Date.now() - last < 15000) return;
+                        try {
+                            sessionStorage.setItem(KEY, String(Date.now()));
+                        } catch (e) {}
+                        location.reload();
+                    },
+                    true,
+                );
+            })();
+        </script>
+
         <!--App Title-->
         <title>PepChat – Home of the Peptide Community</title>
         <meta name="apple-mobile-web-app-title" content="PepChat" />
