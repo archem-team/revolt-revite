@@ -3,7 +3,8 @@ name: Docker
 on:
     push:
         branches:
-
+            - "master"
+            - "pre-production"
             - "stage"
         tags:
             - "*"
