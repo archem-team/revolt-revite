@@ -1,10 +1,20 @@
 FROM node:16-buster AS builder
 ENV NODE_OPTIONS="--max_old_space_size=12288"
 WORKDIR /usr/src/app
+
+# Install dependencies from manifests only, so this (slowest) layer is reused
+# from cache unless the lockfile/manifests change. The portal packages
+# (external/components, external/revolt.js) only need their package.json at
+# install time — neither defines install lifecycle scripts.
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY .yarn .yarn
+COPY external/components/package.json external/components/
+COPY external/revolt.js/package.json external/revolt.js/
+RUN yarn install --frozen-lockfile
+
 COPY . .
 COPY .env.build ./.env
 
-RUN yarn install --frozen-lockfile
 RUN yarn build:deps
 # RUN yarn typecheck # lol no
 RUN yarn build:highmem

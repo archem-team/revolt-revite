@@ -9,7 +9,7 @@ import { Button, Checkbox, InputBox } from "@revoltchat/ui";
 
 import { uploadFile } from "../../controllers/client/jsx/legacy/FileUploads";
 import { useClient } from "../../controllers/client/ClientController";
-import { API_BASE } from "../directory/types";
+import { BACKEND_API_BASE } from "../directory/types";
 
 interface ItemForm {
     product: string;
@@ -256,6 +256,28 @@ interface Props {
     onClose: () => void;
 }
 
+// Map the Rust backend's Revolt-style error responses ({ type, error? }) and
+// HTTP status codes to friendly, user-facing messages.
+function promoSubmitError(status: number, body: any): string {
+    const type = body?.type;
+    if (status === 401)
+        return "Your session has expired. Please sign in again.";
+    if (status === 403 || type === "NotOwner")
+        return "You are not the owner of this server.";
+    if (status === 429)
+        return "Too many submissions. Please try again in a few minutes.";
+    if (type === "FailedValidation")
+        return (
+            body?.error ||
+            "Some fields are invalid. Please review your entries and try again."
+        );
+    if (status === 404 || type === "NotFound")
+        return "That community could not be found.";
+    return type
+        ? `Submission failed (${type}).`
+        : `Submission failed (HTTP ${status}).`;
+}
+
 const PromoSubmit = observer(({ servers, onClose }: Props) => {
     const client = useClient();
     const autumn =
@@ -472,17 +494,21 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
 
         setState("saving");
         try {
-            const r = await fetch(`${API_BASE}/promos/submit`, {
+            // The Rust backend authenticates with `x-session-token` (not the
+            // legacy `X-Revolt-Token`) and returns HTTP 200 on success.
+            const r = await fetch(`${BACKEND_API_BASE}/promos/submit`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-Revolt-Token": sessionToken,
+                    "x-session-token": sessionToken,
                 },
                 body: JSON.stringify(body),
             });
-            const res = await r.json();
+            // Some framework-level failures (e.g. a malformed body → 422)
+            // return HTML rather than JSON, so parse defensively.
+            const res = await r.json().catch(() => null);
             if (!r.ok || !res?.success) {
-                throw new Error(res?.error?.message || `HTTP ${r.status}`);
+                throw new Error(promoSubmitError(r.status, res));
             }
             setState("ok");
         } catch (err: any) {

@@ -265,6 +265,23 @@ export const LEGEND = [
 
 // ─── Live API ─────────────────────────────────────────────────────────────────
 
+// Legacy admin backend ("manage"/"manageapi"). Still serves the endpoints that
+// were NOT ported to the Rust backend:
+//   - directory community reviews   (GET/POST /directory/communities/reviews)
+//   - directory submissions         (POST     /directory/communities/submissions)
+//   - single community detail        (GET      /directory/communities/<id>)
+//   - vendor owner endpoints         (GET      /directory/communities/owner/<id>)
+// In dev these go through the Vite `/api` proxy (see vite.config.ts).
 export const API_BASE =
     import.meta.env.VITE_API_BASE ||
     (import.meta.env.PROD ? "https://manageapi.peptide.chat/api" : "/api");
+
+// New Rust backend (delta). Serves the natively-ported directory/promo
+// endpoints, ALL of which now require auth via the `x-session-token` header:
+//   - GET  /directory/servers
+//   - GET  /directory/communities (listing)   — use pageSize (max 100), NOT limit
+//   - GET  /promos, GET /promos/<id>
+//   - POST /promos/submit
+// This is an absolute URL, so it bypasses the dev `/api` proxy entirely.
+export const BACKEND_API_BASE =
+    import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "https://peptide.chat/api";
