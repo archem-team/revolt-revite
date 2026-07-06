@@ -3,13 +3,13 @@ import { observer } from "mobx-react-lite";
 import { Server } from "revolt.js";
 import styled from "styled-components/macro";
 
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 import { Button, Checkbox, InputBox } from "@revoltchat/ui";
 
 import { uploadFile } from "../../controllers/client/jsx/legacy/FileUploads";
 import { useClient } from "../../controllers/client/ClientController";
-import { BACKEND_API_BASE } from "../directory/types";
+import { API_BASE, BACKEND_API_BASE, WAREHOUSE_LABELS } from "../directory/types";
 
 interface ItemForm {
     product: string;
@@ -316,6 +316,52 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
         typeof client.session === "string"
             ? client.session
             : (client.session as any)?.token ?? "";
+
+    // Prefill the vendor's non-changing commerce details from their directory
+    // listing (warehouse, shipping, guarantee) so they don't retype them each
+    // submission. Runs when the selected community changes; the offer-specific
+    // fields (products, prices, dates, title) stay empty for the vendor to fill.
+    useEffect(() => {
+        if (!serverId) return;
+        let ignore = false;
+        (async () => {
+            try {
+                const r = await fetch(
+                    `${API_BASE}/directory/communities/${serverId}`,
+                );
+                if (!r.ok) return;
+                const res = await r.json();
+                const c = res?.data ?? res;
+                if (ignore || !c?.id) return;
+
+                const wh = c.warehouses ?? {};
+                const warehouseStr = (
+                    Object.keys(WAREHOUSE_LABELS) as (keyof typeof WAREHOUSE_LABELS)[]
+                )
+                    .filter((k) => wh[k])
+                    .map((k) => WAREHOUSE_LABELS[k])
+                    .join(", ");
+                if (warehouseStr) setWarehouse(warehouseStr);
+
+                if (c.shippingTime) setShippingNote(c.shippingTime);
+                if (typeof c.freeShippingThreshold === "number")
+                    setFreeShippingThreshold(String(c.freeShippingThreshold));
+
+                const g = c.guarantee ?? {};
+                if (typeof g.purityPct === "number")
+                    setPurityPct(String(g.purityPct));
+                if (typeof g.volumePct === "number")
+                    setVolumePct(String(g.volumePct));
+                if (g.reship) setCustomsReship(true);
+                if (g.reshipDesc) setGuaranteeText(g.reshipDesc);
+            } catch {
+                // Prefill is best-effort; ignore fetch/parse failures.
+            }
+        })();
+        return () => {
+            ignore = true;
+        };
+    }, [serverId]);
 
     const setItem = (i: number, patch: Partial<ItemForm>) => {
         setItems((prev) =>

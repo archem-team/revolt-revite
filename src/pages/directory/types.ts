@@ -32,7 +32,15 @@ export interface Guarantees {
     volume: boolean;
     reship: boolean;
 }
+// Display hints per guarantee. purity/volume are derived from the numeric
+// percentages (see GuaranteePct); reship carries the free-text note.
 export type GuaranteeTexts = Record<keyof Guarantees, string>;
+// Numeric guarantee percentages (0-100), the stored source of truth for
+// purity/volume. Null when the vendor offers the guarantee without a figure.
+export interface GuaranteePct {
+    purity: number | null;
+    volume: number | null;
+}
 export interface OrderTypes {
     single: boolean;
     halfkit: boolean;
@@ -64,10 +72,11 @@ export interface VendorCommunity extends CommunityBase {
     products: Products;
     guarantees: Guarantees;
     guaranteeTexts?: GuaranteeTexts;
+    guaranteePct: GuaranteePct;
     orderTypes: null;
     shippingTime: string;
     freeShipping: boolean;
-    freeShippingThreshold: string;
+    freeShippingThreshold: number | null;
 }
 
 export interface ResellerCommunity extends CommunityBase {
@@ -77,10 +86,11 @@ export interface ResellerCommunity extends CommunityBase {
     products: Products;
     guarantees: Guarantees;
     guaranteeTexts?: GuaranteeTexts;
+    guaranteePct: GuaranteePct;
     orderTypes: OrderTypes;
     shippingTime: string;
     freeShipping: boolean;
-    freeShippingThreshold: string;
+    freeShippingThreshold: number | null;
 }
 
 export interface OtherCommunity extends CommunityBase {

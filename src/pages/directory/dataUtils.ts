@@ -11,6 +11,7 @@ import type {
     Products,
     Guarantees,
     GuaranteeTexts,
+    GuaranteePct,
     OrderTypes,
     FilterKey,
 } from "./types";
@@ -136,16 +137,28 @@ export function apiToCommunity(c: any): Community {
         custom: Array.isArray(apiPr.custom) ? apiPr.custom : [],
     };
 
-    // Guarantees — backend may use purityDesc/volumeDesc/reshipDesc as text keys
+    // Guarantees — purity/volume are numeric percentages; reship stays text
     const apiGu = c.guarantee ?? c.guarantees ?? {};
     const guarantees: Guarantees = {
         purity: apiGu.purity ?? false,
         volume: apiGu.volume ?? false,
         reship: apiGu.reship ?? false,
     };
+    const guaranteePct: GuaranteePct = {
+        purity: typeof apiGu.purityPct === "number" ? apiGu.purityPct : null,
+        volume: typeof apiGu.volumePct === "number" ? apiGu.volumePct : null,
+    };
+    // Derive display hints from the numeric percentages so existing badge
+    // tooltips keep working; reship keeps its free-text note.
     const guaranteeTexts = mapGuaranteeTexts({
-        purity: apiGu.purityDesc ?? c.guaranteeTexts?.purity,
-        volume: apiGu.volumeDesc ?? c.guaranteeTexts?.volume,
+        purity:
+            guaranteePct.purity != null
+                ? `≥ ${guaranteePct.purity}% purity`
+                : undefined,
+        volume:
+            guaranteePct.volume != null
+                ? `≥ ${guaranteePct.volume}% fill volume`
+                : undefined,
         reship: apiGu.reshipDesc ?? c.guaranteeTexts?.reship,
     });
 
@@ -156,9 +169,13 @@ export function apiToCommunity(c: any): Community {
         products,
         guarantees,
         guaranteeTexts,
+        guaranteePct,
         shippingTime: c.shippingTime || "",
         freeShipping: c.freeShipping || false,
-        freeShippingThreshold: c.freeShippingThreshold || "",
+        freeShippingThreshold:
+            typeof c.freeShippingThreshold === "number"
+                ? c.freeShippingThreshold
+                : null,
     };
     if (c.type === "reseller") {
         return {
