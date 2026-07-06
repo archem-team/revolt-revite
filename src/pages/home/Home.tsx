@@ -331,38 +331,9 @@ const Home: React.FC = () => {
         const authHeaders = { "x-session-token": sessionToken };
 
         const serversUrl = `${BACKEND_API_BASE}/directory/servers`;
-        // The backend clamps pageSize to a max of 100 and ignores the legacy
-        // `limit` param, so fetch every page to get all communities for the
-        // logo merge below (preserves the old limit=200 "fetch everything").
-        const fetchAllCommunities = async () => {
-            const first = await fetch(
-                `${BACKEND_API_BASE}/directory/communities?pageSize=100`,
-                { headers: authHeaders },
-            );
-            if (!first.ok) return [];
-            const firstJson = await first.json();
-            const items = (list: any) =>
-                Array.isArray(list) ? list : list?.items ?? [];
-            const all = items(firstJson.data);
-            const totalPages =
-                firstJson.meta?.pagination?.totalPages ?? 1;
-            for (let page = 2; page <= totalPages; page++) {
-                const res = await fetch(
-                    `${BACKEND_API_BASE}/directory/communities?pageSize=100&page=${page}`,
-                    { headers: authHeaders },
-                );
-                if (!res.ok) break;
-                const json = await res.json();
-                all.push(...items(json.data));
-            }
-            return all;
-        };
 
         try {
-            const [serversRes, communitiesList] = await Promise.all([
-                fetch(serversUrl, { headers: authHeaders }),
-                fetchAllCommunities(),
-            ]);
+            const serversRes = await fetch(serversUrl, { headers: authHeaders });
 
             if (!serversRes.ok) {
                 throw new Error(`Servers request failed with status ${serversRes.status}`);
@@ -375,25 +346,19 @@ const Home: React.FC = () => {
 
             let servers: Server[] = serversJson.data;
 
-            // Merge logos from communities API
+            // `/directory/servers` returns `logo` as a raw file id (or null).
+            // Build the autumn icon URL straight from it — no second request to
+            // the communities endpoint, whose paginated listing could silently
+            // drop unrated (new) servers and leave them without a logo.
             {
-                const logoByServerId: Record<string, string> = {};
-                for (const c of communitiesList) {
-                    if (c.serverId && c.logo) {
-                        logoByServerId[c.serverId] = c.logo;
-                    }
-                }
-
                 const autumnUrl = client.configuration?.features.autumn?.url ||
                     "https://peptide.chat/autumn";
 
-                servers = servers.map((s) => {
-                    const logoId = logoByServerId[s.id];
-                    return logoId
-                        ? { ...s, logo: `${autumnUrl}/icons/${logoId}?max_side=256` }
-                        : s;
-                });
-
+                servers = servers.map((s) =>
+                    s.logo
+                        ? { ...s, logo: `${autumnUrl}/icons/${s.logo}?max_side=256` }
+                        : s,
+                );
             }
 
             cacheAndSetServers(servers);
