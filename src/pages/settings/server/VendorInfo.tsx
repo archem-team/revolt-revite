@@ -3,20 +3,23 @@ import { Server } from "revolt.js";
 import { useEffect, useState } from "preact/hooks";
 import { useClient } from "../../../controllers/client/ClientController";
 import {
-    defPay, defWh, defPr, defGu, defGuText, defOr, toggle,
+    defPay, defWh, defPr, defGu, defOr, toggle,
 } from "../../directory/dataUtils";
 import {
     PAYMENT_LABELS, WAREHOUSE_LABELS, PRODUCT_LABELS,
     GUARANTEE_LABELS, ORDER_LABELS, API_BASE,
 } from "../../directory/types";
-import type { Payment, Warehouses, Products, Guarantees, GuaranteeTexts, OrderTypes } from "../../directory/types";
+import type { Payment, Warehouses, Products, Guarantees, OrderTypes } from "../../directory/types";
 
 interface VendorData {
     payment: Payment;
     warehouses: Warehouses;
     products: Products;
     guarantees: Guarantees;
-    guaranteeTexts: GuaranteeTexts;
+    // purity/volume are numeric percentages (held as form strings); reship note
+    purityPct: string;
+    volumePct: string;
+    reshipText: string;
     orderTypes: OrderTypes;
     shippingTime: string;
     freeShipping: boolean;
@@ -28,12 +31,16 @@ const defaultData = (): VendorData => ({
     warehouses: { ...defWh },
     products: { ...defPr },
     guarantees: { ...defGu },
-    guaranteeTexts: { ...defGuText },
+    purityPct: "",
+    volumePct: "",
+    reshipText: "",
     orderTypes: { ...defOr },
     shippingTime: "",
     freeShipping: false,
     freeShippingThreshold: "",
 });
+
+const numToStr = (v: unknown) => (typeof v === "number" ? String(v) : "");
 
 function apiToData(c: any): VendorData {
     const apiGu = c.guarantee ?? {};
@@ -46,15 +53,13 @@ function apiToData(c: any): VendorData {
             volume: apiGu.volume ?? false,
             reship: apiGu.reship ?? false,
         },
-        guaranteeTexts: {
-            purity: apiGu.purityDesc ?? defGuText.purity,
-            volume: apiGu.volumeDesc ?? defGuText.volume,
-            reship: apiGu.reshipDesc ?? defGuText.reship,
-        },
+        purityPct: numToStr(apiGu.purityPct),
+        volumePct: numToStr(apiGu.volumePct),
+        reshipText: apiGu.reshipDesc ?? "",
         orderTypes: { ...defOr, ...(c.orderTypes ?? {}) },
         shippingTime: c.shippingTime ?? "",
         freeShipping: c.freeShipping ?? false,
-        freeShippingThreshold: c.freeShippingThreshold ?? "",
+        freeShippingThreshold: numToStr(c.freeShippingThreshold),
     };
 }
 
@@ -64,14 +69,14 @@ function buildPayload(form: VendorData, isReseller: boolean) {
         warehouses: form.warehouses,
         products: form.products,
         guarantee: {
-            purity: form.guarantees.purity, purityDesc: form.guaranteeTexts.purity,
-            volume: form.guarantees.volume, volumeDesc: form.guaranteeTexts.volume,
-            reship: form.guarantees.reship, reshipDesc: form.guaranteeTexts.reship,
+            purity: form.guarantees.purity, purityPct: form.purityPct ? Number(form.purityPct) : null,
+            volume: form.guarantees.volume, volumePct: form.volumePct ? Number(form.volumePct) : null,
+            reship: form.guarantees.reship, reshipDesc: form.reshipText,
         },
         orderTypes: isReseller ? form.orderTypes : undefined,
         shippingTime: form.shippingTime || undefined,
         freeShipping: form.freeShipping,
-        freeShippingThreshold: form.freeShippingThreshold || undefined,
+        freeShippingThreshold: form.freeShippingThreshold ? Number(form.freeShippingThreshold) : undefined,
     };
 }
 
@@ -214,10 +219,14 @@ export const VendorInfo = observer(({ server }: Props) => {
 
                 <div style={S.divider} />
 
-                {/* Guarantees */}
+                {/* Guarantees — purity/volume are numeric %, reship is a note */}
                 <div style={S.section}>
                     <div style={S.label}>Guarantees</div>
-                    {(["purity", "volume", "reship"] as const).map((k) => (
+                    {([
+                        { k: "purity", field: "purityPct", numeric: true },
+                        { k: "volume", field: "volumePct", numeric: true },
+                        { k: "reship", field: "reshipText", numeric: false },
+                    ] as const).map(({ k, field, numeric }) => (
                         <div key={k} style={{ marginBottom: "12px" }}>
                             <label style={S.checkItem(form.guarantees[k])}>
                                 <input type="checkbox" style={{ display: "none" }} checked={form.guarantees[k]}
@@ -225,10 +234,13 @@ export const VendorInfo = observer(({ server }: Props) => {
                                 {GUARANTEE_LABELS[k]}
                             </label>
                             <input
-                                type="text"
+                                type={numeric ? "number" : "text"}
+                                min={numeric ? 0 : undefined}
+                                max={numeric ? 100 : undefined}
+                                placeholder={numeric ? "% e.g. 99" : "e.g. reship if seized by customs"}
                                 style={{ ...S.input, marginTop: "4px", fontSize: "12px" }}
-                                value={form.guaranteeTexts[k]}
-                                onInput={(e) => setForm((f) => ({ ...f, guaranteeTexts: { ...f.guaranteeTexts, [k]: (e.target as HTMLInputElement).value } }))}
+                                value={form[field]}
+                                onInput={(e) => setForm((f) => ({ ...f, [field]: (e.target as HTMLInputElement).value }))}
                             />
                         </div>
                     ))}
@@ -243,7 +255,7 @@ export const VendorInfo = observer(({ server }: Props) => {
                         <input type="text" style={S.input} placeholder="Shipping time e.g. 3-5 days"
                             value={form.shippingTime}
                             onInput={(e) => setForm((f) => ({ ...f, shippingTime: (e.target as HTMLInputElement).value }))} />
-                        <input type="text" style={S.input} placeholder="Free shipping threshold e.g. $150"
+                        <input type="number" min={0} style={S.input} placeholder="Free shipping threshold e.g. 150"
                             value={form.freeShippingThreshold}
                             onInput={(e) => setForm((f) => ({ ...f, freeShippingThreshold: (e.target as HTMLInputElement).value }))} />
                     </div>

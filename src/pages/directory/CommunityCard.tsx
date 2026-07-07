@@ -266,14 +266,14 @@ export function CommunityCard({
                         {c.freeShipping && (
                             <InfoLine>
                                 <Badge $v="green">Free Shipping</Badge>
-                                {c.freeShippingThreshold && (
+                                {c.freeShippingThreshold != null && (
                                     <span
                                         style={{
                                             fontSize: "var(--font-size-caption-1)",
                                             marginLeft: "var(--space-2)",
                                             color: "var(--tertiary-foreground)",
                                         }}>
-                                        over {c.freeShippingThreshold}
+                                        over ${c.freeShippingThreshold}
                                     </span>
                                 )}
                             </InfoLine>
@@ -337,7 +337,7 @@ export function CommunityRow({
                     {isReseller && <td>{c.orderTypes ? <OrderBadges orderTypes={c.orderTypes} /> : <span style={{ color: "var(--tertiary-foreground)" }}>—</span>}</td>}
                     <td>
                         {c.freeShipping
-                            ? <Badge $v="green">✓ {c.freeShippingThreshold || "Yes"}</Badge>
+                            ? <Badge $v="green">✓ {c.freeShippingThreshold != null ? `$${c.freeShippingThreshold}` : "Yes"}</Badge>
                             : <span style={{ color: "var(--tertiary-foreground)" }}>—</span>}
                     </td>
                     <td style={{ whiteSpace: "nowrap", color: "var(--color-text-primary)" }}>{c.shippingTime}</td>
