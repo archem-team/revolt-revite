@@ -30,6 +30,7 @@ import { Invites } from "./server/Invites";
 import { Members } from "./server/Members";
 import { Overview } from "./server/Overview";
 import { Roles } from "./server/Roles";
+import { CatalogManage } from "./server/CatalogManage";
 import { VendorInfo } from "./server/VendorInfo";
 
 export default observer(() => {
@@ -90,6 +91,12 @@ export default observer(() => {
                         title: <span>Vendor Info</span>,
                     }]
                     : []),
+                ...(server.owner === client.user?._id ? [{
+                    category: <div>Directory</div>,
+                    id: "catalog",
+                    icon: <ListUl size={20} />,
+                    title: <span>Product Catalog</span>,
+                }] : []),
                 {
                     category: (
                         <Text id="app.settings.server_pages.management.title" />
@@ -145,6 +152,9 @@ export default observer(() => {
                     </Route>
                     <Route path="/server/:server/settings/vendor-info">
                         <VendorInfo server={server} />
+                    </Route>
+                    <Route path="/server/:server/settings/catalog">
+                        <CatalogManage server={server} />
                     </Route>
                     <Route>
                         <Overview server={server} />
