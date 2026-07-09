@@ -69,8 +69,8 @@ interface VendorInfo {
     categories: string[];
 }
 
-interface CategoryInfo {
-    category: string;
+interface CompoundInfo {
+    compound: string;
     count: number;
     vendorCount: number;
 }
@@ -234,6 +234,10 @@ const CategoryList = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2px;
+    /* Compound list can run long — keep it scrollable within the sidebar. */
+    max-height: min(55vh, 480px);
+    overflow-y: auto;
+    scrollbar-width: thin;
 `;
 
 const CategoryRow = styled.button<{ active: boolean }>`
@@ -910,7 +914,7 @@ function useDebounced<T>(value: T, delay: number): T {
     return debounced;
 }
 
-const CATEGORY_ALL = "all";
+const COMPOUND_ALL = "all";
 const PAGE_SIZE = 24;
 
 // ─── Detail modal component ───────────────────────────────────────────────────
@@ -1129,12 +1133,12 @@ const ProductModal = observer(
 const Catalog: React.FC = () => {
     const client = useClient();
     const [items, setItems] = useState<CatalogItem[]>([]);
-    const [categories, setCategories] = useState<CategoryInfo[]>([]);
+    const [compounds, setCompounds] = useState<CompoundInfo[]>([]);
     const [vendors, setVendors] = useState<Map<string, VendorInfo>>(new Map());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [queryInput, setQueryInput] = useState("");
-    const [selectedCat, setSelectedCat] = useState(CATEGORY_ALL);
+    const [selectedCompound, setSelectedCompound] = useState(COMPOUND_ALL);
     const [minInput, setMinInput] = useState("");
     const [maxInput, setMaxInput] = useState("");
     const [sort, setSort] = useState("newest");
@@ -1164,15 +1168,15 @@ const Catalog: React.FC = () => {
 
     // Facets: cached copy first, revalidate in the background.
     useEffect(() => {
-        const catCache = readCache<CategoryInfo[]>("catalog_categories");
-        if (catCache) setCategories(catCache.data);
-        if (!catCache?.fresh) {
-            fetch(`${BACKEND_API_BASE}/catalog/categories`, { headers })
+        const compoundCache = readCache<CompoundInfo[]>("catalog_compounds");
+        if (compoundCache) setCompounds(compoundCache.data);
+        if (!compoundCache?.fresh) {
+            fetch(`${BACKEND_API_BASE}/catalog/compounds`, { headers })
                 .then((r) => r.json())
                 .then((res) => {
                     if (res?.success && Array.isArray(res.data)) {
-                        setCategories(res.data);
-                        writeCache("catalog_categories", res.data);
+                        setCompounds(res.data);
+                        writeCache("catalog_compounds", res.data);
                     }
                 })
                 .catch(() => {
@@ -1208,7 +1212,7 @@ const Catalog: React.FC = () => {
     // Reset to the first page whenever a filter changes.
     useEffect(() => {
         setPage(1);
-    }, [query, selectedCat, minPrice, maxPrice, sort]);
+    }, [query, selectedCompound, minPrice, maxPrice, sort]);
 
     // Fetch a page of products.
     useEffect(() => {
@@ -1218,7 +1222,8 @@ const Catalog: React.FC = () => {
 
         const params = new URLSearchParams();
         if (query.trim()) params.set("q", query.trim());
-        if (selectedCat !== CATEGORY_ALL) params.set("category", selectedCat);
+        if (selectedCompound !== COMPOUND_ALL)
+            params.set("compound", selectedCompound);
         if (minPrice) params.set("minPrice", minPrice);
         if (maxPrice) params.set("maxPrice", maxPrice);
         params.set("sort", sort);
@@ -1249,17 +1254,17 @@ const Catalog: React.FC = () => {
         return () => {
             cancelled = true;
         };
-    }, [query, selectedCat, minPrice, maxPrice, sort, page, retryCount]);
+    }, [query, selectedCompound, minPrice, maxPrice, sort, page, retryCount]);
 
     const hasFilters =
         query.trim() !== "" ||
-        selectedCat !== CATEGORY_ALL ||
+        selectedCompound !== COMPOUND_ALL ||
         minPrice !== "" ||
         maxPrice !== "";
 
     const clearFilters = () => {
         setQueryInput("");
-        setSelectedCat(CATEGORY_ALL);
+        setSelectedCompound(COMPOUND_ALL);
         setMinInput("");
         setMaxInput("");
     };
@@ -1345,19 +1350,19 @@ const Catalog: React.FC = () => {
                 </SortSelect>
             </Toolbar>
 
-            {categories.length > 0 && (
+            {compounds.length > 0 && (
                 <ChipRail>
                     <RailChip
-                        active={selectedCat === CATEGORY_ALL}
-                        onClick={() => setSelectedCat(CATEGORY_ALL)}>
+                        active={selectedCompound === COMPOUND_ALL}
+                        onClick={() => setSelectedCompound(COMPOUND_ALL)}>
                         All
                     </RailChip>
-                    {categories.map((c) => (
+                    {compounds.map((c) => (
                         <RailChip
-                            key={c.category}
-                            active={selectedCat === c.category}
-                            onClick={() => setSelectedCat(c.category)}>
-                            {c.category}
+                            key={c.compound}
+                            active={selectedCompound === c.compound}
+                            onClick={() => setSelectedCompound(c.compound)}>
+                            {c.compound}
                         </RailChip>
                     ))}
                 </ChipRail>
@@ -1366,26 +1371,28 @@ const Catalog: React.FC = () => {
             <Body>
                 <Sidebar>
                     {/* A lone "All products" row is noise — only render the
-                        category facet once real categories have loaded. */}
-                    {categories.length > 0 && (
+                        compound facet once it has loaded. */}
+                    {compounds.length > 0 && (
                         <SidebarSection>
-                            <SidebarTitle>Categories</SidebarTitle>
+                            <SidebarTitle>Compounds</SidebarTitle>
                             <CategoryList>
                                 <CategoryRow
-                                    active={selectedCat === CATEGORY_ALL}
+                                    active={selectedCompound === COMPOUND_ALL}
                                     onClick={() =>
-                                        setSelectedCat(CATEGORY_ALL)
+                                        setSelectedCompound(COMPOUND_ALL)
                                     }>
                                     All products
                                 </CategoryRow>
-                                {categories.map((c) => (
+                                {compounds.map((c) => (
                                     <CategoryRow
-                                        key={c.category}
-                                        active={selectedCat === c.category}
+                                        key={c.compound}
+                                        active={
+                                            selectedCompound === c.compound
+                                        }
                                         onClick={() =>
-                                            setSelectedCat(c.category)
+                                            setSelectedCompound(c.compound)
                                         }>
-                                        {c.category}
+                                        {c.compound}
                                         <span className="count">{c.count}</span>
                                     </CategoryRow>
                                 ))}
@@ -1428,8 +1435,8 @@ const Catalog: React.FC = () => {
                         <ResultMeta>
                             {total.toLocaleString()}{" "}
                             {total === 1 ? "product" : "products"}
-                            {selectedCat !== CATEGORY_ALL &&
-                                ` in ${selectedCat}`}
+                            {selectedCompound !== COMPOUND_ALL &&
+                                ` for ${selectedCompound}`}
                         </ResultMeta>
                     )}
 
