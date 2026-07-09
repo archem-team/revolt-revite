@@ -13,6 +13,7 @@ import { CategoryButton, InputBox, Preloader } from "@revoltchat/ui";
 import { PageHeader } from "../../components/ui/Header";
 import { useClient } from "../../controllers/client/ClientController";
 import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
+import Catalog from "./Catalog";
 import Promos from "./Promos";
 import { BACKEND_API_BASE } from "../directory/types";
 
@@ -271,23 +272,38 @@ const Home: React.FC = () => {
     // dropping the user back on Home.
     const history = useHistory();
     const location = useLocation();
-    const tab: "home" | "promos" =
+    const tab: "home" | "promos" | "catalog" =
         new URLSearchParams(location.search).get("tab") === "promos"
             ? "promos"
+            : new URLSearchParams(location.search).get("tab") === "catalog"
+            ? "catalog"
             : "home";
-    const setTab = (next: "home" | "promos") =>
-        history.replace(next === "promos" ? "/?tab=promos" : "/");
+    const setTab = (next: "home" | "promos" | "catalog") =>
+        history.replace(
+            next === "promos" ? "/?tab=promos" :
+            next === "catalog" ? "/?tab=catalog" :
+            "/"
+        );
+
+    // Promos is only mounted once the user first visits the tab, then stays
+    // mounted (hidden via CSS) for the rest of the session so switching back
+    // and forth doesn't re-create its <img> elements — that unmount/remount
+    // was causing vendor logos to visibly reload every time.
+    const [promosVisited, setPromosVisited] = useState(tab === "promos");
+    const [catalogVisited, setCatalogVisited] = useState(tab === "catalog");
+    useEffect(() => {
+        if (tab === "promos") setPromosVisited(true);
+        if (tab === "catalog") setCatalogVisited(true);
+    }, [tab]);
 
     // On mobile the overlapping panels default to the sidebar; when landing on
-    // the Promos tab (e.g. after a refresh), bring the content panel into view
-    // so the user sees the promos rather than the channel list. Deferred to the
+    // the Promos or Catalog tab (e.g. after a refresh), bring the content panel into view
+    // so the user sees the content rather than the channel list. Deferred to the
     // next frame so the panel container has laid out before we scroll it.
     useEffect(() => {
-        if (!isTouchscreenDevice || tab !== "promos") return;
+        if (!isTouchscreenDevice || (tab !== "promos" && tab !== "catalog")) return;
         const raf = requestAnimationFrame(() => {
             const panels = document.querySelector("#app > div > div > div");
-            // No right panel on home, so the max scroll position lands on the
-            // main (content) panel.
             panels?.scrollTo({ left: panels.scrollWidth, behavior: "auto" });
         });
         return () => cancelAnimationFrame(raf);
@@ -492,55 +508,74 @@ const Home: React.FC = () => {
                                 Promos
                                 <NewChip>New</NewChip>
                             </Tab>
+                            <Tab
+                                active={tab === "catalog"}
+                                onClick={() => setTab("catalog")}>
+                                Compound Finder
+                            </Tab>
                         </TabBar>
                     </PageHeader>
                     <div className={styles.homeScreen}>
-                        {tab === "home" ? (
-                            <>
-                                <SearchWrapper>
-                                    <Search
-                                        size={18}
-                                        className="search-icon"
-                                    />
-                                    <InputBox
-                                        palette="secondary"
-                                        value={query}
-                                        onChange={(e) =>
-                                            setQuery(e.currentTarget.value)
-                                        }
-                                        placeholder="Search communities…"
-                                    />
-                                    {query && (
-                                        <div
-                                            className="clear"
-                                            onClick={() => setQuery("")}>
-                                            <X size={18} />
-                                        </div>
-                                    )}
-                                </SearchWrapper>
-                                {loading ? (
-                                    <LoaderWrapper>
-                                        <Preloader type="ring" />
-                                    </LoaderWrapper>
-                                ) : error ? (
-                                    <NoResults>{error}</NoResults>
-                                ) : (
-                                    <>
-                                        <div className={styles.actions}>
-                                            {filteredServers.map(
-                                                renderServerButton,
-                                            )}
-                                        </div>
-                                        {filteredServers.length === 0 && (
-                                            <NoResults>
-                                                No communities found.
-                                            </NoResults>
-                                        )}
-                                    </>
+                        <div
+                            style={{
+                                display: tab === "home" ? undefined : "none",
+                            }}>
+                            <SearchWrapper>
+                                <Search size={18} className="search-icon" />
+                                <InputBox
+                                    palette="secondary"
+                                    value={query}
+                                    onChange={(e) =>
+                                        setQuery(e.currentTarget.value)
+                                    }
+                                    placeholder="Search communities…"
+                                />
+                                {query && (
+                                    <div
+                                        className="clear"
+                                        onClick={() => setQuery("")}>
+                                        <X size={18} />
+                                    </div>
                                 )}
-                            </>
-                        ) : (
-                            <Promos />
+                            </SearchWrapper>
+                            {loading ? (
+                                <LoaderWrapper>
+                                    <Preloader type="ring" />
+                                </LoaderWrapper>
+                            ) : error ? (
+                                <NoResults>{error}</NoResults>
+                            ) : (
+                                <>
+                                    <div className={styles.actions}>
+                                        {filteredServers.map(
+                                            renderServerButton,
+                                        )}
+                                    </div>
+                                    {filteredServers.length === 0 && (
+                                        <NoResults>
+                                            No communities found.
+                                        </NoResults>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                        {promosVisited && (
+                            <div
+                                style={{
+                                    display:
+                                        tab === "promos" ? undefined : "none",
+                                }}>
+                                <Promos />
+                            </div>
+                        )}
+                        {catalogVisited && (
+                            <div
+                                style={{
+                                    display:
+                                        tab === "catalog" ? undefined : "none",
+                                }}>
+                                <Catalog />
+                            </div>
                         )}
                     </div>
                 </div>
