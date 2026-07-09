@@ -15,9 +15,11 @@ RUN yarn install --frozen-lockfile
 COPY . .
 COPY .env.build ./.env
 
-RUN yarn build:deps
 # RUN yarn typecheck # lol no
-RUN yarn build:highmem
+# Build submodules once, then vite build directly. build:ci avoids re-running
+# `yarn install` and `build:deps` (which yarn build/build:highmem would repeat).
+RUN NODE_OPTIONS='--max-old-space-size=12288' yarn build:deps
+RUN NODE_OPTIONS='--max-old-space-size=12288' yarn build:ci
 RUN yarn workspaces focus --production --all
 
 FROM node:16-alpine
