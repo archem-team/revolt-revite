@@ -12,9 +12,12 @@ import type { Theme } from "./Theme";
  * Theme bases that are generated dynamically (Material You) rather than read
  * from the static PRESETS table.
  */
-export const MATERIAL_YOU_BASES = ["materialYouLight", "materialYouDark"] as const;
+export const MATERIAL_YOU_BASES = [
+    "materialYouLight",
+    "materialYouDark",
+] as const;
 
-export type MaterialYouBase = (typeof MATERIAL_YOU_BASES)[number];
+export type MaterialYouBase = typeof MATERIAL_YOU_BASES[number];
 
 /**
  * Check whether a theme base is one of the dynamic Material You bases.
@@ -131,7 +134,11 @@ export function createMaterialYouTheme(
      * mode (the chat panel must sit above the canvas in both), so these tones
      * are chosen per mode instead of mirrored.
      */
-    function tone(base: keyof Scheme, lightTone: number, darkTone: number): string {
+    function tone(
+        base: keyof Scheme,
+        lightTone: number,
+        darkTone: number,
+    ): string {
         return hexFromArgb(
             toneScheme[base].tone(darkMode ? darkTone : lightTone),
         );

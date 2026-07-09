@@ -180,13 +180,13 @@ export const Form = observer(({ page, callback }: Props) => {
                 {(page === "login" ||
                     page === "create" ||
                     page === "reset") && (
-                        <FormField
-                            type="password"
-                            register={register}
-                            showOverline
-                            error={errors.password?.message}
-                        />
-                    )}
+                    <FormField
+                        type="password"
+                        register={register}
+                        showOverline
+                        error={errors.password?.message}
+                    />
+                )}
                 {configuration?.features.invite_only && page === "create" && (
                     <FormField
                         type="invite"
@@ -208,12 +208,12 @@ export const Form = observer(({ page, callback }: Props) => {
                             page === "create"
                                 ? "login.register"
                                 : page === "login"
-                                    ? "login.title"
-                                    : page === "reset"
-                                        ? "login.set_password"
-                                        : page === "resend"
-                                            ? "login.resend"
-                                            : "login.reset"
+                                ? "login.title"
+                                : page === "reset"
+                                ? "login.set_password"
+                                : page === "resend"
+                                ? "login.resend"
+                                : "login.reset"
                         }
                     />
                 </Button>
@@ -256,14 +256,14 @@ export const Form = observer(({ page, callback }: Props) => {
             {(page === "reset" ||
                 page === "resend" ||
                 page === "send_reset") && (
-                    <>
-                        <span className={styles.create}>
-                            <Link to="/login">
-                                <Text id="login.remembered" />
-                            </Link>
-                        </span>
-                    </>
-                )}
+                <>
+                    <span className={styles.create}>
+                        <Link to="/login">
+                            <Text id="login.remembered" />
+                        </Link>
+                    </span>
+                </>
+            )}
         </div>
     );
 });

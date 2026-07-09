@@ -24,13 +24,13 @@ import RequiresOnline from "../../controllers/client/jsx/RequiresOnline";
 import { modalController } from "../../controllers/modals/ModalController";
 import { GenericSettings } from "./GenericSettings";
 import { Bans } from "./server/Bans";
+import { CatalogManage } from "./server/CatalogManage";
 import { Categories } from "./server/Categories";
 import { Emojis } from "./server/Emojis";
 import { Invites } from "./server/Invites";
 import { Members } from "./server/Members";
 import { Overview } from "./server/Overview";
 import { Roles } from "./server/Roles";
-import { CatalogManage } from "./server/CatalogManage";
 import { VendorInfo } from "./server/VendorInfo";
 
 export default observer(() => {
@@ -83,20 +83,26 @@ export default observer(() => {
                     title: <Text id="app.settings.server_pages.emojis.title" />,
                 },
                 // Vendor Info tab — only for Verified GB / Verified Vendor servers
-                ...(server.flags && (server.flags & 3)
-                    ? [{
-                        category: <div>Directory</div>,
-                        id: "vendor-info",
-                        icon: <InfoCircle size={20} />,
-                        title: <span>Vendor Info</span>,
-                    }]
+                ...(server.flags && server.flags & 3
+                    ? [
+                          {
+                              category: <div>Directory</div>,
+                              id: "vendor-info",
+                              icon: <InfoCircle size={20} />,
+                              title: <span>Vendor Info</span>,
+                          },
+                      ]
                     : []),
-                ...(server.owner === client.user?._id ? [{
-                    category: <div>Directory</div>,
-                    id: "catalog",
-                    icon: <ListUl size={20} />,
-                    title: <span>Product Catalog</span>,
-                }] : []),
+                ...(server.owner === client.user?._id
+                    ? [
+                          {
+                              category: <div>Directory</div>,
+                              id: "catalog",
+                              icon: <ListUl size={20} />,
+                              title: <span>Product Catalog</span>,
+                          },
+                      ]
+                    : []),
                 {
                     category: (
                         <Text id="app.settings.server_pages.management.title" />

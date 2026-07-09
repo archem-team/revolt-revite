@@ -250,11 +250,8 @@ const CategoryRow = styled.button<{ active: boolean }>`
     text-align: left;
     cursor: pointer;
     color: ${(props) =>
-        props.active
-            ? "var(--accent-contrast, #11171c)"
-            : "var(--foreground)"};
-    background: ${(props) =>
-        props.active ? "var(--accent)" : "transparent"};
+        props.active ? "var(--accent-contrast, #11171c)" : "var(--foreground)"};
+    background: ${(props) => (props.active ? "var(--accent)" : "transparent")};
     transition: background 0.1s ease-in-out;
 
     &:hover {
@@ -338,9 +335,7 @@ const RailChip = styled.button<{ active: boolean }>`
     cursor: pointer;
     white-space: nowrap;
     color: ${(props) =>
-        props.active
-            ? "var(--accent-contrast, #11171c)"
-            : "var(--foreground)"};
+        props.active ? "var(--accent-contrast, #11171c)" : "var(--foreground)"};
     background: ${(props) =>
         props.active ? "var(--accent)" : "var(--secondary-background)"};
 `;
@@ -1036,9 +1031,7 @@ const ProductModal = observer(
                                         <img
                                             src={logoUrl}
                                             loading="lazy"
-                                            onError={() =>
-                                                setLogoFailed(true)
-                                            }
+                                            onError={() => setLogoFailed(true)}
                                         />
                                     ) : (
                                         <div className="glyph">
@@ -1149,6 +1142,7 @@ const Catalog: React.FC = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
     const [openId, setOpenId] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
 
     // Debounce free-typed filters so we don't refetch per keystroke.
     const query = useDebounced(queryInput, 300);
@@ -1188,9 +1182,7 @@ const Catalog: React.FC = () => {
 
         const vendorCache = readCache<VendorInfo[]>("catalog_vendors");
         if (vendorCache)
-            setVendors(
-                new Map(vendorCache.data.map((v) => [v.serverId, v])),
-            );
+            setVendors(new Map(vendorCache.data.map((v) => [v.serverId, v])));
         if (!vendorCache?.fresh) {
             fetch(`${BACKEND_API_BASE}/catalog/vendors`, { headers })
                 .then((r) => r.json())
@@ -1234,7 +1226,10 @@ const Catalog: React.FC = () => {
         params.set("pageSize", String(PAGE_SIZE));
 
         fetch(`${BACKEND_API_BASE}/catalog?${params}`, { headers })
-            .then((r) => r.json())
+            .then((r) => {
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return r.json();
+            })
             .then((res: CatalogResponse) => {
                 if (cancelled) return;
                 if (!res?.success || !Array.isArray(res.data?.items)) {
@@ -1254,7 +1249,7 @@ const Catalog: React.FC = () => {
         return () => {
             cancelled = true;
         };
-    }, [query, selectedCat, minPrice, maxPrice, sort, page]);
+    }, [query, selectedCat, minPrice, maxPrice, sort, page, retryCount]);
 
     const hasFilters =
         query.trim() !== "" ||
@@ -1333,7 +1328,9 @@ const Catalog: React.FC = () => {
                         placeholder="Search compounds and products…"
                     />
                     {queryInput && (
-                        <div className="clear" onClick={() => setQueryInput("")}>
+                        <div
+                            className="clear"
+                            onClick={() => setQueryInput("")}>
                             <X size={18} />
                         </div>
                     )}
@@ -1348,45 +1345,53 @@ const Catalog: React.FC = () => {
                 </SortSelect>
             </Toolbar>
 
-            <ChipRail>
-                <RailChip
-                    active={selectedCat === CATEGORY_ALL}
-                    onClick={() => setSelectedCat(CATEGORY_ALL)}>
-                    All
-                </RailChip>
-                {categories.map((c) => (
+            {categories.length > 0 && (
+                <ChipRail>
                     <RailChip
-                        key={c.category}
-                        active={selectedCat === c.category}
-                        onClick={() => setSelectedCat(c.category)}>
-                        {c.category}
+                        active={selectedCat === CATEGORY_ALL}
+                        onClick={() => setSelectedCat(CATEGORY_ALL)}>
+                        All
                     </RailChip>
-                ))}
-            </ChipRail>
+                    {categories.map((c) => (
+                        <RailChip
+                            key={c.category}
+                            active={selectedCat === c.category}
+                            onClick={() => setSelectedCat(c.category)}>
+                            {c.category}
+                        </RailChip>
+                    ))}
+                </ChipRail>
+            )}
 
             <Body>
                 <Sidebar>
-                    <SidebarSection>
-                        <SidebarTitle>Categories</SidebarTitle>
-                        <CategoryList>
-                            <CategoryRow
-                                active={selectedCat === CATEGORY_ALL}
-                                onClick={() => setSelectedCat(CATEGORY_ALL)}>
-                                All products
-                            </CategoryRow>
-                            {categories.map((c) => (
+                    {/* A lone "All products" row is noise — only render the
+                        category facet once real categories have loaded. */}
+                    {categories.length > 0 && (
+                        <SidebarSection>
+                            <SidebarTitle>Categories</SidebarTitle>
+                            <CategoryList>
                                 <CategoryRow
-                                    key={c.category}
-                                    active={selectedCat === c.category}
+                                    active={selectedCat === CATEGORY_ALL}
                                     onClick={() =>
-                                        setSelectedCat(c.category)
+                                        setSelectedCat(CATEGORY_ALL)
                                     }>
-                                    {c.category}
-                                    <span className="count">{c.count}</span>
+                                    All products
                                 </CategoryRow>
-                            ))}
-                        </CategoryList>
-                    </SidebarSection>
+                                {categories.map((c) => (
+                                    <CategoryRow
+                                        key={c.category}
+                                        active={selectedCat === c.category}
+                                        onClick={() =>
+                                            setSelectedCat(c.category)
+                                        }>
+                                        {c.category}
+                                        <span className="count">{c.count}</span>
+                                    </CategoryRow>
+                                ))}
+                            </CategoryList>
+                        </SidebarSection>
+                    )}
 
                     <SidebarSection>
                         <SidebarTitle>Price</SidebarTitle>
@@ -1435,7 +1440,24 @@ const Catalog: React.FC = () => {
                             ))}
                         </Grid>
                     ) : error ? (
-                        <Centered>{error}</Centered>
+                        <Empty>
+                            <Glyph>
+                                <Store size={40} />
+                            </Glyph>
+                            <h3>Couldn&rsquo;t load the catalog</h3>
+                            <p>
+                                Something went wrong while fetching products.
+                                Check your connection and try again.
+                            </p>
+                            <div className="cta">
+                                <Button
+                                    compact
+                                    palette="secondary"
+                                    onClick={() => setRetryCount((c) => c + 1)}>
+                                    Retry
+                                </Button>
+                            </div>
+                        </Empty>
                     ) : items.length === 0 ? (
                         hasFilters ? (
                             <Empty>
@@ -1481,9 +1503,7 @@ const Catalog: React.FC = () => {
                                 <Pagination>
                                     <button
                                         disabled={page <= 1}
-                                        onClick={() =>
-                                            setPage((p) => p - 1)
-                                        }>
+                                        onClick={() => setPage((p) => p - 1)}>
                                         Previous
                                     </button>
                                     <span>
@@ -1491,9 +1511,7 @@ const Catalog: React.FC = () => {
                                     </span>
                                     <button
                                         disabled={page >= totalPages}
-                                        onClick={() =>
-                                            setPage((p) => p + 1)
-                                        }>
+                                        onClick={() => setPage((p) => p + 1)}>
                                         Next
                                     </button>
                                 </Pagination>

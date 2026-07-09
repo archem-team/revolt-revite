@@ -10,12 +10,13 @@ import { Text } from "preact-i18n";
 
 import { CategoryButton, InputBox, Preloader } from "@revoltchat/ui";
 
+import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
+
 import { PageHeader } from "../../components/ui/Header";
 import { useClient } from "../../controllers/client/ClientController";
-import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
+import { BACKEND_API_BASE } from "../directory/types";
 import Catalog from "./Catalog";
 import Promos from "./Promos";
-import { BACKEND_API_BASE } from "../directory/types";
 
 const Overlay = styled.div`
     display: grid;
@@ -70,11 +71,11 @@ const NewServerWrapper = styled.div`
 
 // Dynamic color wrapper component
 const ColorWrapper = styled.div<{ color: string }>`
-    color: ${props => props.color};
+    color: ${(props) => props.color};
     display: contents;
 
     a {
-        color: ${props => props.color};
+        color: ${(props) => props.color};
     }
 `;
 
@@ -226,7 +227,6 @@ const NewChip = styled.span`
     background: var(--accent);
 `;
 
-
 // Holds the circular loader in the content area while the directory loads,
 // so the header and search bar above it stay mounted.
 const LoaderWrapper = styled.div`
@@ -280,9 +280,11 @@ const Home: React.FC = () => {
             : "home";
     const setTab = (next: "home" | "promos" | "catalog") =>
         history.replace(
-            next === "promos" ? "/?tab=promos" :
-            next === "catalog" ? "/?tab=catalog" :
-            "/"
+            next === "promos"
+                ? "/?tab=promos"
+                : next === "catalog"
+                ? "/?tab=catalog"
+                : "/",
         );
 
     // Promos is only mounted once the user first visits the tab, then stays
@@ -301,7 +303,8 @@ const Home: React.FC = () => {
     // so the user sees the content rather than the channel list. Deferred to the
     // next frame so the panel container has laid out before we scroll it.
     useEffect(() => {
-        if (!isTouchscreenDevice || (tab !== "promos" && tab !== "catalog")) return;
+        if (!isTouchscreenDevice || (tab !== "promos" && tab !== "catalog"))
+            return;
         const raf = requestAnimationFrame(() => {
             const panels = document.querySelector("#app > div > div > div");
             panels?.scrollTo({ left: panels.scrollWidth, behavior: "auto" });
@@ -349,10 +352,14 @@ const Home: React.FC = () => {
         const serversUrl = `${BACKEND_API_BASE}/directory/servers`;
 
         try {
-            const serversRes = await fetch(serversUrl, { headers: authHeaders });
+            const serversRes = await fetch(serversUrl, {
+                headers: authHeaders,
+            });
 
             if (!serversRes.ok) {
-                throw new Error(`Servers request failed with status ${serversRes.status}`);
+                throw new Error(
+                    `Servers request failed with status ${serversRes.status}`,
+                );
             }
 
             const serversJson = await serversRes.json();
@@ -367,12 +374,16 @@ const Home: React.FC = () => {
             // the communities endpoint, whose paginated listing could silently
             // drop unrated (new) servers and leave them without a logo.
             {
-                const autumnUrl = client.configuration?.features.autumn?.url ||
+                const autumnUrl =
+                    client.configuration?.features.autumn?.url ||
                     "https://peptide.chat/autumn";
 
                 servers = servers.map((s) =>
                     s.logo
-                        ? { ...s, logo: `${autumnUrl}/icons/${s.logo}?max_side=256` }
+                        ? {
+                              ...s,
+                              logo: `${autumnUrl}/icons/${s.logo}?max_side=256`,
+                          }
                         : s,
                 );
             }
@@ -483,7 +494,9 @@ const Home: React.FC = () => {
         );
 
         if (server.showcolor && server.showcolor.trim()) {
-            content = <ColorWrapper color={server.showcolor}>{content}</ColorWrapper>;
+            content = (
+                <ColorWrapper color={server.showcolor}>{content}</ColorWrapper>
+            );
         } else if (server.new) {
             content = <NewServerWrapper>{content}</NewServerWrapper>;
         }
@@ -559,9 +572,13 @@ const Home: React.FC = () => {
                                 </>
                             )}
                         </div>
+                        {/* .homeScreen centers children (align-items: center),
+                            so tab panes must claim the full row width or the
+                            content shrinks to fit and floats mid-screen. */}
                         {promosVisited && (
                             <div
                                 style={{
+                                    width: "100%",
                                     display:
                                         tab === "promos" ? undefined : "none",
                                 }}>
@@ -571,6 +588,7 @@ const Home: React.FC = () => {
                         {catalogVisited && (
                             <div
                                 style={{
+                                    width: "100%",
                                     display:
                                         tab === "catalog" ? undefined : "none",
                                 }}>

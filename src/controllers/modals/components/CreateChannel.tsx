@@ -32,7 +32,7 @@ export default function CreateChannel({
             }}
             callback={async ({ name }) => {
                 const channel = await target.createChannel({
-					type: "Text",
+                    type: "Text",
                     name,
                 });
 

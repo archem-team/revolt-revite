@@ -171,9 +171,7 @@ export default function App() {
                         height: 50,
                     }}
                     docked={isTouchscreenDevice ? Docked.None : Docked.Left}>
-                    <Routes
-                        borders={inServer}
-                        panel={!(inChannel || inServer)}>
+                    <Routes borders={inServer} panel={!(inChannel || inServer)}>
                         <Switch>
                             <Route
                                 path="/server/:server/channel/:channel/settings/:page"

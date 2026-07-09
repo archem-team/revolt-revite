@@ -2,6 +2,7 @@ import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useHistory, useParams } from "react-router-dom";
 import { Channel } from "revolt.js";
+import { Message } from "revolt.js/esm";
 import styled from "styled-components/macro";
 import useResizeObserver from "use-resize-observer";
 
@@ -22,12 +23,14 @@ import { internalEmit, internalSubscribe } from "../../../lib/eventEmitter";
 import { getRenderer } from "../../../lib/renderer/Singleton";
 import { ScrollState } from "../../../lib/renderer/types";
 
-import { useClient, useSession } from "../../../controllers/client/ClientController";
+import {
+    useClient,
+    useSession,
+} from "../../../controllers/client/ClientController";
 import RequiresOnline from "../../../controllers/client/jsx/RequiresOnline";
 import { modalController } from "../../../controllers/modals/ModalController";
 import ConversationStart from "./ConversationStart";
 import MessageRenderer from "./MessageRenderer";
-import { Message } from "revolt.js/esm";
 
 const Area = styled.div.attrs({ "data-scroll-offset": "with-padding" })`
     height: 100%;
@@ -166,27 +169,28 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
             ? ref.current.scrollTop <=
               ref.current.clientHeight - ref.current.scrollHeight + offset
             : false;
-    const client = useClient()
+    const client = useClient();
     function pin(message: Message) {
-        client.api.post(`/channels/${message.channel_id}/messages/${message._id}/pin` as any)
-        message.is_pinned = true
+        client.api.post(
+            `/channels/${message.channel_id}/messages/${message._id}/pin` as any,
+        );
+        message.is_pinned = true;
     }
 
     function unpin(message: Message) {
-        client.api.delete(`/channels/${message.channel_id}/messages/${message._id}/pin` as any)
-        message.is_pinned = false
+        client.api.delete(
+            `/channels/${message.channel_id}/messages/${message._id}/pin` as any,
+        );
+        message.is_pinned = false;
     }
     // ? Handle global jump to bottom, e.g. when editing last message in chat.
     useEffect(() => {
-
         return internalSubscribe("MessageArea", "jump_to_bottom", () =>
             setScrollState({ type: "ScrollToBottom" }),
         );
     }, [setScrollState]);
 
     useEffect(() => {
-
-
         return internalSubscribe(
             "MessageBox",
             "pin",
@@ -194,8 +198,6 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
         );
     }, []);
     useEffect(() => {
-
-
         return internalSubscribe(
             "MessageBox",
             "unpin",

@@ -92,7 +92,7 @@ export const Badge = styled.span<{ $v?: BV }>`
     }
 
     &[data-guarantee-chip][data-tip]::after {
-        background: #1C1720;
+        background: #1c1720;
         color: var(--color-text-primary);
         border-color: #49454c;
     }
@@ -385,13 +385,13 @@ export const Table = styled.table`
         padding: var(--space-2) var(--space-3);
         border-top: 1px solid var(--dir-border-table);
         vertical-align: middle;
-        background: #06000A ;
+        background: #06000a;
         color: var(--color-text-primary);
         transition: color 0.12s;
     }
 
     tbody tr:hover td {
-        background: #1C1720;
+        background: #1c1720;
     }
 `;
 

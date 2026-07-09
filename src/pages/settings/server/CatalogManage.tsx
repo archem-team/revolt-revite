@@ -474,9 +474,8 @@ function ProductForm({
                                 value={v.dosage ?? ""}
                                 onInput={(e) =>
                                     updateVar(i, {
-                                        dosage: (
-                                            e.target as HTMLInputElement
-                                        ).value,
+                                        dosage: (e.target as HTMLInputElement)
+                                            .value,
                                     })
                                 }
                             />
@@ -491,9 +490,8 @@ function ProductForm({
                                     updateVar(i, {
                                         price:
                                             parseFloat(
-                                                (
-                                                    e.target as HTMLInputElement
-                                                ).value,
+                                                (e.target as HTMLInputElement)
+                                                    .value,
                                             ) || 0,
                                     })
                                 }
@@ -516,9 +514,8 @@ function ProductForm({
                                 value={v.unit ?? ""}
                                 onInput={(e) =>
                                     updateVar(i, {
-                                        unit: (
-                                            e.target as HTMLInputElement
-                                        ).value,
+                                        unit: (e.target as HTMLInputElement)
+                                            .value,
                                     })
                                 }
                             />
@@ -618,7 +615,8 @@ export const CatalogManage = observer(({ server }: Props) => {
             const res = await r.json();
             if (!r.ok)
                 throw new Error(
-                    res?.error || (id ? "Failed to update" : "Failed to create"),
+                    res?.error ||
+                        (id ? "Failed to update" : "Failed to create"),
                 );
             setShowNewForm(false);
             setEditingId(null);
@@ -705,8 +703,8 @@ export const CatalogManage = observer(({ server }: Props) => {
                     <h4>No products listed yet</h4>
                     <p>
                         Add your first product and it will show up in the
-                        Compound Finder, where every user can browse and
-                        compare prices.
+                        Compound Finder, where every user can browse and compare
+                        prices.
                     </p>
                     <div className="cta">
                         <Button

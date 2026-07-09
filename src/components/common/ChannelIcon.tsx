@@ -4,9 +4,8 @@ import { Channel } from "revolt.js";
 
 import fallback from "./assets/group.png";
 
-import { Grid3x3 } from "./Grid3x3";
-
 import { useClient } from "../../controllers/client/ClientController";
+import { Grid3x3 } from "./Grid3x3";
 import { ImageIconBase, IconBaseProps } from "./IconBase";
 
 interface Props extends IconBaseProps<Channel> {
@@ -37,9 +36,7 @@ export default observer(
             animate,
         );
         const isServerChannel =
-            server ||
-            (target &&
-                (target.channel_type === "TextChannel"));
+            server || (target && target.channel_type === "TextChannel");
 
         if (typeof iconURL === "undefined") {
             if (isServerChannel) {
