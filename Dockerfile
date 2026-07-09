@@ -12,13 +12,19 @@ COPY external/components/package.json external/components/
 COPY external/revolt.js/package.json external/revolt.js/
 RUN yarn install --frozen-lockfile
 
+# Build the submodules in their own layer keyed only on submodule sources.
+# App-code (src/) changes no longer invalidate this ~3min step — only a real
+# change under external/* does. The built outputs (esm/dist) are kept out of
+# the later `COPY . .` via .dockerignore so they survive that copy.
+COPY external/components external/components
+COPY external/revolt.js external/revolt.js
+RUN NODE_OPTIONS='--max-old-space-size=12288' yarn build:deps
+
 COPY . .
 COPY .env.build ./.env
 
 # RUN yarn typecheck # lol no
-# Build submodules once, then vite build directly. build:ci avoids re-running
-# `yarn install` and `build:deps` (which yarn build/build:highmem would repeat).
-RUN NODE_OPTIONS='--max-old-space-size=12288' yarn build:deps
+# vite build only — build:ci skips the redundant yarn install + build:deps.
 RUN NODE_OPTIONS='--max-old-space-size=12288' yarn build:ci
 RUN yarn workspaces focus --production --all
 
