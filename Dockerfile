@@ -1,4 +1,4 @@
-FROM node:16-buster AS builder
+FROM node:24-bookworm-slim AS builder
 ENV NODE_OPTIONS="--max_old_space_size=12288"
 WORKDIR /usr/src/app
 
@@ -22,7 +22,7 @@ RUN NODE_OPTIONS='--max-old-space-size=12288' yarn build:deps
 RUN NODE_OPTIONS='--max-old-space-size=12288' yarn build:ci
 RUN yarn workspaces focus --production --all
 
-FROM node:16-alpine
+FROM node:24-alpine
 WORKDIR /usr/src/app
 COPY --from=builder /usr/src/app .
 
