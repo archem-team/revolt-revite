@@ -27,13 +27,14 @@ import {
     Pagination,
 } from "./catalog/layout";
 import {
-    COMPOUND_ALL,
+    DOSAGE_ALL,
     CatalogItem,
     CatalogResponse,
-    CompoundInfo,
+    DosageInfo,
     PAGE_SIZE,
     VendorInfo,
     readCache,
+    sortDosages,
     useDebounced,
     writeCache,
 } from "./catalog/utils";
@@ -41,12 +42,12 @@ import {
 const Catalog: React.FC = () => {
     const client = useClient();
     const [items, setItems] = useState<CatalogItem[]>([]);
-    const [compounds, setCompounds] = useState<CompoundInfo[]>([]);
+    const [dosages, setDosages] = useState<DosageInfo[]>([]);
     const [vendors, setVendors] = useState<Map<string, VendorInfo>>(new Map());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [queryInput, setQueryInput] = useState("");
-    const [selectedCompound, setSelectedCompound] = useState(COMPOUND_ALL);
+    const [selectedDosage, setSelectedDosage] = useState(DOSAGE_ALL);
     const [minInput, setMinInput] = useState("");
     const [maxInput, setMaxInput] = useState("");
     const [sort, setSort] = useState("newest");
@@ -97,10 +98,8 @@ const Catalog: React.FC = () => {
                 });
         };
 
-        facet<CompoundInfo[]>(
-            "/catalog/compounds",
-            "catalog_compounds",
-            setCompounds,
+        facet<DosageInfo[]>("/catalog/dosages", "catalog_dosages", (data) =>
+            setDosages(sortDosages(data)),
         );
         facet<VendorInfo[]>("/catalog/vendors", "catalog_vendors", (data) =>
             setVendors(new Map(data.map((v) => [v.serverId, v]))),
@@ -110,7 +109,7 @@ const Catalog: React.FC = () => {
     // Reset to the first page whenever a filter changes.
     useEffect(() => {
         setPage(1);
-    }, [query, selectedCompound, minPrice, maxPrice, sort]);
+    }, [query, selectedDosage, minPrice, maxPrice, sort]);
 
     // Fetch a page of products.
     useEffect(() => {
@@ -120,8 +119,7 @@ const Catalog: React.FC = () => {
 
         const params = new URLSearchParams();
         if (query.trim()) params.set("q", query.trim());
-        if (selectedCompound !== COMPOUND_ALL)
-            params.set("compound", selectedCompound);
+        if (selectedDosage !== DOSAGE_ALL) params.set("dosage", selectedDosage);
         if (minPrice) params.set("minPrice", minPrice);
         if (maxPrice) params.set("maxPrice", maxPrice);
         params.set("sort", sort);
@@ -152,25 +150,25 @@ const Catalog: React.FC = () => {
         return () => {
             cancelled = true;
         };
-    }, [query, selectedCompound, minPrice, maxPrice, sort, page, retryCount]);
+    }, [query, selectedDosage, minPrice, maxPrice, sort, page, retryCount]);
 
     const hasFilters =
         query.trim() !== "" ||
-        selectedCompound !== COMPOUND_ALL ||
+        selectedDosage !== DOSAGE_ALL ||
         minPrice !== "" ||
         maxPrice !== "";
 
     const clearFilters = () => {
         setQueryInput("");
-        setSelectedCompound(COMPOUND_ALL);
+        setSelectedDosage(DOSAGE_ALL);
         setMinInput("");
         setMaxInput("");
     };
 
     const filterProps = {
-        compounds,
-        selected: selectedCompound,
-        onSelect: setSelectedCompound,
+        dosages,
+        selected: selectedDosage,
+        onSelect: setSelectedDosage,
         minPrice: minInput,
         maxPrice: maxInput,
         onMinPrice: setMinInput,
@@ -216,8 +214,8 @@ const Catalog: React.FC = () => {
                         <ResultMeta>
                             {total.toLocaleString()}{" "}
                             {total === 1 ? "product" : "products"}
-                            {selectedCompound !== COMPOUND_ALL &&
-                                ` for ${selectedCompound}`}
+                            {selectedDosage !== DOSAGE_ALL &&
+                                ` at ${selectedDosage}`}
                         </ResultMeta>
                     )}
 

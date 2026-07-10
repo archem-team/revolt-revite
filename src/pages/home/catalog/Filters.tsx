@@ -1,7 +1,6 @@
 import styled from "styled-components/macro";
 
-import { CompoundDot, compoundHue } from "./CompoundVisual";
-import { COMPOUND_ALL, CompoundInfo } from "./utils";
+import { DOSAGE_ALL, DosageInfo } from "./utils";
 
 // ─── Desktop sidebar ──────────────────────────────────────────────────────────
 
@@ -35,7 +34,7 @@ const List = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2px;
-    /* Compound list can run long — keep it scrollable within the sidebar. */
+    /* Dosage list can run long — keep it scrollable within the sidebar. */
     max-height: min(55vh, 480px);
     overflow-y: auto;
     scrollbar-width: thin;
@@ -118,9 +117,9 @@ const PriceInputs = styled.div`
 `;
 
 export interface FilterProps {
-    compounds: CompoundInfo[];
+    dosages: DosageInfo[];
     selected: string;
-    onSelect: (compound: string) => void;
+    onSelect: (dosage: string) => void;
     minPrice: string;
     maxPrice: string;
     onMinPrice: (value: string) => void;
@@ -159,28 +158,27 @@ function PriceFields({
 }
 
 export function CatalogSidebar(props: FilterProps) {
-    const { compounds, selected, onSelect } = props;
+    const { dosages, selected, onSelect } = props;
     return (
         <SidebarWrap>
             {/* A lone "All products" row is noise — only render the facet
                 once it has loaded. */}
-            {compounds.length > 0 && (
+            {dosages.length > 0 && (
                 <Section>
-                    <Title>Compounds</Title>
+                    <Title>Dosage</Title>
                     <List>
                         <Row
-                            active={selected === COMPOUND_ALL}
-                            onClick={() => onSelect(COMPOUND_ALL)}>
-                            <span className="label">All products</span>
+                            active={selected === DOSAGE_ALL}
+                            onClick={() => onSelect(DOSAGE_ALL)}>
+                            <span className="label">All dosages</span>
                         </Row>
-                        {compounds.map((c) => (
+                        {dosages.map((d) => (
                             <Row
-                                key={c.compound}
-                                active={selected === c.compound}
-                                onClick={() => onSelect(c.compound)}>
-                                <CompoundDot hue={compoundHue(c.compound)} />
-                                <span className="label">{c.compound}</span>
-                                <span className="count">{c.count}</span>
+                                key={d.dosage}
+                                active={selected === d.dosage}
+                                onClick={() => onSelect(d.dosage)}>
+                                <span className="label">{d.dosage}</span>
+                                <span className="count">{d.count}</span>
                             </Row>
                         ))}
                     </List>
@@ -196,7 +194,7 @@ export function CatalogSidebar(props: FilterProps) {
 }
 
 // ─── Mobile filter rail ───────────────────────────────────────────────────────
-// On phones/tablets the sidebar is hidden; compounds become a horizontal chip
+// On phones/tablets the sidebar is hidden; dosages become a horizontal chip
 // rail and the price inputs slot in beside a compact label so every filter
 // stays reachable.
 
@@ -258,23 +256,22 @@ const MobilePriceRow = styled.div`
 `;
 
 export function MobileFilters(props: FilterProps) {
-    const { compounds, selected, onSelect } = props;
+    const { dosages, selected, onSelect } = props;
     return (
         <MobileWrap>
-            {compounds.length > 0 && (
+            {dosages.length > 0 && (
                 <Rail>
                     <Chip
-                        active={selected === COMPOUND_ALL}
-                        onClick={() => onSelect(COMPOUND_ALL)}>
+                        active={selected === DOSAGE_ALL}
+                        onClick={() => onSelect(DOSAGE_ALL)}>
                         All
                     </Chip>
-                    {compounds.map((c) => (
+                    {dosages.map((d) => (
                         <Chip
-                            key={c.compound}
-                            active={selected === c.compound}
-                            onClick={() => onSelect(c.compound)}>
-                            <CompoundDot hue={compoundHue(c.compound)} />
-                            {c.compound}
+                            key={d.dosage}
+                            active={selected === d.dosage}
+                            onClick={() => onSelect(d.dosage)}>
+                            {d.dosage}
                         </Chip>
                     ))}
                 </Rail>

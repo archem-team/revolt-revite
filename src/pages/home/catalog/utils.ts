@@ -53,13 +53,30 @@ export interface VendorInfo {
     categories: string[];
 }
 
-export interface CompoundInfo {
-    compound: string;
+export interface DosageInfo {
+    dosage: string;
     count: number;
     vendorCount: number;
 }
 
-export const COMPOUND_ALL = "all";
+/**
+ * Order dosages the way a shopper expects: grouped by unit, numerically
+ * ascending within it ("5mg", "10mg", "20mg", … then "500iu", "1000iu").
+ */
+export function sortDosages(list: DosageInfo[]): DosageInfo[] {
+    const parse = (d: string): [string, number] => {
+        const m = d.trim().match(/^([\d.]+)\s*(.*)$/);
+        if (!m) return [d.toLowerCase(), Number.MAX_SAFE_INTEGER];
+        return [m[2].toLowerCase(), parseFloat(m[1])];
+    };
+    return [...list].sort((a, b) => {
+        const [ua, na] = parse(a.dosage);
+        const [ub, nb] = parse(b.dosage);
+        return ua === ub ? na - nb : ua.localeCompare(ub);
+    });
+}
+
+export const DOSAGE_ALL = "all";
 export const PAGE_SIZE = 24;
 
 // ─── Caching ──────────────────────────────────────────────────────────────────
