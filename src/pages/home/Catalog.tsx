@@ -30,9 +30,11 @@ import {
     DOSAGE_ALL,
     CatalogItem,
     CatalogResponse,
+    CategoryInfo,
     DosageInfo,
     PAGE_SIZE,
     VendorInfo,
+    deriveVendorFacetCounts,
     readCache,
     sortDosages,
     useDebounced,
@@ -43,11 +45,21 @@ const Catalog: React.FC = () => {
     const client = useClient();
     const [items, setItems] = useState<CatalogItem[]>([]);
     const [dosages, setDosages] = useState<DosageInfo[]>([]);
+    const [categories, setCategories] = useState<CategoryInfo[]>([]);
+    const [vendorList, setVendorList] = useState<VendorInfo[]>([]);
     const [vendors, setVendors] = useState<Map<string, VendorInfo>>(new Map());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [queryInput, setQueryInput] = useState("");
     const [selectedDosage, setSelectedDosage] = useState(DOSAGE_ALL);
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
+    const [verified, setVerified] = useState(false);
+    const [minRating, setMinRating] = useState(0);
+    const [warehouses, setWarehouses] = useState<string[]>([]);
+    const [payment, setPayment] = useState<string[]>([]);
+    const [freeShipping, setFreeShipping] = useState(false);
+    const [guarantees, setGuarantees] = useState<string[]>([]);
     const [minInput, setMinInput] = useState("");
     const [maxInput, setMaxInput] = useState("");
     const [sort, setSort] = useState("newest");
@@ -101,15 +113,48 @@ const Catalog: React.FC = () => {
         facet<DosageInfo[]>("/catalog/dosages", "catalog_dosages", (data) =>
             setDosages(sortDosages(data)),
         );
-        facet<VendorInfo[]>("/catalog/vendors", "catalog_vendors", (data) =>
-            setVendors(new Map(data.map((v) => [v.serverId, v]))),
+        facet<CategoryInfo[]>(
+            "/catalog/categories",
+            "catalog_categories",
+            (data) => setCategories(data),
         );
+        facet<VendorInfo[]>("/catalog/vendors", "catalog_vendors", (data) => {
+            setVendorList(data);
+            setVendors(new Map(data.map((v) => [v.serverId, v])));
+        });
     }, []);
+
+    // Vendor-attribute facet counts, derived from the enriched vendor list.
+    const facetCounts = useMemo(
+        () => deriveVendorFacetCounts(vendorList),
+        [vendorList],
+    );
+
+    // Comma-joined multi-value filters (stable string keys for effect deps).
+    const categoriesKey = selectedCategories.join(",");
+    const vendorsKey = selectedVendors.join(",");
+    const warehousesKey = warehouses.join(",");
+    const paymentKey = payment.join(",");
+    const guaranteesKey = guarantees.join(",");
 
     // Reset to the first page whenever a filter changes.
     useEffect(() => {
         setPage(1);
-    }, [query, selectedDosage, minPrice, maxPrice, sort]);
+    }, [
+        query,
+        selectedDosage,
+        minPrice,
+        maxPrice,
+        sort,
+        categoriesKey,
+        vendorsKey,
+        verified,
+        minRating,
+        warehousesKey,
+        paymentKey,
+        freeShipping,
+        guaranteesKey,
+    ]);
 
     // Fetch a page of products.
     useEffect(() => {
@@ -120,6 +165,14 @@ const Catalog: React.FC = () => {
         const params = new URLSearchParams();
         if (query.trim()) params.set("q", query.trim());
         if (selectedDosage !== DOSAGE_ALL) params.set("dosage", selectedDosage);
+        if (categoriesKey) params.set("category", categoriesKey);
+        if (vendorsKey) params.set("serverId", vendorsKey);
+        if (verified) params.set("verified", "true");
+        if (minRating) params.set("minRating", String(minRating));
+        if (warehousesKey) params.set("warehouse", warehousesKey);
+        if (paymentKey) params.set("payment", paymentKey);
+        if (freeShipping) params.set("freeShipping", "true");
+        if (guaranteesKey) params.set("guarantee", guaranteesKey);
         if (minPrice) params.set("minPrice", minPrice);
         if (maxPrice) params.set("maxPrice", maxPrice);
         params.set("sort", sort);
@@ -150,17 +203,49 @@ const Catalog: React.FC = () => {
         return () => {
             cancelled = true;
         };
-    }, [query, selectedDosage, minPrice, maxPrice, sort, page, retryCount]);
+    }, [
+        query,
+        selectedDosage,
+        minPrice,
+        maxPrice,
+        sort,
+        page,
+        retryCount,
+        categoriesKey,
+        vendorsKey,
+        verified,
+        minRating,
+        warehousesKey,
+        paymentKey,
+        freeShipping,
+        guaranteesKey,
+    ]);
 
     const hasFilters =
         query.trim() !== "" ||
         selectedDosage !== DOSAGE_ALL ||
+        selectedCategories.length > 0 ||
+        selectedVendors.length > 0 ||
+        verified ||
+        minRating > 0 ||
+        warehouses.length > 0 ||
+        payment.length > 0 ||
+        freeShipping ||
+        guarantees.length > 0 ||
         minPrice !== "" ||
         maxPrice !== "";
 
     const clearFilters = () => {
         setQueryInput("");
         setSelectedDosage(DOSAGE_ALL);
+        setSelectedCategories([]);
+        setSelectedVendors([]);
+        setVerified(false);
+        setMinRating(0);
+        setWarehouses([]);
+        setPayment([]);
+        setFreeShipping(false);
+        setGuarantees([]);
         setMinInput("");
         setMaxInput("");
     };
@@ -169,6 +254,50 @@ const Catalog: React.FC = () => {
         dosages,
         selected: selectedDosage,
         onSelect: setSelectedDosage,
+        categories,
+        selectedCategories,
+        onToggleCategory: (c: string) =>
+            setSelectedCategories((prev) =>
+                prev.includes(c)
+                    ? prev.filter((x) => x !== c)
+                    : [...prev, c],
+            ),
+        vendors: vendorList,
+        selectedVendors,
+        onToggleVendor: (id: string) =>
+            setSelectedVendors((prev) =>
+                prev.includes(id)
+                    ? prev.filter((x) => x !== id)
+                    : [...prev, id],
+            ),
+        facetCounts,
+        verified,
+        onVerified: setVerified,
+        minRating,
+        onMinRating: setMinRating,
+        warehouses,
+        onToggleWarehouse: (k: string) =>
+            setWarehouses((prev) =>
+                prev.includes(k)
+                    ? prev.filter((x) => x !== k)
+                    : [...prev, k],
+            ),
+        payment,
+        onTogglePayment: (k: string) =>
+            setPayment((prev) =>
+                prev.includes(k)
+                    ? prev.filter((x) => x !== k)
+                    : [...prev, k],
+            ),
+        freeShipping,
+        onFreeShipping: setFreeShipping,
+        guarantees,
+        onToggleGuarantee: (k: string) =>
+            setGuarantees((prev) =>
+                prev.includes(k)
+                    ? prev.filter((x) => x !== k)
+                    : [...prev, k],
+            ),
         minPrice: minInput,
         maxPrice: maxInput,
         onMinPrice: setMinInput,

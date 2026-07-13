@@ -44,6 +44,30 @@ export interface CatalogResponse {
     };
 }
 
+export interface WarehouseFlags {
+    us?: boolean;
+    eu?: boolean;
+    aus?: boolean;
+    cn?: boolean;
+}
+export interface PaymentFlags {
+    cc?: boolean;
+    btc?: boolean;
+    pp?: boolean;
+    zelle?: boolean;
+    venmo?: boolean;
+    bt?: boolean;
+    chk?: boolean;
+}
+export interface GuaranteeFlags {
+    purity?: boolean;
+    purityPct?: number | null;
+    volume?: boolean;
+    volumePct?: number | null;
+    reship?: boolean;
+    reshipDesc?: string | null;
+}
+
 export interface VendorInfo {
     serverId: string;
     name: string;
@@ -51,12 +75,95 @@ export interface VendorInfo {
     inviteLink?: string | null;
     productCount: number;
     categories: string[];
+    // Vendor-quality attrs (Option A). Absent when the vendor has no directory
+    // listing — treat as unknown, not false.
+    verified?: boolean;
+    rating?: number;
+    warehouses?: WarehouseFlags;
+    payment?: PaymentFlags;
+    guarantee?: GuaranteeFlags;
+    shippingTime?: string | null;
+    freeShipping?: boolean;
+    freeShippingThreshold?: number | null;
 }
 
 export interface DosageInfo {
     dosage: string;
     count: number;
     vendorCount: number;
+}
+
+export interface CategoryInfo {
+    category: string;
+    count: number;
+    vendorCount: number;
+}
+
+// ─── Vendor-attribute facets ────────────────────────────────────────────────
+// Keys + labels for the sidebar facet groups that read off VendorInfo.
+
+export const WAREHOUSE_FACETS: { key: keyof WarehouseFlags; label: string }[] = [
+    { key: "us", label: "United States" },
+    { key: "eu", label: "Europe" },
+    { key: "aus", label: "Australia" },
+    { key: "cn", label: "China" },
+];
+
+// Payment methods we surface as filters (backend accepts the full set, but the
+// sidebar sticks to the common two to stay scannable).
+export const PAYMENT_FACETS: { key: keyof PaymentFlags; label: string }[] = [
+    { key: "cc", label: "Credit Card" },
+    { key: "btc", label: "Crypto" },
+];
+
+export const GUARANTEE_FACETS: { key: keyof GuaranteeFlags; label: string }[] = [
+    { key: "purity", label: "Purity" },
+    { key: "volume", label: "Volume" },
+    { key: "reship", label: "Re-Ship" },
+];
+
+export const RATING_FACETS = [4, 3, 2];
+
+export interface VendorFacetCounts {
+    warehouse: Record<string, number>;
+    payment: Record<string, number>;
+    guarantee: Record<string, number>;
+    verified: number;
+    freeShipping: number;
+}
+
+/**
+ * Sum product counts per vendor-attribute bucket, derived client-side from the
+ * enriched /catalog/vendors list (Option A — global counts, not query-aware).
+ */
+export function deriveVendorFacetCounts(
+    vendors: VendorInfo[],
+): VendorFacetCounts {
+    const counts: VendorFacetCounts = {
+        warehouse: {},
+        payment: {},
+        guarantee: {},
+        verified: 0,
+        freeShipping: 0,
+    };
+    for (const v of vendors) {
+        const n = v.productCount || 0;
+        for (const { key } of WAREHOUSE_FACETS) {
+            if (v.warehouses?.[key])
+                counts.warehouse[key] = (counts.warehouse[key] ?? 0) + n;
+        }
+        for (const { key } of PAYMENT_FACETS) {
+            if (v.payment?.[key])
+                counts.payment[key] = (counts.payment[key] ?? 0) + n;
+        }
+        for (const { key } of GUARANTEE_FACETS) {
+            if (v.guarantee?.[key])
+                counts.guarantee[key] = (counts.guarantee[key] ?? 0) + n;
+        }
+        if (v.verified) counts.verified += n;
+        if (v.freeShipping) counts.freeShipping += n;
+    }
+    return counts;
 }
 
 /**
