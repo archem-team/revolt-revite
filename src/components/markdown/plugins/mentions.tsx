@@ -20,8 +20,14 @@ const Mention = styled.a`
 
     font-weight: 600;
     text-decoration: none !important;
-    background: var(--secondary-background);
+    /* Mention pill: gold text on a dark olive pill. */
+    color: #d6a939;
+    background: #312d1d;
     border-radius: calc(var(--border-radius) * 2);
+
+    span {
+        color: #d6a939 !important;
+    }
 
     transition: 0.1s ease filter;
 
@@ -56,8 +62,9 @@ const EveryoneMention = styled.span`
     
     font-weight: 600;
     cursor: pointer;
-    color: var(--accent);
-    background: var(--secondary-background);
+    /* Mention pill: gold text on a dark olive pill. */
+    color: #d6a939;
+    background: #312d1d;
     border-radius: calc(var(--border-radius) * 2);
     
     transition: 0.1s ease filter;

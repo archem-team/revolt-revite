@@ -60,10 +60,14 @@
 
 a,
 a:link,
-a:visited,
+a:visited {
+    text-decoration: none;
+    // Links use the conventional chat-app blue rather than the accent.
+    color: #00a8fc;
+}
+
 a:hover {
     text-decoration: none;
-    color: var(--accent);
 }
 
 hr {

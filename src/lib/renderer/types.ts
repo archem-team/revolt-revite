@@ -8,7 +8,12 @@ export type ScrollState =
     | { type: "ScrollToBottom" | "StayAtBottom"; smooth?: boolean }
     | { type: "ScrollToView"; id: string }
     | { type: "OffsetTop"; previousHeight: number }
-    | { type: "ScrollTop"; y: number };
+    | { type: "ScrollTop"; y: number }
+    /**
+     * Keep a specific message at the same viewport position across a
+     * list update (measured before the DOM updates, corrected after).
+     */
+    | { type: "Anchor"; id: string; previousTop: number };
 
 export type RenderState =
     | {

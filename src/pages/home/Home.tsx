@@ -10,7 +10,6 @@ import { Text } from "preact-i18n";
 
 import { CategoryButton, InputBox, Preloader } from "@revoltchat/ui";
 
-import { PageHeader } from "../../components/ui/Header";
 import { useClient } from "../../controllers/client/ClientController";
 import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
 import Promos from "./Promos";
@@ -32,6 +31,15 @@ const Overlay = styled.div`
     h3 {
         padding-top: 1rem;
     }
+`;
+
+/* Plain tab row on the panel — no header bar chrome, same treatment as
+   the chat view's plain-text header. */
+const TabRow = styled.div`
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 14px 20px 0;
 `;
 
 const DisabledWrapper = styled.div`
@@ -221,8 +229,8 @@ const NewChip = styled.span`
     text-transform: uppercase;
     padding: 3px 6px;
     border-radius: 6px;
-    color: var(--accent-contrast, #11171c);
-    background: var(--accent);
+    color: var(--channel-active-foreground, #26122b);
+    background: var(--channel-active);
 `;
 
 
@@ -479,7 +487,7 @@ const Home: React.FC = () => {
         <div className={styles.home}>
             <Overlay>
                 <div className="content">
-                    <PageHeader icon={<></>} withTransparency>
+                    <TabRow>
                         <TabBar>
                             <Tab
                                 active={tab === "home"}
@@ -493,7 +501,7 @@ const Home: React.FC = () => {
                                 <NewChip>New</NewChip>
                             </Tab>
                         </TabBar>
-                    </PageHeader>
+                    </TabRow>
                     <div className={styles.homeScreen}>
                         {tab === "home" ? (
                             <>

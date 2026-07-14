@@ -9,7 +9,7 @@
     background-size: cover;
     border-radius: var(--border-radius) var(--border-radius) 0 0;
     background-position: center;
-    background-color: var(--secondary-background);
+    background-color: var(--message-box);
 
     &[data-force="light"] {
         color: white;
@@ -171,7 +171,7 @@
     transition: background-color 0.1s;
     color: var(--foreground);
     border-radius: var(--border-radius);
-    background-color: var(--secondary-background);
+    background-color: var(--message-box);
 
     &:hover {
         background-color: var(--primary-background);

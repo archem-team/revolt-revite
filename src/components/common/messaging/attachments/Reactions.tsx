@@ -64,7 +64,9 @@ const Reaction = styled.div<{ active: boolean }>`
     border: 1px solid transparent;
     color: var(--secondary-foreground);
     border-radius: var(--border-radius);
-    background: var(--secondary-background);
+    /* Translucent chip: a quiet foreground wash that tints whatever surface
+       it sits on (panel or row hover) instead of a solid fill. */
+    background: rgba(var(--foreground-rgb), 0.07);
 
     img {
         width: 1.2em;
@@ -83,7 +85,9 @@ const Reaction = styled.div<{ active: boolean }>`
     ${(props) =>
         props.active &&
         css`
-            border-color: var(--accent);
+            /* Your own reaction speaks the selection language. */
+            border-color: var(--channel-active);
+            color: var(--channel-active);
         `}
 `;
 

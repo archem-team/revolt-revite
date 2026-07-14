@@ -122,6 +122,15 @@ const MemberColumn = styled.div.attrs({ "data-component": "member-column" })`
     min-height: 0;
     flex-direction: column;
 
+    /* Member list is a sheet like the channel sidebar (shares its surface
+       colour; fully rounded like the reference member sidebar). */
+    ${() =>
+        !isTouchscreenDevice &&
+        css`
+            background: var(--secondary-background);
+            border-radius: 16px;
+        `}
+
     /* The legacy floating header used to overlay this list, so it carries a
        48px scroll offset — in this layout the search row is a real sibling,
        so the offset is dead space (the list starts right below search). */

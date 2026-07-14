@@ -370,36 +370,46 @@ export function useAutoComplete(
 const Base = styled.div<{ detached?: boolean }>`
     position: relative;
 
+    /* Popup card floating above the composer — compact,
+       raised and shadowed rather than a full-width strip. */
     > div {
         bottom: 0;
-        width: 100%;
         position: absolute;
-        background: var(--primary-header);
+        width: fit-content;
+        min-width: 220px;
+        max-width: 480px;
+        margin: 0 8px 6px;
+        padding: 8px 0;
+        border-radius: 8px;
+        background: #2b2e34;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
     }
 
     button {
         gap: 8px;
-        margin: 4px;
-        padding: 6px;
+        margin: 0;
+        padding: 4px 12px;
         border: none;
         display: flex;
-        font-size: 1em;
+        font-size: 0.9em;
         cursor: pointer;
         align-items: center;
         flex-direction: row;
         font-family: inherit;
         background: transparent;
         color: var(--foreground);
-        width: calc(100% - 12px);
-        border-radius: var(--border-radius);
+        width: 100%;
+        border-radius: 0;
 
         span {
             display: grid;
             place-items: center;
         }
 
+        /* Selected row: quiet on-surface wash, not an accent bar. */
         &.active {
-            background: var(--primary-background);
+            background: rgba(var(--foreground-rgb), 0.08);
         }
     }
 
@@ -421,6 +431,12 @@ export default function AutoComplete({
     onClick,
 }: Pick<AutoCompleteProps, "detached" | "state" | "setState" | "onClick">) {
     const client = useClient();
+
+    // No matches -> no popup; an empty card must never float around.
+    if (state.type === "none" || state.matches.length === 0) {
+        return null;
+    }
+
     return (
         <Base detached={detached}>
             <div>

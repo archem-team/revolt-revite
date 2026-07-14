@@ -103,49 +103,51 @@ export class ChannelRenderer {
         }
     }
 
+    /**
+     * First message (searching in the given direction) that actually has a
+     * DOM element to anchor to — system messages render without ids, so the
+     * boundary message alone is not a reliable anchor.
+     */
+    private findAnchor(fromEnd: boolean): string | undefined {
+        const list = this.messages;
+        for (let i = 0; i < list.length; i++) {
+            const message = list[fromEnd ? list.length - 1 - i : i];
+            if (document.getElementById(message._id)) return message._id;
+        }
+        return undefined;
+    }
+
     async loadTop(ref?: HTMLDivElement) {
         if (this.fetching) return;
         this.fetching = true;
 
-        // Column-reverse scroller: prepending old messages grows the list
-        // upward and does NOT move the viewport — only the trim at the
-        // bottom (scroll origin side) shifts it, by the removed height.
-        function generateScroll(end: string): ScrollState {
-            if (ref) {
-                let heightRemoved = 0,
-                    removing = false;
-                const messageContainer = ref.children[0];
-                if (messageContainer) {
-                    for (const child of Array.from(messageContainer.children)) {
-                        // If this child has a ulid, check whether it was removed.
-                        if (
-                            removing ||
-                            (child.id?.length === 26 &&
-                                child.id.localeCompare(end) === 1)
-                        ) {
-                            removing = true;
-                            heightRemoved +=
-                                child.clientHeight +
-                                // We also need to take into account the top margin of the container.
-                                parseInt(
-                                    window
-                                        .getComputedStyle(child)
-                                        .marginTop.slice(0, -2),
-                                    10,
-                                );
-                        }
-                    }
-                }
+        // Anchor the boundary: keep the previously-oldest anchorable
+        // message at the same viewport position across the update. Unlike
+        // preserving the scroll offset, this also behaves at the scroller's
+        // hard edges — pinned at the top of the skeleton wall, fetched
+        // messages slide INTO the viewport instead of landing below it.
+        const anchorId = this.findAnchor(false);
 
+        // The rect is read inside generateScroll (post-fetch, pre-render),
+        // so it reflects the latest layout before the list updates.
+        function generateScroll(_end: string): ScrollState {
+            const el = anchorId && document.getElementById(anchorId);
+            if (el) {
                 return {
-                    type: "ScrollTop",
-                    y: ref.scrollTop - heightRemoved,
+                    type: "Anchor",
+                    id: anchorId!,
+                    previousTop: el.getBoundingClientRect().top,
                 };
             }
             return { type: "Free" };
         }
 
-        if (await this.currentRenderer.loadTop(this, generateScroll)) {
+        try {
+            if (await this.currentRenderer.loadTop(this, generateScroll)) {
+                this.fetching = false;
+            }
+        } catch (err) {
+            // A failed fetch must never wedge the loader shut.
             this.fetching = false;
         }
     }
@@ -154,55 +156,28 @@ export class ChannelRenderer {
         if (this.fetching) return;
         this.fetching = true;
 
-        // Column-reverse scroller: trimming the top (far side) doesn't move
-        // the viewport, but appending newer messages at the bottom (scroll
-        // origin side) shifts it by the added height. That height is only
-        // known after the DOM updates, so emit OffsetTop with the height the
-        // list would have WITHOUT the appended content — the consumer backs
-        // off by (newScrollHeight - previousHeight).
-        function generateScroll(start: string): ScrollState {
-            if (ref) {
-                let heightRemoved = 0,
-                    removing = true;
-                const messageContainer = ref.children[0];
-                if (messageContainer) {
-                    for (const child of Array.from(messageContainer.children)) {
-                        // If this child has a ulid check whether it was removed.
-                        if (
-                            removing /* ||
-                            (child.id?.length === 26 &&
-                                child.id.localeCompare(start) === -1)*/
-                        ) {
-                            heightRemoved +=
-                                child.clientHeight +
-                                // We also need to take into account the top margin of the container.
-                                parseInt(
-                                    window
-                                        .getComputedStyle(child)
-                                        .marginTop.slice(0, -2),
-                                    10,
-                                );
-                        }
+        // Anchor the boundary: keep the previously-newest anchorable
+        // message at the same viewport position across the append + trim.
+        const anchorId = this.findAnchor(true);
 
-                        if (
-                            child.id?.length === 26 &&
-                            child.id.localeCompare(start) !== -1
-                        )
-                            removing = false;
-                    }
-                }
-
+        function generateScroll(_start: string): ScrollState {
+            const el = anchorId && document.getElementById(anchorId);
+            if (el) {
                 return {
-                    type: "OffsetTop",
-                    previousHeight: ref.scrollHeight - heightRemoved,
+                    type: "Anchor",
+                    id: anchorId!,
+                    previousTop: el.getBoundingClientRect().top,
                 };
             }
-            return {
-                type: "ScrollToBottom",
-            };
+            // Never teleport mid-history — worst case, stay put.
+            return { type: "Free" };
         }
 
-        if (await this.currentRenderer.loadBottom(this, generateScroll)) {
+        try {
+            if (await this.currentRenderer.loadBottom(this, generateScroll)) {
+                this.fetching = false;
+            }
+        } catch (err) {
             this.fetching = false;
         }
     }

@@ -75,7 +75,8 @@ const ServerList = styled.div`
                same left axis as the channel-row icons (list padding 8px +
                row padding 8px). Vertical: 10px above, 8px to the first row. */
             padding: 10px 4px 8px 8px;
-            color: var(--foreground);
+            /* Sheet text: lavender on the sidebar surface. */
+            color: #ccb5dd;
 
             &:hover {
                 color: var(--secondary-foreground);

@@ -10,7 +10,9 @@ import { decodeTime } from "ulid";
 import { Text } from "preact-i18n";
 import { useEffect, useState } from "preact/hooks";
 
-import { MessageDivider, Preloader } from "@revoltchat/ui";
+import { MessageDivider } from "@revoltchat/ui";
+
+import MessageSkeleton from "../../../components/common/messaging/MessageSkeleton";
 
 import { internalSubscribe, internalEmit } from "../../../lib/eventEmitter";
 import { ChannelRenderer } from "../../../lib/renderer/Singleton";
@@ -85,7 +87,15 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
     } else {
         render.push(
             <RequiresOnline>
-                <Preloader type="ring" />
+                {/* Rows hug the wall's bottom, adjacent to the real
+                    messages below it. The wall doubles as the fetch
+                    sentinel: visible ghosts pull the next page. */}
+                <MessageSkeleton
+                    wall
+                    align="end"
+                    onVisible={() => renderer.loadTop()}
+                    permitFetching={!renderer.fetching}
+                />
             </RequiresOnline>,
         );
     }
@@ -255,7 +265,14 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
     } else {
         render.push(
             <RequiresOnline>
-                <Preloader type="ring" />
+                {/* Rows hug the wall's top, adjacent to the real messages
+                    above it. */}
+                <MessageSkeleton
+                    wall
+                    align="start"
+                    onVisible={() => renderer.loadBottom()}
+                    permitFetching={!renderer.fetching}
+                />
             </RequiresOnline>,
         );
     }

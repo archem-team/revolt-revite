@@ -30,7 +30,9 @@
 
         padding: 12px;
         width: fit-content;
-        background: var(--primary-header);
+        // One slate step above the composer/hover (#232529), so the card
+        // stays visible when the message row's hover paints under it.
+        background: #2b2e34;
         border-radius: var(--border-radius);
 
         .siteinfo {

@@ -181,21 +181,18 @@ async function createGenericPreview(url: string): Promise<LinkPreviewData> {
 
         const metadata = await Promise.race([metadataPromise, timeoutPromise]).catch(() => ({} as Partial<LinkPreviewData>));
 
+        // Only real metadata — a link with nothing to show renders no card
+        // at all (the URL is already visible in the message).
         return {
-            title: metadata?.title || urlObj.hostname,
-            description: metadata?.description || "Click to open link",
+            title: metadata?.title,
+            description: metadata?.description,
             image: metadata?.image,
             url,
             siteName: metadata?.siteName || urlObj.hostname,
             favicon: `${urlObj.protocol}//${urlObj.hostname}/favicon.ico`
         };
     } catch {
-        return {
-            title: "External Link",
-            description: "Click to open link",
-            url,
-            siteName: "External Site"
-        };
+        return { url };
     }
 }
 
@@ -267,14 +264,8 @@ export default memo(function LinkPreview({ url }: Props) {
             } catch (error) {
                 console.warn('Failed to load preview for:', url, error);
                 if (!cancelled) {
-                    // Fallback to basic preview
-                    const urlObj = new URL(url);
-                    setPreviewData({
-                        title: urlObj.hostname,
-                        description: "Click to open link",
-                        url,
-                        siteName: urlObj.hostname
-                    });
+                    // No metadata — the guard below suppresses the card.
+                    setPreviewData({ url });
                     setLoading(false);
                 }
             }
@@ -287,19 +278,25 @@ export default memo(function LinkPreview({ url }: Props) {
         };
     }, [url]);
 
-    if (loading) {
-        return (
-            <div className={classNames(styles.embed, styles.website)} style={{ cursor: 'pointer', maxWidth: '550px', minHeight: '200px', padding: '20px', margin: '10px 0', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '14px', color: 'var(--secondary-foreground)' }}>
-                        Loading preview...
-                    </div>
-                </div>
-            </div>
-        );
+    if (loading || !previewData) {
+        return null;
     }
 
-    if (!previewData) {
+    // A card must earn its place: suppress it unless there is something
+    // beyond the URL itself (title that isn't just the domain, description,
+    // image or playable video).
+    let hostname: string | undefined;
+    try {
+        hostname = new URL(url).hostname;
+    } catch {}
+    const meaningful =
+        previewData.videoId ||
+        previewData.image ||
+        previewData.description ||
+        (previewData.title &&
+            previewData.title !== hostname &&
+            previewData.title !== previewData.siteName);
+    if (!meaningful) {
         return null;
     }
 
@@ -312,7 +309,7 @@ export default memo(function LinkPreview({ url }: Props) {
     };
 
     return (
-        <div className={classNames(styles.embed, styles.website)} onClick={handleClick} style={{ cursor: 'pointer', maxWidth: '550px', minHeight: '200px', padding: '20px', margin: '10px 0', display: 'flex', flexDirection: 'column' }}>
+        <div className={classNames(styles.embed, styles.website)} onClick={handleClick} style={{ cursor: 'pointer', maxWidth: '550px', margin: '10px 0', display: 'flex', flexDirection: 'column', borderInlineStartColor: 'var(--scrollbar-thumb)' }}>
             <div style={{ flex: 1 }}>
                 {previewData.siteName && (
                     <div className={styles.siteinfo}>

@@ -117,6 +117,9 @@ export default styled.div<BaseMessageProps>`
         align-items: center;
         flex-shrink: 0;
         line-height: 20px;
+        /* Sender name brighter than body text — inherited colour, so
+           role colours still override it. */
+        color: #f8f8f8;
     }
 
     .author {

@@ -176,7 +176,7 @@ const SortSelect = styled.select`
     padding: 0 32px 0 12px;
     border: none;
     border-radius: var(--border-radius);
-    background-color: var(--secondary-background);
+    background-color: var(--message-box);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23848484' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
@@ -238,10 +238,10 @@ const Glyph = styled.div`
     display: grid;
     place-items: center;
     border-radius: 50%;
-    color: var(--accent);
+    color: var(--channel-active);
     background: radial-gradient(
         circle at center,
-        color-mix(in srgb, var(--accent) 22%, transparent),
+        color-mix(in srgb, var(--channel-active) 22%, transparent),
         transparent 70%
     );
 
@@ -251,7 +251,7 @@ const Glyph = styled.div`
         inset: 18px;
         border-radius: 50%;
         border: 2px dashed
-            color-mix(in srgb, var(--accent) 45%, transparent);
+            color-mix(in srgb, var(--channel-active) 45%, transparent);
         animation: promo-spin 18s linear infinite;
     }
 
@@ -261,8 +261,8 @@ const Glyph = styled.div`
         font-weight: 700;
         padding: 3px 7px;
         border-radius: 8px;
-        color: var(--accent-contrast, #11171c);
-        background: var(--accent);
+        color: var(--channel-active-foreground, #26122b);
+        background: var(--channel-active);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         animation: promo-bob 3.4s ease-in-out infinite;
     }
@@ -277,7 +277,7 @@ const Glyph = styled.div`
         left: -18px;
         animation-delay: 1.2s;
         background: var(--primary-background);
-        color: var(--accent);
+        color: var(--channel-active);
     }
 
     @keyframes promo-spin {
@@ -312,7 +312,7 @@ const Card = styled.div`
     gap: 12px;
     padding: 14px;
     border-radius: 10px;
-    background: var(--secondary-background);
+    background: var(--message-box);
     /* Masonry layout: keep each card whole within its column and use a bottom
        margin for the vertical gap (column-gap only spaces columns). */
     break-inside: avoid;
@@ -355,7 +355,7 @@ const ActionIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--accent);
+    background: var(--channel-active);
     cursor: pointer;
     transition: filter 0.15s ease, transform 0.15s ease;
 
@@ -366,7 +366,7 @@ const ActionIcon = styled.div`
        centres without inline-baseline offset. */
     & > svg {
         display: block;
-        color: var(--accent-contrast, #11171c);
+        color: var(--channel-active-foreground, #26122b);
     }
 
     &:hover {
@@ -407,9 +407,9 @@ const Chip = styled.span<{ accent?: boolean }>`
     border-radius: 6px;
     white-space: nowrap;
     color: ${(props) =>
-        props.accent ? "var(--accent-contrast, #11171c)" : "var(--foreground)"};
+        props.accent ? "var(--channel-active-foreground, #26122b)" : "var(--foreground)"};
     background: ${(props) =>
-        props.accent ? "var(--accent)" : "var(--primary-background)"};
+        props.accent ? "var(--channel-active)" : "var(--primary-background)"};
 `;
 
 const ItemTable = styled.div`
@@ -428,7 +428,7 @@ const ItemRow = styled.div`
     font-size: 13px;
 
     & + & {
-        border-top: 1px solid var(--secondary-background);
+        border-top: 1px solid var(--message-box);
     }
 
     .product {
@@ -511,16 +511,16 @@ const ItemToggle = styled.button`
     width: 100%;
     padding: 9px 12px;
     border: none;
-    border-top: 1px solid var(--secondary-background);
+    border-top: 1px solid var(--message-box);
     background: var(--primary-background);
-    color: var(--accent);
+    color: var(--channel-active);
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
 
     &:hover {
-        background: var(--secondary-background);
+        background: var(--message-box);
     }
 
     svg {
@@ -542,7 +542,7 @@ const SummaryToggle = styled.button`
     padding: 0;
     border: none;
     background: none;
-    color: var(--accent);
+    color: var(--channel-active);
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;

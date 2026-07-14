@@ -17,6 +17,7 @@ import {
 
 import { Preloader } from "@revoltchat/ui";
 
+import MessageSkeleton from "../../../components/common/messaging/MessageSkeleton";
 import { defer } from "../../../lib/defer";
 import { internalEmit, internalSubscribe } from "../../../lib/eventEmitter";
 import { getRenderer } from "../../../lib/renderer/Singleton";
@@ -106,49 +107,76 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
                 scrollState.current = v;
             }
 
-            defer(() => {
-                // Column-reverse scroller: the bottom is scrollTop 0 and
-                // positions are negative offsets from it.
-                if (scrollState.current.type === "ScrollToBottom") {
-                    setScrollState({
-                        type: "Bottom",
-                        scrollingUntil: +new Date() + 150,
-                    });
+            // Applied synchronously: every position-type state arrives via
+            // the renderer.scrollState layout effect (DOM committed, not
+            // yet painted), so correcting scrollTop here means no frame is
+            // ever painted at the wrong position. The old setTimeout-based
+            // defer showed one mispositioned frame per history fetch.
+            //
+            // Column-reverse scroller: the bottom is scrollTop 0 and
+            // positions are negative offsets from it.
+            if (scrollState.current.type === "ScrollToBottom") {
+                setScrollState({
+                    type: "Bottom",
+                    scrollingUntil: +new Date() + 150,
+                });
 
-                    ref.current?.scrollTo({
-                        top: 0,
-                        behavior: scrollState.current.smooth
-                            ? "smooth"
-                            : "auto",
-                    });
-                } else if (scrollState.current.type === "ScrollToView") {
-                    document
-                        .getElementById(scrollState.current.id)
-                        ?.scrollIntoView({ block: "center" });
+                ref.current?.scrollTo({
+                    top: 0,
+                    behavior: scrollState.current.smooth ? "smooth" : "auto",
+                });
+            } else if (scrollState.current.type === "ScrollToView") {
+                document
+                    .getElementById(scrollState.current.id)
+                    ?.scrollIntoView({ block: "center" });
 
-                    setScrollState({ type: "Free" });
-                } else if (scrollState.current.type === "OffsetTop") {
-                    // Content was appended at the bottom (scroll origin)
-                    // side: keep the viewport on the same messages by
-                    // backing off by the added height.
-                    if (ref.current) {
-                        ref.current.scrollTop =
-                            ref.current.scrollTop -
-                            (ref.current.scrollHeight -
-                                scrollState.current.previousHeight);
-                    }
-
-                    setScrollState({ type: "Free" });
-                } else if (scrollState.current.type === "ScrollTop") {
-                    if (ref.current) {
-                        ref.current.scrollTop = scrollState.current.y;
-                    }
-
-                    setScrollState({ type: "Free" });
+                setScrollState({ type: "Free" });
+            } else if (scrollState.current.type === "OffsetTop") {
+                // Content was appended at the bottom (scroll origin) side:
+                // keep the viewport on the same messages by backing off by
+                // the added height.
+                if (ref.current) {
+                    ref.current.scrollTop =
+                        ref.current.scrollTop -
+                        (ref.current.scrollHeight -
+                            scrollState.current.previousHeight);
                 }
 
-                defer(() => renderer.complete());
-            });
+                setScrollState({ type: "Free" });
+            } else if (scrollState.current.type === "ScrollTop") {
+                if (ref.current) {
+                    ref.current.scrollTop = scrollState.current.y;
+                }
+
+                setScrollState({ type: "Free" });
+            } else if (scrollState.current.type === "Anchor") {
+                // Re-measure the anchor message and scroll by however far
+                // the update moved it, keeping it stationary on screen.
+                const el = document.getElementById(scrollState.current.id);
+                if (el && ref.current) {
+                    const target =
+                        ref.current.scrollTop +
+                        (el.getBoundingClientRect().top -
+                            scrollState.current.previousTop);
+                    const minTop =
+                        ref.current.clientHeight - ref.current.scrollHeight;
+
+                    if (target <= minTop + 4) {
+                        // The window shrank past the edge (tall page
+                        // trimmed, short page added): keeping the anchor
+                        // stationary is impossible. Never let the browser
+                        // clamp us into the ghost wall — show the anchor at
+                        // the top of the viewport instead.
+                        el.scrollIntoView({ block: "start" });
+                    } else {
+                        ref.current.scrollTop = target;
+                    }
+                }
+
+                setScrollState({ type: "Free" });
+            }
+
+            defer(() => renderer.complete());
         },
         // eslint-disable-next-line
         [scrollState],
@@ -311,14 +339,6 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
         async function onScroll() {
             renderer.scrollPosition = current!.scrollTop;
 
-            if (atTop(100)) {
-                renderer.loadTop(current!);
-            }
-
-            if (atBottom(100)) {
-                renderer.loadBottom(current!);
-            }
-
             if (atBottom()) {
                 renderer.scrollAnchored = true;
             } else {
@@ -373,7 +393,7 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
             value={width ? width - MESSAGE_AREA_PADDING : 504}>
             <Area ref={ref}>
                 <div>
-                    {renderer.state === "LOADING" && <Preloader type="ring" />}
+                    {renderer.state === "LOADING" && <MessageSkeleton />}
                     {renderer.state === "WAITING_FOR_NETWORK" && (
                         <RequiresOnline>
                             <Preloader type="ring" />
