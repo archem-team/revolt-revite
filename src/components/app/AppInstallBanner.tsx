@@ -46,7 +46,7 @@ const Banner = styled.div`
     height: ${BANNER_HEIGHT}px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
     padding: 0 12px;
 
     font-size: 13px;
@@ -54,6 +54,19 @@ const Banner = styled.div`
     color: var(--foreground);
     background: var(--secondary-background);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+
+    .inner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        max-width: 720px;
+    }
+
+    .icon {
+        flex-shrink: 0;
+        line-height: 1;
+    }
 
     .text {
         flex-grow: 1;
@@ -142,21 +155,24 @@ export default function AppInstallBanner() {
 
     return (
         <Banner>
-            <div className="text">
-                {"⚡Faster, with reply notifications"}
-            </div>
-            {/* Opening the store does NOT dismiss — a user who bounces off the
-                store without installing should keep seeing the nudge. Only the
-                explicit × below persists a dismissal. */}
-            <a
-                className="open"
-                href={url}
-                target="_blank"
-                rel="noreferrer">
-                {"Open App"}
-            </a>
-            <div className="dismiss" onClick={dismiss} aria-label="Dismiss">
-                {"×"}
+            <div className="inner">
+                <span className="icon">{"⚡"}</span>
+                <div className="text">
+                    {"Faster, with reply notifications"}
+                </div>
+                {/* Opening the store does NOT dismiss — a user who bounces off the
+                    store without installing should keep seeing the nudge. Only the
+                    explicit × below persists a dismissal. */}
+                <a
+                    className="open"
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer">
+                    {"Open App"}
+                </a>
+                <div className="dismiss" onClick={dismiss} aria-label="Dismiss">
+                    {"×"}
+                </div>
             </div>
         </Banner>
     );
