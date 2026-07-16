@@ -22,6 +22,9 @@
      * Layout
      */
     --app-height: 100vh;
+    /* Height reserved for the mobile-web app-install banner; 0 when hidden.
+       Set by src/components/app/AppInstallBanner.tsx. */
+    --app-banner-height: 0px;
     --scrollbar-thickness: var(--space-1);
     --scrollbar-thickness-ff: thin;
     --border-radius: var(--radius-md);
