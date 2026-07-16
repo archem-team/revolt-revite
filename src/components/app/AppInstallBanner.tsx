@@ -24,6 +24,18 @@ const IOS_URL = "https://apps.apple.com/app/id6756353165";
 const ANDROID_URL =
     "https://play.google.com/store/apps/details?id=com.zekochat";
 
+/**
+ * iPadOS 13+ Safari reports a desktop (macOS) user-agent, so react-device-detect
+ * flags it as macOS and `isIOS` is false. Detect it via the Mac UA + a touch
+ * screen (real Macs report 0 touch points; iPads report several). Treated as iOS.
+ */
+const isIpadOS =
+    typeof navigator !== "undefined" &&
+    navigator.maxTouchPoints > 1 &&
+    /Macintosh/.test(navigator.userAgent);
+
+const isApple = isIOS || isIpadOS;
+
 const Banner = styled.div`
     position: fixed;
     top: 0;
@@ -82,7 +94,7 @@ const Banner = styled.div`
  */
 function shouldShow(): boolean {
     if (window.isNative) return false;
-    if (!isIOS && !isAndroid) return false;
+    if (!isApple && !isAndroid) return false;
 
     try {
         const raw = localStorage.getItem(DISMISS_KEY);
@@ -117,7 +129,7 @@ export default function AppInstallBanner() {
 
     if (!visible) return null;
 
-    const url = isIOS ? IOS_URL : ANDROID_URL;
+    const url = isApple ? IOS_URL : ANDROID_URL;
 
     const dismiss = () => {
         try {
