@@ -1,4 +1,3 @@
-import { Github } from "@styled-icons/boxicons-logos";
 import { observer } from "mobx-react-lite";
 import { Helmet } from "react-helmet";
 import { Route, Switch } from "react-router-dom";
@@ -145,15 +144,6 @@ export default observer(() => {
                     </div>
                     <div className={styles.bottom}>
                         <div className={styles.links}>
-                            <div className={styles.socials}>
-                                <a
-                                    href="https://github.com/archem-team"
-                                    target="_blank"
-                                    rel="noreferrer">
-                                    <Github size={24} />
-                                </a>
-                            </div>
-                            <div className={styles.bullet} />
                             <div className={styles.revolt}>
                                 <a
                                     href="https://copper-mildrid-58.tiiny.site"
