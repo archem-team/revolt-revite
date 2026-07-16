@@ -8,6 +8,7 @@ import ErrorBoundary from "../lib/ErrorBoundary";
 
 import Context from "../context";
 
+import AppInstallBanner from "../components/app/AppInstallBanner";
 import { CheckAuth } from "../controllers/client/jsx/CheckAuth";
 import Invite from "./invite/Invite";
 
@@ -26,6 +27,7 @@ export function App() {
         <ErrorBoundary section="client">
             <Context>
                 <Masks />
+                <AppInstallBanner />
                 <Switch>
                     <Route path="/login/verify/:token">
                         <LoadSuspense>
