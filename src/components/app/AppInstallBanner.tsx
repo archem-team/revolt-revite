@@ -143,7 +143,7 @@ export default function AppInstallBanner() {
     return (
         <Banner>
             <div className="text">
-                {"⚡Faster, with reply notifications — Get the app"}
+                {"⚡Faster, with reply notifications"}
             </div>
             {/* Opening the store does NOT dismiss — a user who bounces off the
                 store without installing should keep seeing the nudge. Only the
