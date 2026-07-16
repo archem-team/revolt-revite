@@ -3,6 +3,7 @@ import { render } from "preact";
 
 import "../external/lang/Languages.patch";
 import { App } from "./pages/app";
+import "./posthog";
 import "./sentry";
 import "./styles/tokens.css";
 import "./updateWorker";
