@@ -1,3 +1,8 @@
+/* Hallmark · component: auth-login · genre: modern-minimal · theme: brand-dark (accent #FD6671)
+ * pre-emit critique: P4 H4 E4 S4 R5 V4
+ * fixes: accent primary CTA · visible input fields + focus · mobile top-align · 44px tap target
+ */
+
 // Pure CSS hand wave - by https://jarv.is/notes/css-waving-hand-emoji/
 @keyframes wave-animation {
     0% {
@@ -132,8 +137,8 @@
             align-items: center;
             justify-content: center;
             padding: 10px 14px;
-            background: var(--secondary-background);
-            border: none;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 6px;
             color: white;
             text-decoration: none;
@@ -241,24 +246,55 @@
             form {
                 display: flex;
                 flex-direction: column;
-                gap: 10px;
+                gap: 12px;
 
                 > div {
                     margin: 0;
-                    margin-bottom: -4px;
+                    margin-bottom: 2px;
                     font-size: 12px;
+                    font-weight: 600;
+                    letter-spacing: 0.4px;
                     color: var(--secondary-foreground);
                 }
 
                 input {
-                    background: var(--secondary-background);
-                    /*border: 2px solid rgba(128, 128, 128, 0.15);*/
+                    background: rgba(255, 255, 255, 0.06);
+                    border: 1px solid rgba(255, 255, 255, 0.16);
+                    transition: border-color 0.15s ease, background 0.15s ease;
+
+                    &:hover {
+                        background: rgba(255, 255, 255, 0.09);
+                    }
+
+                    &:focus,
+                    &:focus-visible {
+                        border-color: var(--accent);
+                        background: rgba(255, 255, 255, 0.08);
+                    }
                 }
 
                 button {
-                    padding: 8px;
-                    background: var(--secondary-background);
+                    min-height: 44px;
+                    padding: 12px;
+                    margin-top: 4px;
                     margin-bottom: 15px;
+                    font-weight: 600;
+                    color: #fff;
+                    background: var(--accent);
+                    transition: filter 0.15s ease;
+
+                    &:hover {
+                        filter: brightness(1.1);
+                    }
+
+                    &:active {
+                        filter: brightness(0.9);
+                    }
+
+                    &:disabled {
+                        filter: brightness(0.7);
+                        cursor: not-allowed;
+                    }
                 }
             }
         }
@@ -282,28 +318,6 @@
             display: flex;
             align-items: center;
             gap: 15px;
-
-            .socials {
-                display: flex;
-                gap: 10px;
-
-                a {
-                    transition: opacity 0.2s ease-in-out;
-                    &:hover {
-                        opacity: 0.7;
-                    }
-                    &:active {
-                        opacity: 0.5;
-                    }
-                }
-            }
-
-            .bullet {
-                height: 5px;
-                width: 5px;
-                background: grey;
-                border-radius: 50%;
-            }
 
             .revolt {
                 display: flex;
@@ -347,11 +361,15 @@
 
 @media only screen and (max-width: 768px) {
     .login {
-        padding: 30px 20px;
+        padding: 28px 20px;
+        overflow-x: clip;
         background-image: unset;
         background-color: var(--primary-background);
 
         .content {
+            justify-content: flex-start;
+            gap: 28px;
+
             .nav {
                 .logo {
                     img {
@@ -368,7 +386,6 @@
                     gap: 10px;
                 }
 
-                .bullet,
                 .attribution {
                     display: none;
                 }
@@ -386,7 +403,11 @@
 
         .form {
             border: unset;
+            background: transparent;
+            backdrop-filter: none;
             margin-inline-start: 0;
+            margin-top: 4px;
+            margin-bottom: 0;
             padding: 0;
             max-width: unset;
             box-shadow: unset;
