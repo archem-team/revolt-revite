@@ -131,12 +131,14 @@ export default function AppInstallBanner() {
     return (
         <Banner>
             <div className="text">{"Get the app for a better experience"}</div>
+            {/* Opening the store does NOT dismiss — a user who bounces off the
+                store without installing should keep seeing the nudge. Only the
+                explicit × below persists a dismissal. */}
             <a
                 className="open"
                 href={url}
                 target="_blank"
-                rel="noreferrer"
-                onClick={dismiss}>
+                rel="noreferrer">
                 {"Open app"}
             </a>
             <div className="dismiss" onClick={dismiss} aria-label="Dismiss">
