@@ -74,6 +74,9 @@ export const SimpleRenderer: RendererRoutines = {
         });
     },
     updated: async (renderer) => {
+        // Only relevant when pinned at the bottom; no scroll hints mid-history.
+        if (!renderer.atBottom) return;
+
         renderer.emitScroll({
             type: "StayAtBottom",
             smooth: false,
@@ -89,7 +92,11 @@ export const SimpleRenderer: RendererRoutines = {
         if (index > -1) {
             runInAction(() => {
                 renderer.messages.splice(index, 1);
-                renderer.emitScroll({ type: "StayAtBottom" });
+
+                // Same rule as edits: only hold the view when at the bottom.
+                if (renderer.atBottom) {
+                    renderer.emitScroll({ type: "StayAtBottom" });
+                }
             });
         }
     },
@@ -100,12 +107,21 @@ export const SimpleRenderer: RendererRoutines = {
         if (renderer.state !== "RENDER") return true;
         if (renderer.atTop) return true;
 
+        // If we get preempted while the request is in the air, drop the commit.
+        const flight = renderer.flightId;
+
         const { messages: data } =
             await renderer.channel.fetchMessagesWithUsers({
                 before: renderer.messages[0]._id,
             });
 
         runInAction(() => {
+            if (renderer.flightId !== flight) return;
+
+            // Re-arm the fetch gate here in the commit — every branch
+            // must do this, or the walls stop fetching.
+            renderer.fetching = false;
+
             if (data.length === 0) {
                 renderer.atTop = true;
                 return;
@@ -137,6 +153,9 @@ export const SimpleRenderer: RendererRoutines = {
         if (renderer.state !== "RENDER") return true;
         if (renderer.atBottom) return true;
 
+        // If we get preempted while the request is in the air, drop the commit.
+        const flight = renderer.flightId;
+
         const { messages: data } =
             await renderer.channel.fetchMessagesWithUsers({
                 after: renderer.messages[renderer.messages.length - 1]._id,
@@ -144,6 +163,11 @@ export const SimpleRenderer: RendererRoutines = {
             });
 
         runInAction(() => {
+            if (renderer.flightId !== flight) return;
+
+            // Same contract as loadTop: the commit re-arms the fetch gate.
+            renderer.fetching = false;
+
             if (data.length === 0) {
                 renderer.atBottom = true;
                 return;

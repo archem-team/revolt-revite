@@ -24,6 +24,9 @@ export class ChannelRenderer {
     scrollPosition = 0;
     scrollAnchored = false;
 
+    /** Bumped per fetch and per preempt; commits from an older flight are dropped. */
+    flightId = 0;
+
     constructor(channel: Channel) {
         this.channel = channel;
 
@@ -32,6 +35,7 @@ export class ChannelRenderer {
             currentRenderer: false,
             scrollPosition: false,
             scrollAnchored: false,
+            flightId: false,
         });
 
         this.receive = this.receive.bind(this);
@@ -79,12 +83,29 @@ export class ChannelRenderer {
             }
         }
 
+        this.preempt();
         this.stale = false;
         this.state = "LOADING";
         this.currentRenderer.init(this, message_id);
     }
 
+    /** Drop any in-flight fetch and reset scroll state (remount / re-init). */
+    @action preempt() {
+        this.flightId++;
+        this.fetching = false;
+        this.scrollState = { type: "Free" };
+    }
+
     @action emitScroll(state: ScrollState) {
+        // Passive bottom-keeping hints must not overwrite a pending fetch
+        // correction — losing it strands the view on the skeleton wall.
+        if (
+            this.scrollState.type === "Anchor" &&
+            state.type === "StayAtBottom"
+        ) {
+            return;
+        }
+
         this.scrollState = state;
     }
 
@@ -92,8 +113,11 @@ export class ChannelRenderer {
         this.stale = true;
     }
 
-    @action complete() {
-        this.fetching = false;
+    /** Clear a pending Anchor once applied so StayAtBottom flows again. */
+    @action consumeAnchor() {
+        if (this.scrollState.type === "Anchor") {
+            this.scrollState = { type: "Free" };
+        }
     }
 
     async reloadStale() {
@@ -120,16 +144,12 @@ export class ChannelRenderer {
     async loadTop(ref?: HTMLDivElement) {
         if (this.fetching) return;
         this.fetching = true;
+        this.flightId++;
 
-        // Anchor the boundary: keep the previously-oldest anchorable
-        // message at the same viewport position across the update. Unlike
-        // preserving the scroll offset, this also behaves at the scroller's
-        // hard edges — pinned at the top of the skeleton wall, fetched
-        // messages slide INTO the viewport instead of landing below it.
+        // Keep the previously-oldest visible message stationary across
+        // the prepend: measured just before the commit, corrected after.
         const anchorId = this.findAnchor(false);
 
-        // The rect is read inside generateScroll (post-fetch, pre-render),
-        // so it reflects the latest layout before the list updates.
         function generateScroll(_end: string): ScrollState {
             const el = anchorId && document.getElementById(anchorId);
             if (el) {
@@ -155,9 +175,9 @@ export class ChannelRenderer {
     async loadBottom(ref?: HTMLDivElement) {
         if (this.fetching) return;
         this.fetching = true;
+        this.flightId++;
 
-        // Anchor the boundary: keep the previously-newest anchorable
-        // message at the same viewport position across the append + trim.
+        // Same as loadTop, anchored on the newest message instead.
         const anchorId = this.findAnchor(true);
 
         function generateScroll(_start: string): ScrollState {

@@ -1,4 +1,3 @@
-import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useHistory, useParams } from "react-router-dom";
 import { Channel } from "revolt.js";
@@ -18,7 +17,6 @@ import {
 import { Preloader } from "@revoltchat/ui";
 
 import MessageSkeleton from "../../../components/common/messaging/MessageSkeleton";
-import { defer } from "../../../lib/defer";
 import { internalEmit, internalSubscribe } from "../../../lib/eventEmitter";
 import { getRenderer } from "../../../lib/renderer/Singleton";
 import { ScrollState } from "../../../lib/renderer/types";
@@ -45,10 +43,9 @@ const Area = styled.div.attrs({ "data-scroll-offset": "with-padding" })`
        upward without moving the viewport. scrollTop runs [-max, 0]. */
     display: flex;
     flex-direction: column-reverse;
-    /* Scroll position is managed manually (restore, stay-at-bottom,
-       load-more offset math) — the browser's automatic scroll anchoring
-       double-corrects against it and causes small up/down jumps. */
-    overflow-anchor: none;
+    /* Native scroll anchoring stays on (matches upstream); it absorbs
+       late layout shifts between fetches and the fetch-time correction
+       composes with it. */
 
     &::-webkit-scrollbar-thumb {
         min-height: 150px;
@@ -150,33 +147,10 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
 
                 setScrollState({ type: "Free" });
             } else if (scrollState.current.type === "Anchor") {
-                // Re-measure the anchor message and scroll by however far
-                // the update moved it, keeping it stationary on screen.
-                const el = document.getElementById(scrollState.current.id);
-                if (el && ref.current) {
-                    const target =
-                        ref.current.scrollTop +
-                        (el.getBoundingClientRect().top -
-                            scrollState.current.previousTop);
-                    const minTop =
-                        ref.current.clientHeight - ref.current.scrollHeight;
-
-                    if (target <= minTop + 4) {
-                        // The window shrank past the edge (tall page
-                        // trimmed, short page added): keeping the anchor
-                        // stationary is impossible. Never let the browser
-                        // clamp us into the ghost wall — show the anchor at
-                        // the top of the viewport instead.
-                        el.scrollIntoView({ block: "start" });
-                    } else {
-                        ref.current.scrollTop = target;
-                    }
-                }
-
+                // Applied by MessageRenderer, whose commit carries the
+                // message DOM — here we just reset the local state.
                 setScrollState({ type: "Free" });
             }
-
-            defer(() => renderer.complete());
         },
         // eslint-disable-next-line
         [scrollState],
@@ -230,22 +204,17 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
             unpin as (...args: unknown[]) => void,
         );
     }, []);
-    // ? Handle events from renderer.
-    useLayoutEffect(
-        () => setScrollState(renderer.scrollState),
-        // eslint-disable-next-line
-        [renderer.scrollState],
-    );
-
     // ? Load channel initially.
     // Layout effect + direct scrollTop: cached channels must be positioned
     // BEFORE first paint — the deferred scroll (setTimeout) lands a frame
     // late and shows the list at the top before snapping to the bottom.
+    // Runs before the renderer-events effect below so preempt() clears
+    // stale fetch/scroll state from a previous visit first.
     useLayoutEffect(() => {
+        renderer.preempt();
+
         if (message) return;
         if (renderer.state === "RENDER") {
-            runInAction(() => (renderer.fetching = true));
-
             if (renderer.scrollAnchored) {
                 // Reverse scroller paints at the bottom (0) natively.
                 if (ref.current) ref.current.scrollTop = 0;
@@ -264,6 +233,13 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // ? Handle events from renderer.
+    useLayoutEffect(
+        () => setScrollState(renderer.scrollState),
+        // eslint-disable-next-line
+        [renderer.scrollState],
+    );
 
     // ? If message present or changes, load it as well.
     useEffect(() => {

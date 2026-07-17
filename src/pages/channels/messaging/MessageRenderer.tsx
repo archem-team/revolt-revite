@@ -8,7 +8,7 @@ import styled from "styled-components/macro";
 import { decodeTime } from "ulid";
 
 import { Text } from "preact-i18n";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useState } from "preact/hooks";
 
 import { MessageDivider } from "@revoltchat/ui";
 
@@ -48,6 +48,27 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
     const client = useClient();
     const userId = client.user!._id;
     const queue = useApplicationState().queue;
+
+    // Fetch corrections apply here because this commit is the one that
+    // changes the message DOM — MessageArea commits separately (and
+    // earlier), so measuring there reads the old layout.
+    useLayoutEffect(() => {
+        const state = renderer.scrollState;
+        if (state.type !== "Anchor") return;
+
+        const el = document.getElementById(state.id);
+        const area = el?.closest(
+            '[data-scroll-offset="with-padding"]',
+        ) as HTMLElement | null;
+
+        if (el && area) {
+            const delta = el.getBoundingClientRect().top - state.previousTop;
+            area.scrollTo({ top: area.scrollTop + delta });
+        }
+
+        renderer.consumeAnchor();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [renderer.scrollState]);
 
     const [editing, setEditing] = useState<string | undefined>(undefined);
     const stopEditing = () => {

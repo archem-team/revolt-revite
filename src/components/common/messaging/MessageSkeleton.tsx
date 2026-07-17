@@ -116,11 +116,17 @@ export default function MessageSkeleton({
         const el = base.current;
         if (!el || !onVisible || permitFetching === false) return;
 
-        const observer = new IntersectionObserver((entries) => {
-            for (const entry of entries) {
-                if (entry.isIntersecting) onVisible();
-            }
-        });
+        const observer = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (entry.isIntersecting) onVisible();
+                }
+            },
+            {
+                // Observe within the message scroller, not the window.
+                root: el.closest("[data-scroll-offset]"),
+            },
+        );
 
         observer.observe(el);
         return () => observer.disconnect();
