@@ -82,7 +82,7 @@ export const Bar = styled.div<{ position: "top" | "bottom"; accent?: boolean }>`
                          glass with the pill's dark text. High-opacity so
                          the label always reads; still translucent enough
                          that overlapped content ghosts through. */
-                      color: var(--channel-active-foreground, #26122b);
+                      color: var(--channel-active-foreground);
                       background-color: rgba(var(--channel-active-rgb), 0.9);
                       backdrop-filter: blur(20px);
                   `

@@ -32,7 +32,7 @@ const ServerBase = styled.div`
     /* The channel list is a full-height "sheet" one
        surface step above the canvas, rounded only on the side that meets the
        server rail (surface-container-low, left radii only). */
-    background: var(--secondary-background);
+    background: var(--nav-canvas);
 
     ${!isTouchscreenDevice &&
     css`
@@ -75,8 +75,8 @@ const ServerList = styled.div`
                same left axis as the channel-row icons (list padding 8px +
                row padding 8px). Vertical: 10px above, 8px to the first row. */
             padding: 10px 4px 8px 8px;
-            /* Sheet text: lavender on the sidebar surface. */
-            color: #ccb5dd;
+            /* Sheet text: muted grey on the sidebar surface. */
+            color: #a3a1a4;
 
             &:hover {
                 color: var(--secondary-foreground);

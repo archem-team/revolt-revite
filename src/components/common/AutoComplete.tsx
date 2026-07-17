@@ -381,7 +381,7 @@ const Base = styled.div<{ detached?: boolean }>`
         margin: 0 8px 6px;
         padding: 8px 0;
         border-radius: 8px;
-        background: #2b2e34;
+        background: #332e36;
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
         overflow: hidden;
     }

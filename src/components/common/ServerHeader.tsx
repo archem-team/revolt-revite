@@ -76,7 +76,7 @@ const ServerBanner = styled.div<Omit<Props, "server">>`
             cursor: pointer;
             /* Server name is a title, not sheet text: bright like message
                sender names (reference headers run on-surface white). */
-            color: #f8f8f8;
+            color: #fffffd;
         }
     }
 `;

@@ -4,7 +4,7 @@ import { observer } from "mobx-react-lite";
 import { User } from "revolt.js";
 
 import styles from "./Friend.module.scss";
-import classNames from "classnames";
+import styled, { css } from "styled-components/macro";
 import { Text } from "preact-i18n";
 
 import { IconButton } from "@revoltchat/ui";
@@ -15,10 +15,65 @@ import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
 import CollapsibleSection from "../../components/common/CollapsibleSection";
 import Tooltip from "../../components/common/Tooltip";
 import UserIcon from "../../components/common/user/UserIcon";
-import { PageHeader } from "../../components/ui/Header";
 import { useClient } from "../../controllers/client/ClientController";
 import { modalController } from "../../controllers/modals/ModalController";
 import { Friend } from "./Friend";
+
+const FriendsPage = styled.div`
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    ${() =>
+        !isTouchscreenDevice &&
+        css`
+            gap: var(--space-2);
+            padding: var(--space-2);
+        `}
+`;
+
+/* Header on the canvas, above the panel — same structure as the channel
+   pages, so the action buttons live outside the content sheet. */
+const FriendsHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    height: 48px;
+    padding: 0 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fffffd;
+
+    .actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+`;
+
+/* The rounded content panel the list lives in. */
+const FriendsPanel = styled.div`
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--primary-background);
+
+    ${() =>
+        !isTouchscreenDevice &&
+        css`
+            border-radius: 28px;
+            overflow: hidden;
+        `}
+`;
+
+const FriendsScroll = styled.div`
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+`;
 
 export default observer(() => {
     const client = useClient();
@@ -63,12 +118,10 @@ export default observer(() => {
 
     const isEmpty = lists.reduce((p: number, n) => p + n.length, 0) === 0;
     return (
-        <>
-            <PageHeader
-                icon={<UserDetail size={24} />}
-                withTransparency
-                noBurger>
-                <div className={styles.title}>
+        <FriendsPage>
+            <FriendsHeader>
+                <UserDetail size={24} />
+                <div>
                     <Text id="app.navigation.tabs.friends" />
                 </div>
                 <div className={styles.actions}>
@@ -107,10 +160,11 @@ export default observer(() => {
                     </Tooltip>
                     */}
                 </div>
-            </PageHeader>
-            <div data-scroll-offset="true" data-avoids-navigation="true">
+            </FriendsHeader>
+            <FriendsPanel>
+                <FriendsScroll data-avoids-navigation="true">
                 <div
-                    className={classNames(styles.list, "with-padding")}
+                    className={styles.list}
                     data-empty={isEmpty}
                     data-mobile={isTouchscreenDevice}>
                     {isEmpty && (
@@ -206,7 +260,8 @@ export default observer(() => {
                         );
                     })}
                 </div>
-            </div>
-        </>
+                </FriendsScroll>
+            </FriendsPanel>
+        </FriendsPage>
     );
 });

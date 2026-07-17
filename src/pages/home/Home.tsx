@@ -67,11 +67,11 @@ interface CachedData {
 
 // Add a styled component for the new text color
 const NewServerWrapper = styled.div`
-    color: #fadf4f;
+    color: #ffde17;
     display: contents;
 
     a {
-        color: #fadf4f;
+        color: #ffde17;
     }
 `;
 
@@ -229,7 +229,7 @@ const NewChip = styled.span`
     text-transform: uppercase;
     padding: 3px 6px;
     border-radius: 6px;
-    color: var(--channel-active-foreground, #26122b);
+    color: var(--channel-active-foreground);
     background: var(--channel-active);
 `;
 

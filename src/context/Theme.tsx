@@ -38,7 +38,11 @@ export type Variables =
     | "channel-active"
     | "channel-active-foreground"
     | "sidebar-active"
-    | "unreads";
+    | "unreads"
+    | "nav-canvas"
+    | "nav-rail"
+    | "nav-hover"
+    | "surface-sunken";
 
 // While this isn't used, it'd be good to keep this up to date as a reference or for future use
 export type HiddenVariables =
@@ -296,6 +300,10 @@ export const PRESETS: Record<string, Theme> = {
         "channel-active-foreground": "#000000",
         "sidebar-active": "#F1F1F1",
         unreads: "#FFDE18",
+        "nav-canvas": "#F1F1F1",
+        "nav-rail": "#EBEBEB",
+        "nav-hover": "rgba(0, 0, 0, 0.06)",
+        "surface-sunken": "#F7F7F7",
     },
     // PepChat brand dark theme. Purple-tinted neutral ramp (#1A1523 →
     // #3A2F52) so the whole app feels cohesive with the brand; the bright
@@ -314,39 +322,50 @@ export const PRESETS: Record<string, Theme> = {
     // container-low (middle), the chat column = container-lowest (DARKEST —
     // content is recessed), and the message box pops back up at container-high.
     dark: {
-        accent: "#8B4BC4",
-        background: "#19121D",
-        foreground: "#D1D2D3",
-        block: "#1B181F",
-        "message-box": "#232529",
-        mention: "rgba(139, 75, 196, 0.15)",
-        success: "#3BA55D",
-        warning: "#FAA61A",
-        tooltip: "#2A2630",
-        error: "#ED4245",
-        hover: "#232529",
-        "scrollbar-thumb": "#4A3C59",
+        // Palette mirrors the iOS app's peptide design tokens:
+        // canvas #100518, card #1C1720, chip #332E36, accent #662D91.
+        accent: "#662D91",
+        background: "#100518",
+        foreground: "#D0CFD0",
+        block: "#100518",
+        "message-box": "#332E36",
+        mention: "rgba(102, 45, 145, 0.18)",
+        success: "#3CC374",
+        warning: "#FFB617",
+        tooltip: "#332E36",
+        error: "#C63945",
+        hover: "#27222B",
+        "scrollbar-thumb": "#49454C",
         "scrollbar-track": "transparent",
-        "primary-background": "#1B1D21",
-        "primary-header": "#26122B",
-        "secondary-background": "#19121D",
-        "secondary-foreground": "#A99CC4",
-        "secondary-header": "#232529",
-        "tertiary-background": "#2A2630",
+        "primary-background": "#1C1720",
+        "primary-header": "#1C1720",
+        // Elevation ladder (content surfaces) — location-neutral.
+        "secondary-background": "#27222B",
+        "secondary-foreground": "#A3A1A4",
+        "secondary-header": "#27222B",
+        "tertiary-background": "#332E36",
         // Near-neutral dimmed text (read/inactive rows dim
         // into neutral gray, not into a coloured tint — colour reads as noise
         // when repeated down a list).
-        "tertiary-foreground": "#8F8A99",
+        "tertiary-foreground": "#8C8A8E",
         "status-online": "#3BA55D",
         "status-idle": "#FAA61A",
         "status-focus": "#4799F0",
         "status-busy": "#ED4245",
         "status-streaming": "#977EFF",
         "status-invisible": "#A5A5A5",
-        "channel-active": "#CCB5DD",
-        "channel-active-foreground": "#26122B",
-        "sidebar-active": "#3E1A5C",
-        unreads: "#FFDE18",
+        "channel-active": "#662D91",
+        "channel-active-foreground": "#FFFFFD",
+        "sidebar-active": "#3B1954",
+        unreads: "#FFDE17",
+        // Navigation family: ONLY for the rail, sidebar sheets,
+        // member column and their hovers — content surfaces use the
+        // ladder above.
+        "nav-canvas": "#100518",
+        "nav-rail": "#1C1720",
+        "nav-hover": "#23172B",
+        // Recessed input wells (one step below the content panel).
+        "surface-sunken": "#100518",
     },
 };
 

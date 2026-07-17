@@ -127,7 +127,7 @@ const MemberColumn = styled.div.attrs({ "data-component": "member-column" })`
     ${() =>
         !isTouchscreenDevice &&
         css`
-            background: var(--secondary-background);
+            background: var(--nav-canvas);
             border-radius: 16px;
         `}
 

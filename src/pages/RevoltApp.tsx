@@ -105,6 +105,8 @@ export default function App() {
         path.startsWith("/discover");
     const inChannel = path.includes("/channel");
     const inServer = path.includes("/server");
+    // Pages that draw their own header-on-canvas + rounded panel.
+    const inFriends = path.startsWith("/friends");
     const inSpecial =
         (path.startsWith("/friends") && isTouchscreenDevice) ||
         path.startsWith("/invite") ||
@@ -173,7 +175,7 @@ export default function App() {
                     docked={isTouchscreenDevice ? Docked.None : Docked.Left}>
                     <Routes
                         borders={inServer}
-                        panel={!(inChannel || inServer)}>
+                        panel={!(inChannel || inServer || inFriends)}>
                         <Switch>
                             <Route
                                 path="/server/:server/channel/:channel/settings/:page"

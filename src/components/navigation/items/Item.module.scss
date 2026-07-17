@@ -19,8 +19,8 @@
     font-weight: 500;
     transition: 0.1s ease-in-out background-color;
 
-    // Sheet text: lavender on the deep-purple sidebar/member surfaces.
-    color: #ccb5dd;
+    // Sheet text: muted grey on the deep-purple sidebar/member surfaces.
+    color: #a3a1a4;
 
     &.normal {
         height: 42px;
@@ -45,7 +45,7 @@
     &:hover {
         // Sidebar rows hover in the purple family (sheet-tinted), separate
         // from the chat panel's slate hover.
-        background: #2c2430;
+        background: var(--nav-hover);
     }
 
     div {
@@ -167,7 +167,7 @@
     &[data-style="mention"] {
         width: 0.85rem;
         height: 0.85rem;
-        color: #ffffff;
+        color: #fffffd;
         background: var(--error);
     }
 }

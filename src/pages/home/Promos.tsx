@@ -261,7 +261,7 @@ const Glyph = styled.div`
         font-weight: 700;
         padding: 3px 7px;
         border-radius: 8px;
-        color: var(--channel-active-foreground, #26122b);
+        color: var(--channel-active-foreground);
         background: var(--channel-active);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         animation: promo-bob 3.4s ease-in-out infinite;
@@ -366,7 +366,7 @@ const ActionIcon = styled.div`
        centres without inline-baseline offset. */
     & > svg {
         display: block;
-        color: var(--channel-active-foreground, #26122b);
+        color: var(--channel-active-foreground);
     }
 
     &:hover {
@@ -407,7 +407,7 @@ const Chip = styled.span<{ accent?: boolean }>`
     border-radius: 6px;
     white-space: nowrap;
     color: ${(props) =>
-        props.accent ? "var(--channel-active-foreground, #26122b)" : "var(--foreground)"};
+        props.accent ? "var(--channel-active-foreground)" : "var(--foreground)"};
     background: ${(props) =>
         props.accent ? "var(--channel-active)" : "var(--primary-background)"};
 `;

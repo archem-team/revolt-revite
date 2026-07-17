@@ -19,7 +19,7 @@ const RailBase = styled.div`
     display: flex;
     height: 100%;
     flex-shrink: 0;
-    background: var(--primary-header);
+    background: var(--nav-rail);
 
     /* The list's bottom fade (above the settings button) must fade into the
        rail surface, not the canvas colour it defaults to. */
@@ -27,7 +27,7 @@ const RailBase = styled.div`
         background: linear-gradient(
             to bottom,
             transparent,
-            var(--primary-header)
+            var(--nav-rail)
         ) !important;
     }
 `;
