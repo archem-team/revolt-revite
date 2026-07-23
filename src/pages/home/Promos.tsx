@@ -14,7 +14,7 @@ import {
 } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import { Link } from "react-router-dom";
-import styled from "styled-components/macro";
+import styled, { css } from "styled-components/macro";
 
 import { useEffect, useMemo, useState } from "preact/hooks";
 
@@ -402,7 +402,9 @@ const VendorMeta = styled.div`
     }
 `;
 
-const Chip = styled.span<{ accent?: boolean }>`
+/* Chips carry three weights of fact: logistics stay quiet, guarantees
+   read as trust marks, and the deadline is the card's one warm element. */
+const Chip = styled.span<{ accent?: boolean; tone?: "trust" | "deadline" }>`
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -412,10 +414,33 @@ const Chip = styled.span<{ accent?: boolean }>`
     padding: 5px 8px;
     border-radius: 6px;
     white-space: nowrap;
-    color: ${(props) =>
-        props.accent ? "var(--channel-active-foreground)" : "var(--foreground)"};
-    background: ${(props) =>
-        props.accent ? "var(--channel-active)" : "var(--promo-chip)"};
+    color: var(--tertiary-foreground);
+    background: var(--promo-well);
+
+    ${(props) =>
+        props.tone === "trust" &&
+        css`
+            color: var(--foreground);
+            background: var(--promo-chip);
+
+            svg {
+                color: var(--success);
+            }
+        `}
+
+    ${(props) =>
+        props.tone === "deadline" &&
+        css`
+            color: var(--warning);
+            background: rgba(255, 182, 23, 0.12);
+        `}
+
+    ${(props) =>
+        props.accent &&
+        css`
+            color: var(--channel-active-foreground);
+            background: var(--channel-active);
+        `}
 `;
 
 const ItemTable = styled.div`
@@ -432,6 +457,8 @@ const ItemRow = styled.div`
     gap: 8px;
     padding: 9px 12px;
     font-size: 13px;
+    /* Prices line up digit-for-digit for column scanning. */
+    font-variant-numeric: tabular-nums;
 
     & + & {
         border-top: 1px solid var(--promo-chip);
@@ -500,7 +527,8 @@ const CompoundChip = styled.span`
     padding: 7px 10px;
     border-radius: 7px;
     color: var(--foreground);
-    background: var(--promo-well);
+    /* The merchandise floats; logistics recess. */
+    background: var(--promo-chip);
 
     .count {
         font-size: 11px;
@@ -830,25 +858,25 @@ const PromoCard = observer(
                     <Chip>Free over {money(promo.freeShippingThreshold)}</Chip>
                 )}
                 {g?.purityPct != null && (
-                    <Chip>
+                    <Chip tone="trust">
                         <BadgeCheck size={12} />
                         {g.purityPct}% purity
                     </Chip>
                 )}
                 {g?.volumePct != null && (
-                    <Chip>
+                    <Chip tone="trust">
                         <BadgeCheck size={12} />
                         {g.volumePct}% volume
                     </Chip>
                 )}
                 {g?.customsReship && (
-                    <Chip>
+                    <Chip tone="trust">
                         <BadgeCheck size={12} />
                         Customs reship
                     </Chip>
                 )}
                 {when && (
-                    <Chip>
+                    <Chip tone="deadline">
                         <Calendar size={12} />
                         {when}
                     </Chip>
