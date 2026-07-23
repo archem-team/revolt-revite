@@ -109,6 +109,12 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 16px;
+
+    /* Promo surface ladder, in the canvas violet family: card floats on
+       the panel, chips float on the card, wells recess into it. */
+    --promo-card: #1c1523;
+    --promo-chip: #2a2133;
+    --promo-well: #150f1b;
 `;
 
 // Promos vary a lot in content (2 vs 14 products, image or not), so a fixed
@@ -176,7 +182,7 @@ const SortSelect = styled.select`
     padding: 0 32px 0 12px;
     border: none;
     border-radius: var(--border-radius);
-    background-color: var(--message-box);
+    background-color: var(--promo-card);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23848484' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
@@ -312,7 +318,7 @@ const Card = styled.div`
     gap: 12px;
     padding: 14px;
     border-radius: 10px;
-    background: var(--message-box);
+    background: var(--promo-card);
     /* Masonry layout: keep each card whole within its column and use a bottom
        margin for the vertical gap (column-gap only spaces columns). */
     break-inside: avoid;
@@ -331,7 +337,7 @@ const Logo = styled.img`
     border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0;
-    background: var(--primary-background);
+    background: var(--promo-chip);
 `;
 
 const LogoFallback = styled.div`
@@ -341,7 +347,7 @@ const LogoFallback = styled.div`
     flex-shrink: 0;
     display: grid;
     place-items: center;
-    background: var(--primary-background);
+    background: var(--promo-chip);
     color: var(--tertiary-foreground);
 `;
 
@@ -409,7 +415,7 @@ const Chip = styled.span<{ accent?: boolean }>`
     color: ${(props) =>
         props.accent ? "var(--channel-active-foreground)" : "var(--foreground)"};
     background: ${(props) =>
-        props.accent ? "var(--channel-active)" : "var(--primary-background)"};
+        props.accent ? "var(--channel-active)" : "var(--promo-chip)"};
 `;
 
 const ItemTable = styled.div`
@@ -417,7 +423,7 @@ const ItemTable = styled.div`
     flex-direction: column;
     border-radius: 8px;
     overflow: hidden;
-    background: var(--primary-background);
+    background: var(--promo-well);
 `;
 
 const ItemRow = styled.div`
@@ -428,7 +434,7 @@ const ItemRow = styled.div`
     font-size: 13px;
 
     & + & {
-        border-top: 1px solid var(--message-box);
+        border-top: 1px solid var(--promo-chip);
     }
 
     .product {
@@ -463,7 +469,7 @@ const ItemNote = styled.div`
     padding: 0 12px 9px;
     font-size: 12px;
     color: var(--tertiary-foreground);
-    background: var(--primary-background);
+    background: var(--promo-well);
 `;
 
 // Long promos can list a dozen-plus priced variants. Rather than show the
@@ -494,7 +500,7 @@ const CompoundChip = styled.span`
     padding: 7px 10px;
     border-radius: 7px;
     color: var(--foreground);
-    background: var(--primary-background);
+    background: var(--promo-well);
 
     .count {
         font-size: 11px;
@@ -511,8 +517,8 @@ const ItemToggle = styled.button`
     width: 100%;
     padding: 9px 12px;
     border: none;
-    border-top: 1px solid var(--message-box);
-    background: var(--primary-background);
+    border-top: 1px solid var(--promo-chip);
+    background: var(--promo-well);
     color: var(--channel-active);
     font-family: inherit;
     font-size: 12px;
@@ -520,7 +526,7 @@ const ItemToggle = styled.button`
     cursor: pointer;
 
     &:hover {
-        background: var(--message-box);
+        background: var(--promo-card);
     }
 
     svg {
@@ -576,7 +582,7 @@ const Gallery = styled.div`
         border-radius: 8px;
         object-fit: cover;
         cursor: zoom-in;
-        background: var(--primary-background);
+        background: var(--promo-well);
     }
 
     .thumbs {
@@ -591,7 +597,7 @@ const Gallery = styled.div`
             object-fit: cover;
             flex-shrink: 0;
             cursor: pointer;
-            background: var(--primary-background);
+            background: var(--promo-well);
         }
     }
 `;
