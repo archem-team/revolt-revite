@@ -14,6 +14,7 @@ type LinkType =
  */
 const ALLOWED_ORIGINS = [
     location.hostname,
+    "peptide.chat",
     "app.revolt.chat",
     "nightly.revolt.chat",
     "local.revolt.chat",

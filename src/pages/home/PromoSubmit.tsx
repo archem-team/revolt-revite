@@ -7,9 +7,13 @@ import { useEffect, useState } from "preact/hooks";
 
 import { Button, Checkbox, InputBox } from "@revoltchat/ui";
 
-import { uploadFile } from "../../controllers/client/jsx/legacy/FileUploads";
 import { useClient } from "../../controllers/client/ClientController";
-import { API_BASE, BACKEND_API_BASE, WAREHOUSE_LABELS } from "../directory/types";
+import { uploadFile } from "../../controllers/client/jsx/legacy/FileUploads";
+import {
+    API_BASE,
+    BACKEND_API_BASE,
+    WAREHOUSE_LABELS,
+} from "../directory/types";
 
 interface ItemForm {
     product: string;
@@ -336,7 +340,9 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
 
                 const wh = c.warehouses ?? {};
                 const warehouseStr = (
-                    Object.keys(WAREHOUSE_LABELS) as (keyof typeof WAREHOUSE_LABELS)[]
+                    Object.keys(
+                        WAREHOUSE_LABELS,
+                    ) as (keyof typeof WAREHOUSE_LABELS)[]
                 )
                     .filter((k) => wh[k])
                     .map((k) => WAREHOUSE_LABELS[k])
@@ -742,9 +748,7 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
                         type="number"
                         value={shippingFee}
                         placeholder="Shipping fee (USD)"
-                        onChange={(e) =>
-                            setShippingFee(e.currentTarget.value)
-                        }
+                        onChange={(e) => setShippingFee(e.currentTarget.value)}
                     />
                     <InputBox
                         palette="secondary"
@@ -757,7 +761,9 @@ const PromoSubmit = observer(({ servers, onClose }: Props) => {
                     />
                 </Grid>
                 {fieldErrors.shippingFee && (
-                    <FieldError>Shipping fee: {fieldErrors.shippingFee}</FieldError>
+                    <FieldError>
+                        Shipping fee: {fieldErrors.shippingFee}
+                    </FieldError>
                 )}
                 {fieldErrors.freeShippingThreshold && (
                     <FieldError>

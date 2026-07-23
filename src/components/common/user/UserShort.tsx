@@ -21,8 +21,8 @@ import UserIcon from "./UserIcon";
 const NEW_MEMBER_THRESHOLD_DAYS = 14;
 
 // Vendor badge flags - reusing existing enum values
-const TRUSTED_SELLER_BADGE = 8;           // ResponsibleDisclosure
-const VERIFIED_VENDOR_BADGE = 512;        // ReservedRelevantJokeBadge1  
+const TRUSTED_SELLER_BADGE = 8; // ResponsibleDisclosure
+const VERIFIED_VENDOR_BADGE = 512; // ReservedRelevantJokeBadge1
 // NOTE: ReservedRelevantJokeBadge2 (1024) is rendered as "Gump" in the full badge
 // list (`src/components/common/user/UserBadges.tsx`). It should not trigger the
 // compact "Verified Vendor" indicator next to usernames.
@@ -60,7 +60,7 @@ const NewHereBadge = styled.div`
     user-select: none;
     text-transform: uppercase;
     color: white;
-    background: #3BA55D;
+    background: #3ba55d;
     border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 `;
@@ -162,12 +162,13 @@ export const Username = observer(
         if (user) {
             // Extract account creation timestamp from user ID (ULID)
             const accountCreatedAt = decodeTime(user._id);
-            const accountAge = dayjs().diff(dayjs(accountCreatedAt), 'day');
+            const accountAge = dayjs().diff(dayjs(accountCreatedAt), "day");
             isNewHere = accountAge <= NEW_MEMBER_THRESHOLD_DAYS;
         }
 
         // Check if user has any vendor badge
-        const hasVendorBadge = user && user.badges && (user.badges & VENDOR_BADGES_MASK);
+        const hasVendorBadge =
+            user && user.badges && user.badges & VENDOR_BADGES_MASK;
 
         const el = (
             <>

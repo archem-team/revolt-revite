@@ -119,12 +119,28 @@ export default function EmbedMedia({ embed, width, height }: Props) {
                 );
             } else if (embed.image) {
                 const url = embed.image.url;
+                // Explicit metadata-derived box: the image must occupy its
+                // final size BEFORE it loads, or history paging shifts the
+                // scroller on every image load.
+                const sized =
+                    Number.isFinite(height) &&
+                    height > 0 &&
+                    (width === undefined ||
+                        (Number.isFinite(width) && width! > 0));
                 return (
                     <img
                         className={styles.image}
                         src={client.proxyFile(url)}
                         loading="lazy"
-                        style={{ width: "100%", height: "100%" }}
+                        style={
+                            sized
+                                ? {
+                                      width: width ?? "100%",
+                                      height,
+                                      objectFit: "contain",
+                                  }
+                                : { width: "100%", height: "100%" }
+                        }
                         onClick={() =>
                             modalController.push({
                                 type: "image_viewer",

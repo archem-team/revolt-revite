@@ -36,7 +36,7 @@ export default observer(() => {
                     <div className="actions">
                         {alert.actions?.map((action) =>
                             action.type === "internal" ? null : action.type ===
-                                "external" ? (
+                              "external" ? (
                                 <a
                                     href={action.href}
                                     target="_blank"
@@ -51,16 +51,34 @@ export default observer(() => {
             <div className={styles.login}>
                 <Helmet>
                     <title>PepChat – Home of the Peptide Community</title>
-                    <meta name="description" content="Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source." />
-                    <meta name="keywords" content="peptide, chat, community, group buy, research, discussion, open source" />
-                    <meta property="og:title" content="PepChat – Home of the Peptide Community" />
-                    <meta property="og:description" content="Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source." />
+                    <meta
+                        name="description"
+                        content="Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source."
+                    />
+                    <meta
+                        name="keywords"
+                        content="peptide, chat, community, group buy, research, discussion, open source"
+                    />
+                    <meta
+                        property="og:title"
+                        content="PepChat – Home of the Peptide Community"
+                    />
+                    <meta
+                        property="og:description"
+                        content="Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source."
+                    />
                     <meta property="og:type" content="website" />
                     <meta property="og:url" content="https://peptide.chat" />
                     <meta property="og:site_name" content="PepChat" />
                     <meta name="twitter:card" content="summary_large_image" />
-                    <meta name="twitter:title" content="PepChat – Home of the Peptide Community" />
-                    <meta name="twitter:description" content="Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source." />
+                    <meta
+                        name="twitter:title"
+                        content="PepChat – Home of the Peptide Community"
+                    />
+                    <meta
+                        name="twitter:description"
+                        content="Join the only chat built for unrestricted peptide discussion. Connect with group buys, Chinese manufacturers, and fellow researchers. No gatekeepers. No censorship. 100% open-source."
+                    />
                     <meta
                         name="theme-color"
                         content={theme.getVariable("background")}
@@ -76,11 +94,6 @@ export default observer(() => {
                         <LocaleSelector />
                     </div>
                     <div className={styles.form}>
-                        {/*<div style={styles.version}>
-                            API: <code>{configuration?.revolt ?? "???"}</code>{" "}
-                            &middot; revolt.js: <code>{LIBRARY_VERSION}</code>{" "}
-                            &middot; App: <code>{APP_VERSION}</code>
-                        </div>*/}
                         <Switch>
                             <Route path="/login/create">
                                 <FormCreate />
@@ -143,35 +156,23 @@ export default observer(() => {
                         </div>
                     </div>
                     <div className={styles.bottom}>
-                        <div className={styles.links}>
-                            <div className={styles.revolt}>
-                                <a
-                                    href="https://copper-mildrid-58.tiiny.site"
-                                    target="_blank"
-                                    rel="noreferrer">
-                                    Acceptable Usage Policy
-                                </a>
-                                <a
-                                    href="https://emerald-theresita-57.tiiny.site"
-                                    target="_blank"
-                                    rel="noreferrer">
-                                    <Text id="general.tos" />
-                                </a>
-                                <a
-                                    href="https://crimson-elena-61.tiiny.site"
-                                    target="_blank"
-                                    rel="noreferrer">
-                                    <Text id="general.privacy" />
-                                </a>
-                            </div>
-                        </div>
                         <a
-                            className={styles.attribution}
-                            href="https://unsplash.com/@kirp"
+                            href="https://copper-mildrid-58.tiiny.site"
                             target="_blank"
                             rel="noreferrer">
-                            <Text id="general.image_by" /> &lrm;@kirp &rlm;·
-                            unsplash.com
+                            Acceptable Usage Policy
+                        </a>
+                        <a
+                            href="https://emerald-theresita-57.tiiny.site"
+                            target="_blank"
+                            rel="noreferrer">
+                            <Text id="general.tos" />
+                        </a>
+                        <a
+                            href="https://crimson-elena-61.tiiny.site"
+                            target="_blank"
+                            rel="noreferrer">
+                            <Text id="general.privacy" />
                         </a>
                     </div>
                 </div>

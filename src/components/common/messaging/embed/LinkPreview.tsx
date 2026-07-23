@@ -1,7 +1,7 @@
-import { memo } from "preact/compat";
-import { useEffect, useState } from "preact/hooks";
 import styles from "./Embed.module.scss";
 import classNames from "classnames";
+import { memo } from "preact/compat";
+import { useEffect, useState } from "preact/hooks";
 
 interface LinkPreviewData {
     title?: string;
@@ -18,7 +18,8 @@ interface Props {
 }
 
 // YouTube URL detector
-const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
+const YOUTUBE_REGEX =
+    /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
 
 // Simple URL detector
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
@@ -26,38 +27,39 @@ const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 // Domains and paths that should not have previews
 const BLACKLISTED_PATTERNS = [
     // Server links
-    { domain: 'peptide.chat', path: '/server' },
-    { domain: 'revolt.chat', path: '/server' },
-    { domain: 'app.revolt.chat', path: '/server' },
-    { domain: 'nightly.revolt.chat', path: '/server' },
-    { domain: 'local.revolt.chat', path: '/server' },
-    { domain: 'rolt.chat', path: '/server' },
+    { domain: "peptide.chat", path: "/server" },
+    { domain: "revolt.chat", path: "/server" },
+    { domain: "app.revolt.chat", path: "/server" },
+    { domain: "nightly.revolt.chat", path: "/server" },
+    { domain: "local.revolt.chat", path: "/server" },
+    { domain: "rolt.chat", path: "/server" },
 
     // Channel/Message links
-    { domain: 'peptide.chat', path: '/channel' },
-    { domain: 'revolt.chat', path: '/channel' },
-    { domain: 'app.revolt.chat', path: '/channel' },
-    { domain: 'nightly.revolt.chat', path: '/channel' },
-    { domain: 'local.revolt.chat', path: '/channel' },
-    { domain: 'rolt.chat', path: '/channel' },
+    { domain: "peptide.chat", path: "/channel" },
+    { domain: "revolt.chat", path: "/channel" },
+    { domain: "app.revolt.chat", path: "/channel" },
+    { domain: "nightly.revolt.chat", path: "/channel" },
+    { domain: "local.revolt.chat", path: "/channel" },
+    { domain: "rolt.chat", path: "/channel" },
 
     // Invite links
-    { domain: 'peptide.chat', path: '/invite' },
-    { domain: 'revolt.chat', path: '/invite' },
-    { domain: 'app.revolt.chat', path: '/invite' },
-    { domain: 'nightly.revolt.chat', path: '/invite' },
-    { domain: 'local.revolt.chat', path: '/invite' },
-    { domain: 'rolt.chat', path: '/invite' },
-    { domain: 'rvlt.gg', path: '/' }
+    { domain: "peptide.chat", path: "/invite" },
+    { domain: "revolt.chat", path: "/invite" },
+    { domain: "app.revolt.chat", path: "/invite" },
+    { domain: "nightly.revolt.chat", path: "/invite" },
+    { domain: "local.revolt.chat", path: "/invite" },
+    { domain: "rolt.chat", path: "/invite" },
+    { domain: "rvlt.gg", path: "/" },
 ];
 
 // Check if URL should be blacklisted
 function isBlacklistedUrl(url: string): boolean {
     try {
         const urlObj = new URL(url);
-        return BLACKLISTED_PATTERNS.some(pattern => {
-            const domainMatch = urlObj.hostname === pattern.domain ||
-                urlObj.hostname.endsWith('.' + pattern.domain);
+        return BLACKLISTED_PATTERNS.some((pattern) => {
+            const domainMatch =
+                urlObj.hostname === pattern.domain ||
+                urlObj.hostname.endsWith("." + pattern.domain);
             const pathMatch = urlObj.pathname.startsWith(pattern.path);
             return domainMatch && pathMatch;
         });
@@ -70,15 +72,17 @@ function isBlacklistedUrl(url: string): boolean {
 async function fetchMetadata(url: string): Promise<Partial<LinkPreviewData>> {
     try {
         // Use a CORS proxy service to fetch metadata with timeout
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(
+            url,
+        )}`;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
 
         const response = await fetch(proxyUrl, {
             signal: controller.signal,
             headers: {
-                'Accept': 'application/json',
-            }
+                Accept: "application/json",
+            },
         });
         clearTimeout(timeoutId);
 
@@ -92,35 +96,41 @@ async function fetchMetadata(url: string): Promise<Partial<LinkPreviewData>> {
 
         const html = data.contents;
         const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
+        const doc = parser.parseFromString(html, "text/html");
 
         // Extract Open Graph or meta tags
-        const getMetaContent = (property: string, attribute = 'property') => {
-            const element = doc.querySelector(`meta[${attribute}="${property}"]`);
-            return element?.getAttribute('content') || '';
+        const getMetaContent = (property: string, attribute = "property") => {
+            const element = doc.querySelector(
+                `meta[${attribute}="${property}"]`,
+            );
+            return element?.getAttribute("content") || "";
         };
 
-        const title = getMetaContent('og:title') ||
-            getMetaContent('twitter:title') ||
-            doc.querySelector('title')?.textContent || '';
+        const title =
+            getMetaContent("og:title") ||
+            getMetaContent("twitter:title") ||
+            doc.querySelector("title")?.textContent ||
+            "";
 
-        const description = getMetaContent('og:description') ||
-            getMetaContent('twitter:description') ||
-            getMetaContent('description', 'name') || '';
+        const description =
+            getMetaContent("og:description") ||
+            getMetaContent("twitter:description") ||
+            getMetaContent("description", "name") ||
+            "";
 
-        const image = getMetaContent('og:image') ||
-            getMetaContent('twitter:image') || '';
+        const image =
+            getMetaContent("og:image") || getMetaContent("twitter:image") || "";
 
-        const siteName = getMetaContent('og:site_name') || '';
+        const siteName = getMetaContent("og:site_name") || "";
 
         return {
             title: title.trim(),
             description: description.trim(),
             image: image,
-            siteName: siteName || new URL(url).hostname
+            siteName: siteName || new URL(url).hostname,
         };
     } catch (error) {
-        console.warn('Failed to fetch metadata for:', url, error);
+        console.warn("Failed to fetch metadata for:", url, error);
         return {};
     }
 }
@@ -130,11 +140,16 @@ function extractYouTubeId(url: string): string | null {
     return match ? match[1] : null;
 }
 
-async function createYouTubePreview(videoId: string, url: string): Promise<LinkPreviewData> {
+async function createYouTubePreview(
+    videoId: string,
+    url: string,
+): Promise<LinkPreviewData> {
     // For YouTube, use a reliable fallback approach
     // YouTube often blocks metadata fetching, so we'll use their oEmbed API
     try {
-        const oEmbedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+        const oEmbedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(
+            url,
+        )}&format=json`;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for YouTube
 
@@ -145,16 +160,21 @@ async function createYouTubePreview(videoId: string, url: string): Promise<LinkP
             const data = await response.json();
             return {
                 title: data.title || "YouTube Video",
-                description: `by ${data.author_name || 'YouTube'} • Click to watch`,
-                image: data.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                description: `by ${
+                    data.author_name || "YouTube"
+                } • Click to watch`,
+                image:
+                    data.thumbnail_url ||
+                    `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
                 url,
                 siteName: "YouTube",
-                favicon: "https://www.youtube.com/s/desktop/f506bd45/img/favicon_32x32.png",
-                videoId: videoId
+                favicon:
+                    "https://www.youtube.com/s/desktop/f506bd45/img/favicon_32x32.png",
+                videoId: videoId,
             };
         }
     } catch (error) {
-        console.warn('YouTube oEmbed failed:', error);
+        console.warn("YouTube oEmbed failed:", error);
     }
 
     // Fallback to basic preview
@@ -164,8 +184,9 @@ async function createYouTubePreview(videoId: string, url: string): Promise<LinkP
         image: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
         url,
         siteName: "YouTube",
-        favicon: "https://www.youtube.com/s/desktop/f506bd45/img/favicon_32x32.png",
-        videoId: videoId
+        favicon:
+            "https://www.youtube.com/s/desktop/f506bd45/img/favicon_32x32.png",
+        videoId: videoId,
     };
 }
 
@@ -175,32 +196,36 @@ async function createGenericPreview(url: string): Promise<LinkPreviewData> {
 
         // Add timeout for metadata fetching
         const metadataPromise = fetchMetadata(url);
-        const timeoutPromise = new Promise<Partial<LinkPreviewData>>((_, reject) => {
-            setTimeout(() => reject(new Error('Timeout')), 6000);
-        });
+        const timeoutPromise = new Promise<Partial<LinkPreviewData>>(
+            (_, reject) => {
+                setTimeout(() => reject(new Error("Timeout")), 6000);
+            },
+        );
 
-        const metadata = await Promise.race([metadataPromise, timeoutPromise]).catch(() => ({} as Partial<LinkPreviewData>));
+        const metadata = await Promise.race([
+            metadataPromise,
+            timeoutPromise,
+        ]).catch(() => ({} as Partial<LinkPreviewData>));
 
+        // Only real metadata — a link with nothing to show renders no card
+        // at all (the URL is already visible in the message).
         return {
-            title: metadata?.title || urlObj.hostname,
-            description: metadata?.description || "Click to open link",
+            title: metadata?.title,
+            description: metadata?.description,
             image: metadata?.image,
             url,
             siteName: metadata?.siteName || urlObj.hostname,
-            favicon: `${urlObj.protocol}//${urlObj.hostname}/favicon.ico`
+            favicon: `${urlObj.protocol}//${urlObj.hostname}/favicon.ico`,
         };
     } catch {
-        return {
-            title: "External Link",
-            description: "Click to open link",
-            url,
-            siteName: "External Site"
-        };
+        return { url };
     }
 }
 
 export default memo(function LinkPreview({ url }: Props) {
-    const [previewData, setPreviewData] = useState<LinkPreviewData | null>(null);
+    const [previewData, setPreviewData] = useState<LinkPreviewData | null>(
+        null,
+    );
     const [loading, setLoading] = useState(false);
     const [showPlayer, setShowPlayer] = useState(false);
 
@@ -209,7 +234,7 @@ export default memo(function LinkPreview({ url }: Props) {
 
         // Check if URL is blacklisted
         if (isBlacklistedUrl(url)) {
-            console.log('URL is blacklisted, skipping preview:', url);
+            console.log("URL is blacklisted, skipping preview:", url);
             return;
         }
 
@@ -218,28 +243,34 @@ export default memo(function LinkPreview({ url }: Props) {
 
         const loadPreview = async () => {
             try {
-                console.log('Loading preview for:', url);
+                console.log("Loading preview for:", url);
                 // Check if it's a YouTube link
                 const youtubeId = extractYouTubeId(url);
                 let preview: LinkPreviewData;
 
                 if (youtubeId) {
-                    console.log('Detected YouTube video:', youtubeId);
+                    console.log("Detected YouTube video:", youtubeId);
                     // For YouTube, try oEmbed first, but don't wait too long
                     try {
                         preview = await Promise.race([
                             createYouTubePreview(youtubeId, url),
                             new Promise<LinkPreviewData>((resolve) => {
-                                setTimeout(() => resolve({
-                                    title: "YouTube Video",
-                                    description: "Click to watch on YouTube",
-                                    image: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`,
-                                    url,
-                                    siteName: "YouTube",
-                                    favicon: "https://www.youtube.com/s/desktop/f506bd45/img/favicon_32x32.png",
-                                    videoId: youtubeId
-                                }), 3000); // 3 second fallback
-                            })
+                                setTimeout(
+                                    () =>
+                                        resolve({
+                                            title: "YouTube Video",
+                                            description:
+                                                "Click to watch on YouTube",
+                                            image: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`,
+                                            url,
+                                            siteName: "YouTube",
+                                            favicon:
+                                                "https://www.youtube.com/s/desktop/f506bd45/img/favicon_32x32.png",
+                                            videoId: youtubeId,
+                                        }),
+                                    3000,
+                                ); // 3 second fallback
+                            }),
                         ]);
                     } catch {
                         // Immediate fallback for YouTube
@@ -249,32 +280,27 @@ export default memo(function LinkPreview({ url }: Props) {
                             image: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`,
                             url,
                             siteName: "YouTube",
-                            favicon: "https://www.youtube.com/s/desktop/f506bd45/img/favicon_32x32.png",
-                            videoId: youtubeId
+                            favicon:
+                                "https://www.youtube.com/s/desktop/f506bd45/img/favicon_32x32.png",
+                            videoId: youtubeId,
                         };
                     }
                 } else {
-                    console.log('Loading generic preview for:', url);
+                    console.log("Loading generic preview for:", url);
                     preview = await createGenericPreview(url);
                 }
 
-                console.log('Preview loaded:', preview);
+                console.log("Preview loaded:", preview);
 
                 if (!cancelled) {
                     setPreviewData(preview);
                     setLoading(false);
                 }
             } catch (error) {
-                console.warn('Failed to load preview for:', url, error);
+                console.warn("Failed to load preview for:", url, error);
                 if (!cancelled) {
-                    // Fallback to basic preview
-                    const urlObj = new URL(url);
-                    setPreviewData({
-                        title: urlObj.hostname,
-                        description: "Click to open link",
-                        url,
-                        siteName: urlObj.hostname
-                    });
+                    // No metadata — the guard below suppresses the card.
+                    setPreviewData({ url });
                     setLoading(false);
                 }
             }
@@ -287,19 +313,25 @@ export default memo(function LinkPreview({ url }: Props) {
         };
     }, [url]);
 
-    if (loading) {
-        return (
-            <div className={classNames(styles.embed, styles.website)} style={{ cursor: 'pointer', maxWidth: '550px', minHeight: '200px', padding: '20px', margin: '10px 0', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '14px', color: 'var(--secondary-foreground)' }}>
-                        Loading preview...
-                    </div>
-                </div>
-            </div>
-        );
+    if (loading || !previewData) {
+        return null;
     }
 
-    if (!previewData) {
+    // A card must earn its place: suppress it unless there is something
+    // beyond the URL itself (title that isn't just the domain, description,
+    // image or playable video).
+    let hostname: string | undefined;
+    try {
+        hostname = new URL(url).hostname;
+    } catch {}
+    const meaningful =
+        previewData.videoId ||
+        previewData.image ||
+        previewData.description ||
+        (previewData.title &&
+            previewData.title !== hostname &&
+            previewData.title !== previewData.siteName);
+    if (!meaningful) {
         return null;
     }
 
@@ -307,12 +339,12 @@ export default memo(function LinkPreview({ url }: Props) {
         if (previewData?.videoId) {
             setShowPlayer(!showPlayer);
         } else {
-            window.open(url, '_blank', 'noopener,noreferrer');
+            window.open(url, "_blank", "noopener,noreferrer");
         }
     };
 
     return (
-        <div className={classNames(styles.embed, styles.website)} onClick={handleClick} style={{ cursor: 'pointer', maxWidth: '550px', minHeight: '200px', padding: '20px', margin: '10px 0', display: 'flex', flexDirection: 'column' }}>
+        <div className={classNames(styles.embed, styles.website)} onClick={handleClick} style={{ cursor: 'pointer', maxWidth: '550px', margin: '10px 0', display: 'flex', flexDirection: 'column', borderInlineStartColor: 'var(--scrollbar-thumb)' }}>
             <div style={{ flex: 1 }}>
                 {previewData.siteName && (
                     <div className={styles.siteinfo}>
@@ -322,7 +354,9 @@ export default memo(function LinkPreview({ url }: Props) {
                                 className={styles.favicon}
                                 src={previewData.favicon}
                                 draggable={false}
-                                onError={(e) => (e.currentTarget.style.display = "none")}
+                                onError={(e) =>
+                                    (e.currentTarget.style.display = "none")
+                                }
                             />
                         )}
                         <div className={styles.site}>
@@ -333,17 +367,38 @@ export default memo(function LinkPreview({ url }: Props) {
 
                 {previewData.title && (
                     <span>
-                        <div className={styles.title} style={{ fontSize: '18px', fontWeight: '600', marginBottom: '10px' }}>
+                        <div
+                            className={styles.title}
+                            style={{
+                                fontSize: "18px",
+                                fontWeight: "600",
+                                marginBottom: "10px",
+                            }}>
                             {previewData.title}
                         </div>
                     </span>
                 )}
 
                 {previewData.description && (
-                    <div className={styles.description} style={{ fontSize: '15px', lineHeight: '1.4', color: 'var(--secondary-foreground)', maxHeight: '70px', overflow: 'hidden' }}>
-                        {previewData.description.length > 300 ? previewData.description.substring(0, 300) + '...' : previewData.description}
+                    <div
+                        className={styles.description}
+                        style={{
+                            fontSize: "15px",
+                            lineHeight: "1.4",
+                            color: "var(--secondary-foreground)",
+                            maxHeight: "70px",
+                            overflow: "hidden",
+                        }}>
+                        {previewData.description.length > 300
+                            ? previewData.description.substring(0, 300) + "..."
+                            : previewData.description}
                         {previewData.videoId && !showPlayer && (
-                            <span style={{ marginLeft: '8px', color: 'var(--accent)', fontSize: '12px' }}>
+                            <span
+                                style={{
+                                    marginLeft: "8px",
+                                    color: "var(--accent)",
+                                    fontSize: "12px",
+                                }}>
                                 • Click to play
                             </span>
                         )}
@@ -352,9 +407,14 @@ export default memo(function LinkPreview({ url }: Props) {
             </div>
 
             {previewData.image && (
-                <div style={{ width: '100%', marginTop: '12px' }}>
+                <div style={{ width: "100%", marginTop: "12px" }}>
                     {showPlayer && previewData.videoId ? (
-                        <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9' }}>
+                        <div
+                            style={{
+                                position: "relative",
+                                width: "100%",
+                                aspectRatio: "16/9",
+                            }}>
                             <iframe
                                 width="100%"
                                 height="100%"
@@ -362,7 +422,7 @@ export default memo(function LinkPreview({ url }: Props) {
                                 title="YouTube video player"
                                 frameBorder="0"
                                 allowFullScreen
-                                style={{ borderRadius: '8px' }}
+                                style={{ borderRadius: "8px" }}
                             />
                             <button
                                 onClick={(e) => {
@@ -370,68 +430,83 @@ export default memo(function LinkPreview({ url }: Props) {
                                     setShowPlayer(false);
                                 }}
                                 style={{
-                                    position: 'absolute',
-                                    top: '8px',
-                                    right: '8px',
-                                    background: 'rgba(0, 0, 0, 0.7)',
-                                    border: 'none',
-                                    color: 'white',
-                                    borderRadius: '4px',
-                                    padding: '4px 8px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px'
-                                }}
-                            >
+                                    position: "absolute",
+                                    top: "8px",
+                                    right: "8px",
+                                    background: "rgba(0, 0, 0, 0.7)",
+                                    border: "none",
+                                    color: "white",
+                                    borderRadius: "4px",
+                                    padding: "4px 8px",
+                                    cursor: "pointer",
+                                    fontSize: "12px",
+                                }}>
                                 ✕
                             </button>
                         </div>
                     ) : (
-                        <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', minHeight: '200px' }}>
+                        <div
+                            style={{
+                                position: "relative",
+                                width: "100%",
+                                aspectRatio: "16/9",
+                                minHeight: "200px",
+                            }}>
                             <img
                                 className={styles.image}
                                 src={previewData.image}
                                 loading="lazy"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
-                                onError={(e) => (e.currentTarget.style.display = "none")}
+                                style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    borderRadius: "8px",
+                                    display: "block",
+                                }}
+                                onError={(e) =>
+                                    (e.currentTarget.style.display = "none")
+                                }
                             />
                             {previewData.videoId && (
                                 <div
                                     style={{
-                                        position: 'absolute',
-                                        top: '50%',
-                                        left: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        background: 'rgba(0, 0, 0, 0.8)',
-                                        borderRadius: '50%',
-                                        width: '70px',
-                                        height: '70px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        zIndex: 10
+                                        position: "absolute",
+                                        top: "50%",
+                                        left: "50%",
+                                        transform: "translate(-50%, -50%)",
+                                        background: "rgba(0, 0, 0, 0.8)",
+                                        borderRadius: "50%",
+                                        width: "70px",
+                                        height: "70px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        cursor: "pointer",
+                                        transition: "all 0.2s ease",
+                                        zIndex: 10,
                                     }}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setShowPlayer(true);
                                     }}
                                     onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = 'rgba(0, 0, 0, 0.9)';
-                                        e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1.1)';
+                                        e.currentTarget.style.background =
+                                            "rgba(0, 0, 0, 0.9)";
+                                        e.currentTarget.style.transform =
+                                            "translate(-50%, -50%) scale(1.1)";
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
-                                        e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1)';
-                                    }}
-                                >
+                                        e.currentTarget.style.background =
+                                            "rgba(0, 0, 0, 0.8)";
+                                        e.currentTarget.style.transform =
+                                            "translate(-50%, -50%) scale(1)";
+                                    }}>
                                     <svg
                                         width="32"
                                         height="32"
                                         viewBox="0 0 24 24"
                                         fill="white"
-                                        style={{ marginLeft: '4px' }}
-                                    >
+                                        style={{ marginLeft: "4px" }}>
                                         <path d="M8 5v14l11-7z" />
                                     </svg>
                                 </div>

@@ -45,20 +45,27 @@ const ServerBanner = styled.div<Omit<Props, "server">>`
                   }
               `
             : css`
-                  background-color: var(--secondary-header);
+                  /* No banner: plain name on the sheet — no card box,
+                     nudged down from the sheet's top edge. */
+                  background-color: transparent;
+                  margin: 10px 0 0;
               `}
 
     .container {
-        height: var(--header-height);
+        /* 48px row, name vertically centred
+           (their Header: 48px / align center / 0 16px / gap 10). */
+        height: 48px;
 
         display: flex;
         align-items: center;
-        padding: 0 14px;
+        padding: 0 16px 0 26px;
+        /* Header name: 16px semibold. */
+        font-size: 17px;
         font-weight: 600;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        gap: 8px;
+        gap: 10px;
 
         .title {
             white-space: nowrap;
@@ -67,7 +74,9 @@ const ServerBanner = styled.div<Omit<Props, "server">>`
             flex-grow: 1;
 
             cursor: pointer;
-            color: var(--foreground);
+            /* Server name is a title, not sheet text: bright like message
+               sender names (reference headers run on-surface white). */
+            color: #fffffd;
         }
     }
 `;

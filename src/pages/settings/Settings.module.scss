@@ -34,7 +34,7 @@
 /* Settings CSS */
 .settings[data-mobile="true"] {
     flex-direction: column;
-    background: var(--primary-header);
+    background: var(--nav-canvas);
 
     .sidebar,
     .content {
@@ -122,7 +122,7 @@
         flex: 1 0 218px;
         display: flex;
         justify-content: flex-end;
-        background: var(--secondary-background);
+        background: var(--nav-canvas);
 
         .container {
             min-width: 218px;
@@ -202,7 +202,7 @@
         hr {
             height: 1px;
             width: calc(100% - 10px);
-            background: var(--secondary-header);
+            background: var(--nav-hover);
             margin: 18px auto;
             flex-grow: 0;
         }
@@ -297,7 +297,7 @@
                 color: var(--secondary-foreground);
             }
             &:hover {
-                background: var(--secondary-header);
+                background: var(--nav-hover);
             }
             &:active {
                 transform: translateY(2px);

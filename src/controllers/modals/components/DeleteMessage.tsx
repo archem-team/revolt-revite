@@ -2,8 +2,9 @@ import { Text } from "preact-i18n";
 
 import { ModalForm } from "@revoltchat/ui";
 
-import Message from "../../../components/common/messaging/Message";
 import { internalEmit } from "../../../lib/eventEmitter";
+
+import Message from "../../../components/common/messaging/Message";
 import { ModalProps } from "../types";
 
 /**
@@ -31,8 +32,10 @@ export default function DeleteMessage({
                 },
             }}
             callback={() => {
-                target.delete(); internalEmit("PinnedMessage", "delete", target._id);
-            }} submit={{
+                target.delete();
+                internalEmit("PinnedMessage", "delete", target._id);
+            }}
+            submit={{
                 palette: "error",
                 children: <Text id="app.special.modals.actions.delete" />,
             }}

@@ -20,20 +20,24 @@ export default function RightSidebar() {
 
     useEffect(
         () =>
-            internalSubscribe("RightSidebar", "open", (type: string, data?: any) => {
-                setSidebar(type as "search" | undefined);
-                if (type === "search") {
-                    if (typeof data === "string") {
-                        // Legacy support for string queries
-                        setSearchQuery(data);
-                        setSearchParams(null);
-                    } else if (data?.query !== undefined) {
-                        // New format with search parameters
-                        setSearchQuery(data.query);
-                        setSearchParams(data);
+            internalSubscribe(
+                "RightSidebar",
+                "open",
+                (type: string, data?: any) => {
+                    setSidebar(type as "search" | undefined);
+                    if (type === "search") {
+                        if (typeof data === "string") {
+                            // Legacy support for string queries
+                            setSearchQuery(data);
+                            setSearchParams(null);
+                        } else if (data?.query !== undefined) {
+                            // New format with search parameters
+                            setSearchQuery(data.query);
+                            setSearchParams(data);
+                        }
                     }
-                }
-            }),
+                },
+            ),
         [],
     );
 
@@ -47,8 +51,8 @@ export default function RightSidebar() {
 
     const content =
         sidebar === "search" ? (
-            <SearchSidebar 
-                close={close} 
+            <SearchSidebar
+                close={close}
                 initialQuery={searchQuery}
                 searchParams={searchParams}
             />

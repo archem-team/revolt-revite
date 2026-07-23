@@ -20,6 +20,7 @@ import { Grid3x3 } from "../../components/common/Grid3x3";
 import MessageBox from "../../components/common/messaging/MessageBox";
 import JumpToBottom from "../../components/common/messaging/bars/JumpToBottom";
 import NewMessages from "../../components/common/messaging/bars/NewMessages";
+import PinnedMessage from "../../components/common/messaging/bars/PinnedMessage";
 import TypingIndicator from "../../components/common/messaging/bars/TypingIndicator";
 import RightSidebar from "../../components/navigation/RightSidebar";
 import { SearchBar } from "../../components/navigation/SearchBar";
@@ -27,7 +28,6 @@ import { PageHeader } from "../../components/ui/Header";
 import { useClient } from "../../controllers/client/ClientController";
 import ChannelHeader from "./ChannelHeader";
 import { MessageArea } from "./messaging/MessageArea";
-import PinnedMessage from "../../components/common/messaging/bars/PinnedMessage";
 
 /**
  * Channel layout: a column on the canvas. The top row is plain text —
@@ -121,6 +121,15 @@ const MemberColumn = styled.div.attrs({ "data-component": "member-column" })`
     flex-shrink: 0;
     min-height: 0;
     flex-direction: column;
+
+    /* Member list is a sheet like the channel sidebar (shares its surface
+       colour; fully rounded like the reference member sidebar). */
+    ${() =>
+        !isTouchscreenDevice &&
+        css`
+            background: var(--nav-canvas);
+            border-radius: 16px;
+        `}
 
     /* The legacy floating header used to overlay this list, so it carries a
        48px scroll offset — in this layout the search row is a real sibling,

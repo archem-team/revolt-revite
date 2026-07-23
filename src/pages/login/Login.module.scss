@@ -31,302 +31,269 @@
     }
 }
 
-/*@keyframes shrink {
-    0% {
-        background-size: 140% 140%;
-    }
-    10% {
-        background-size: 150% 150%;
-    }
-    100% {
-        background-size: 100% 100%;
-    }
-}*/
-
 .login {
     width: 100%;
     height: 100%;
-    padding: 40px 35px;
+    padding: 32px 36px;
     display: flex;
     user-select: none;
-    background: url("/src/pages/login/background.jpg");
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
-    /*animation: shrink 5s normal forwards;*/
-
-    .nav {
-        display: flex;
-        align-items: center;
-
-        .logo {
-            flex-grow: 1;
-            > img {
-                height: 24px;
-            }
-        }
-    }
-
-    .content {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        flex-grow: 1;
-    }
+    // Flat brand canvas — the card is the only raised surface.
+    background: var(--background);
 
     select {
         max-width: 180px;
         padding: 4px;
         height: fit-content;
-        background-color: rgba(36, 36, 36, 0.75);
-        border: 2px solid rgba(128, 128, 128, 0.15);
-        backdrop-filter: blur(20px);
+        background-color: var(--primary-background);
+        border: 1px solid var(--tertiary-background);
         font-size: 13px;
     }
 
-    .middle {
-        display: flex;
-        gap: 50px;
-        align-items: flex-start;
-        background: transparent;
-        isolation: isolate;
-
-        .loginQR {
-            background-color: rgba(36, 36, 36, 0.75);
-            border: 2px solid rgba(128, 128, 128, 0.15);
-            border-radius: 8px;
-            width: 330px;
-        }
-    }
-
-    .appLinks {
-        margin-top: 20px;
-        padding-top: 15px;
-        border-top: 1px solid rgba(128, 128, 128, 0.2);
-
-        .appLinksDivider {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-bottom: 12px;
-
-            span {
-                font-size: 12px;
-                color: var(--secondary-foreground);
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-        }
-
-        .appDividerIcon {
-            width: 24px;
-            height: auto;
-            border-radius: 4px;
-            object-fit: contain;
-        }
-
-        .appLinksButtons {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-        }
-
-        .appButton {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px 14px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            color: white;
-            text-decoration: none;
-            transition: all 0.2s ease-in-out;
-            cursor: pointer;
-
-            &:hover {
-                filter: brightness(1.2);
-                text-decoration: none;
-            }
-
-            &:active {
-                filter: brightness(0.9);
-            }
-        }
-    }
-
-    .form {
-        background-color: rgba(36, 36, 36, 0.75);
-        border: 2px solid rgba(128, 128, 128, 0.15);
-        backdrop-filter: blur(20px);
-        max-width: 360px;
-        max-height: 600px;
-        padding: 30px 25px;
-        border-radius: 8px;
-        margin-inline-start: 50px;
-        margin-top: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px 0 rgb(0 0 0 / 20%);
-
-        .captcha {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            font-size: 13px;
-
-            .title {
-                font-size: 20px;
-                font-weight: 600;
-                margin-bottom: 10px;
-            }
-
-            .checkbox {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            a {
-                cursor: pointer;
-                color: var(--accent);
-            }
-        }
-
-        .formModal {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-
-            > span {
-                font-size: 13px;
-                word-break: keep-all;
-
-                a {
-                    color: var(--accent);
-                    white-space: nowrap;
-                }
-            }
-
-            .welcome {
-                font-size: 20px;
-                font-weight: 600;
-                margin-bottom: 10px;
-
-                .title {
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-
-                    img {
-                        animation-name: wave-animation;
-                        animation-duration: 2.5s;
-                        animation-iteration-count: 1;
-                        transform-origin: 70% 70%;
-                        height: 28px;
-                    }
-                }
-            }
-
-            .subtitle {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                font-weight: 400;
-                font-size: 14px;
-
-                > div {
-                    display: none;
-                    margin-top: 1px;
-                    font-size: 11px;
-                    color: var(--secondary-foreground);
-                }
-            }
-
-            form {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-
-                > div {
-                    margin: 0;
-                    margin-bottom: 2px;
-                    font-size: 12px;
-                    font-weight: 600;
-                    letter-spacing: 0.4px;
-                    color: var(--secondary-foreground);
-                }
-
-                input {
-                    background: rgba(255, 255, 255, 0.06);
-                    border: 1px solid rgba(255, 255, 255, 0.16);
-                    transition: border-color 0.15s ease, background 0.15s ease;
-
-                    &:hover {
-                        background: rgba(255, 255, 255, 0.09);
-                    }
-
-                    &:focus,
-                    &:focus-visible {
-                        border-color: var(--accent);
-                        background: rgba(255, 255, 255, 0.08);
-                    }
-                }
-
-                button {
-                    min-height: 44px;
-                    padding: 12px;
-                    margin-top: 4px;
-                    margin-bottom: 15px;
-                    font-weight: 600;
-                    color: #fff;
-                    background: var(--accent);
-                    transition: filter 0.15s ease;
-
-                    &:hover {
-                        filter: brightness(1.1);
-                    }
-
-                    &:active {
-                        filter: brightness(0.9);
-                    }
-
-                    &:disabled {
-                        filter: brightness(0.7);
-                        cursor: not-allowed;
-                    }
-                }
-            }
-        }
-    }
-
     a {
-        color: white;
+        color: #fffffd;
 
         &:hover {
             text-decoration: underline;
         }
     }
+}
 
-    .bottom {
+.content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+
+    .logo > img {
+        height: 24px;
+    }
+}
+
+.form {
+    // Single centered card, one step above the canvas.
+    background-color: var(--primary-background);
+    width: 100%;
+    max-width: 380px;
+    padding: 28px 26px;
+    border-radius: 24px;
+    margin: auto;
+
+    .captcha {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 14px;
+        flex-direction: column;
+        gap: 10px;
+        font-size: 13px;
 
-        .links {
+        .title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .checkbox {
             display: flex;
             align-items: center;
-            gap: 15px;
+            justify-content: center;
+        }
 
-            .revolt {
+        a {
+            cursor: pointer;
+            // Actionable links use the CTA yellow (readable on the
+            // dark card, unlike the deep-purple accent).
+            color: #ffde17;
+        }
+    }
+
+    .formModal {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+
+        form {
+            // Breathing room between the CTA and the helper links.
+            margin-bottom: 8px;
+        }
+
+        > span {
+            font-size: 13px;
+            word-break: keep-all;
+            text-align: center;
+
+            a {
+                color: #ffde17;
+                white-space: nowrap;
+            }
+        }
+
+        .welcome {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+
+            .title {
                 display: flex;
-                gap: 10px;
+                align-items: center;
+                gap: 6px;
 
-                a {
-                    color: white !important;
+                img {
+                    animation-name: wave-animation;
+                    animation-duration: 2.5s;
+                    animation-iteration-count: 1;
+                    transform-origin: 70% 70%;
+                    height: 24px;
                 }
             }
+        }
+
+        .subtitle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 400;
+            font-size: 14px;
+            color: #a3a1a4;
+
+            > div {
+                display: none;
+                margin-top: 1px;
+                font-size: 11px;
+                color: var(--secondary-foreground);
+            }
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            // Base rhythm: a label sits 6px above its own input; the
+            // margins below open up the space between field groups.
+            gap: 6px;
+
+            > div {
+                // 16px from the previous input to the next label group.
+                margin: 10px 0 0;
+                font-size: 12px;
+                color: var(--secondary-foreground);
+
+                &:first-child {
+                    margin-top: 0;
+                }
+            }
+
+            input {
+                // Input wells match the iOS text fields (chip surface).
+                background: var(--message-box);
+
+                &:focus {
+                    outline: none;
+                    box-shadow: 0 0 0 1.5px #ffde17;
+                }
+            }
+
+            button {
+                // Primary CTA mirrors the iOS PeptideButton:
+                // yellow stadium pill with canvas-dark text.
+                padding: 11px 8px;
+                font-size: 15px;
+                background: #ffde17;
+                color: var(--background);
+                font-weight: 600;
+                border-radius: 50px;
+                margin-top: 12px;
+                margin-bottom: 0;
+
+                &:hover {
+                    filter: brightness(0.92);
+                }
+            }
+        }
+    }
+}
+
+.appLinks {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--tertiary-background);
+
+    .appLinksDivider {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 10px;
+
+        span {
+            font-size: 11px;
+            color: var(--secondary-foreground);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    }
+
+    .appDividerIcon {
+        width: 18px;
+        height: auto;
+        border-radius: 4px;
+        object-fit: contain;
+    }
+
+    .appLinksButtons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .appButton {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 14px;
+        background: var(--message-box);
+        border: none;
+        border-radius: 6px;
+        color: #fffffd;
+        text-decoration: none;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+
+        svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        &:hover {
+            filter: brightness(1.2);
+            text-decoration: none;
+        }
+
+        &:active {
+            filter: brightness(0.9);
+        }
+    }
+}
+
+// Quiet legal footer, bottom-left like the rest of the chrome.
+.bottom {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-shrink: 0;
+
+    a {
+        font-size: 12.5px;
+        color: #a3a1a4;
+        text-decoration: none;
+
+        &:hover {
+            color: #fffffd;
+            text-decoration: underline;
         }
     }
 }
@@ -349,72 +316,40 @@
 
     button {
         width: 100%;
-        background: var(--secondary-background);
+        padding: 12px 8px;
+        background: #ffde17;
+        color: var(--background);
+        font-weight: 600;
+        border-radius: 50px;
         margin-bottom: 8px;
+
+        &:hover {
+            filter: brightness(0.92);
+        }
     }
 
     a {
         font-size: 13px;
-        color: var(--accent);
+        color: #ffde17;
+        text-align: center;
     }
 }
 
 @media only screen and (max-width: 768px) {
     .login {
-        padding: 28px 20px;
-        overflow-x: clip;
-        background-image: unset;
-        background-color: var(--primary-background);
+        padding: 24px 20px;
+    }
 
-        .content {
-            justify-content: flex-start;
-            gap: 28px;
+    .form {
+        background: transparent;
+        padding: 0;
+        max-width: unset;
+        border-radius: 0;
+    }
 
-            .nav {
-                .logo {
-                    img {
-                        height: 24px;
-                    }
-                }
-            }
-
-            .bottom {
-                flex-direction: column;
-
-                .links {
-                    flex-direction: column;
-                    gap: 10px;
-                }
-
-                .attribution {
-                    display: none;
-                }
-            }
-        }
-
-        .appLinks {
-            margin-top: 15px;
-            padding-top: 15px;
-
-            .appLinksButtons {
-                gap: 10px;
-            }
-        }
-
-        .form {
-            border: unset;
-            background: transparent;
-            backdrop-filter: none;
-            margin-inline-start: 0;
-            margin-top: 4px;
-            margin-bottom: 0;
-            padding: 0;
-            max-width: unset;
-            box-shadow: unset;
-        }
-
-        .loginQR {
-            display: none;
-        }
+    .bottom {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px 16px;
     }
 }

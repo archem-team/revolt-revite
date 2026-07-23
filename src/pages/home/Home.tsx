@@ -3,18 +3,19 @@ import { Lock, MessageAdd } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useHistory, useLocation } from "react-router-dom";
-import styled from "styled-components/macro";
+import styled, { css } from "styled-components/macro";
 
 import styles from "./Home.module.scss";
 import { Text } from "preact-i18n";
 
 import { CategoryButton, InputBox, Preloader } from "@revoltchat/ui";
 
-import { PageHeader } from "../../components/ui/Header";
-import { useClient } from "../../controllers/client/ClientController";
 import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
-import Promos from "./Promos";
+
+import { useClient } from "../../controllers/client/ClientController";
 import { BACKEND_API_BASE } from "../directory/types";
+import Catalog from "./Catalog";
+import Promos from "./Promos";
 
 const Overlay = styled.div`
     display: grid;
@@ -32,6 +33,15 @@ const Overlay = styled.div`
     h3 {
         padding-top: 1rem;
     }
+`;
+
+/* Plain tab row on the panel — no header bar chrome, same treatment as
+   the chat view's plain-text header. */
+const TabRow = styled.div`
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 14px 20px 0;
 `;
 
 const DisabledWrapper = styled.div`
@@ -59,21 +69,21 @@ interface CachedData {
 
 // Add a styled component for the new text color
 const NewServerWrapper = styled.div`
-    color: #fadf4f;
+    color: #ffde17;
     display: contents;
 
     a {
-        color: #fadf4f;
+        color: #ffde17;
     }
 `;
 
 // Dynamic color wrapper component
 const ColorWrapper = styled.div<{ color: string }>`
-    color: ${props => props.color};
+    color: ${(props) => props.color};
     display: contents;
 
     a {
-        color: ${props => props.color};
+        color: ${(props) => props.color};
     }
 `;
 
@@ -173,47 +183,57 @@ const NoResults = styled.div`
     margin-bottom: 30px;
 `;
 
-// Tab strip living in the page header, letting the user switch between the
-// community directory ("Home") and the upcoming promos surface.
+// Tab strip letting the user switch between the community directory
+// ("Home") and the promos surface. Active tab is a filled pill — the
+// same selection language the sidebar rows use.
 const TabBar = styled.div`
     display: flex;
-    align-items: stretch;
-    gap: 24px;
-    height: 100%;
+    align-items: center;
+    gap: 6px;
 `;
 
 const Tab = styled.div<{ active: boolean }>`
-    position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
+    padding: 7px 16px;
+    border-radius: var(--radius-pill, 999px);
     color: ${(props) =>
-        props.active ? "var(--foreground)" : "var(--tertiary-foreground)"};
-    transition: color 0.1s ease-in-out;
+        props.active
+            ? "var(--channel-active-foreground)"
+            : "var(--tertiary-foreground)"};
+    background: ${(props) =>
+        props.active ? "var(--channel-active)" : "transparent"};
+    transition: 0.1s ease-in-out background-color, 0.1s ease-in-out color;
 
     &:hover {
-        color: var(--foreground);
+        color: ${(props) =>
+            props.active
+                ? "var(--channel-active-foreground)"
+                : "var(--foreground)"};
+        background: ${(props) =>
+            props.active
+                ? "var(--channel-active)"
+                : "rgba(var(--foreground-rgb), 0.06)"};
     }
 
-    &::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 2px;
-        border-radius: 2px;
-        background: var(--accent);
-        opacity: ${(props) => (props.active ? 1 : 0)};
-        transition: opacity 0.1s ease-in-out;
-    }
+    /* Inside the filled pill the accent chip would vanish — swap it to
+       a translucent wash on the fill. */
+    ${(props) =>
+        props.active &&
+        css`
+            .newchip {
+                background: rgba(255, 255, 255, 0.2);
+                color: inherit;
+            }
+        `}
 `;
 
 // Small accent "NEW" pill shown on the Promos tab.
-const NewChip = styled.span`
+const NewChip = styled.span.attrs({ className: "newchip" })`
     font-size: 10px;
     font-weight: 700;
     line-height: 1;
@@ -221,10 +241,9 @@ const NewChip = styled.span`
     text-transform: uppercase;
     padding: 3px 6px;
     border-radius: 6px;
-    color: var(--accent-contrast, #11171c);
-    background: var(--accent);
+    color: var(--channel-active-foreground);
+    background: var(--channel-active);
 `;
-
 
 // Holds the circular loader in the content area while the directory loads,
 // so the header and search bar above it stay mounted.
@@ -271,23 +290,41 @@ const Home: React.FC = () => {
     // dropping the user back on Home.
     const history = useHistory();
     const location = useLocation();
-    const tab: "home" | "promos" =
+    const tab: "home" | "promos" | "catalog" =
         new URLSearchParams(location.search).get("tab") === "promos"
             ? "promos"
+            : new URLSearchParams(location.search).get("tab") === "catalog"
+            ? "catalog"
             : "home";
-    const setTab = (next: "home" | "promos") =>
-        history.replace(next === "promos" ? "/?tab=promos" : "/");
+    const setTab = (next: "home" | "promos" | "catalog") =>
+        history.replace(
+            next === "promos"
+                ? "/?tab=promos"
+                : next === "catalog"
+                ? "/?tab=catalog"
+                : "/",
+        );
+
+    // Promos is only mounted once the user first visits the tab, then stays
+    // mounted (hidden via CSS) for the rest of the session so switching back
+    // and forth doesn't re-create its <img> elements — that unmount/remount
+    // was causing vendor logos to visibly reload every time.
+    const [promosVisited, setPromosVisited] = useState(tab === "promos");
+    const [catalogVisited, setCatalogVisited] = useState(tab === "catalog");
+    useEffect(() => {
+        if (tab === "promos") setPromosVisited(true);
+        if (tab === "catalog") setCatalogVisited(true);
+    }, [tab]);
 
     // On mobile the overlapping panels default to the sidebar; when landing on
-    // the Promos tab (e.g. after a refresh), bring the content panel into view
-    // so the user sees the promos rather than the channel list. Deferred to the
+    // the Promos or Catalog tab (e.g. after a refresh), bring the content panel into view
+    // so the user sees the content rather than the channel list. Deferred to the
     // next frame so the panel container has laid out before we scroll it.
     useEffect(() => {
-        if (!isTouchscreenDevice || tab !== "promos") return;
+        if (!isTouchscreenDevice || (tab !== "promos" && tab !== "catalog"))
+            return;
         const raf = requestAnimationFrame(() => {
             const panels = document.querySelector("#app > div > div > div");
-            // No right panel on home, so the max scroll position lands on the
-            // main (content) panel.
             panels?.scrollTo({ left: panels.scrollWidth, behavior: "auto" });
         });
         return () => cancelAnimationFrame(raf);
@@ -333,10 +370,14 @@ const Home: React.FC = () => {
         const serversUrl = `${BACKEND_API_BASE}/directory/servers`;
 
         try {
-            const serversRes = await fetch(serversUrl, { headers: authHeaders });
+            const serversRes = await fetch(serversUrl, {
+                headers: authHeaders,
+            });
 
             if (!serversRes.ok) {
-                throw new Error(`Servers request failed with status ${serversRes.status}`);
+                throw new Error(
+                    `Servers request failed with status ${serversRes.status}`,
+                );
             }
 
             const serversJson = await serversRes.json();
@@ -351,12 +392,16 @@ const Home: React.FC = () => {
             // the communities endpoint, whose paginated listing could silently
             // drop unrated (new) servers and leave them without a logo.
             {
-                const autumnUrl = client.configuration?.features.autumn?.url ||
+                const autumnUrl =
+                    client.configuration?.features.autumn?.url ||
                     "https://peptide.chat/autumn";
 
                 servers = servers.map((s) =>
                     s.logo
-                        ? { ...s, logo: `${autumnUrl}/icons/${s.logo}?max_side=256` }
+                        ? {
+                              ...s,
+                              logo: `${autumnUrl}/icons/${s.logo}?max_side=256`,
+                          }
                         : s,
                 );
             }
@@ -467,7 +512,9 @@ const Home: React.FC = () => {
         );
 
         if (server.showcolor && server.showcolor.trim()) {
-            content = <ColorWrapper color={server.showcolor}>{content}</ColorWrapper>;
+            content = (
+                <ColorWrapper color={server.showcolor}>{content}</ColorWrapper>
+            );
         } else if (server.new) {
             content = <NewServerWrapper>{content}</NewServerWrapper>;
         }
@@ -479,7 +526,7 @@ const Home: React.FC = () => {
         <div className={styles.home}>
             <Overlay>
                 <div className="content">
-                    <PageHeader icon={<></>} withTransparency>
+                    <TabRow>
                         <TabBar>
                             <Tab
                                 active={tab === "home"}
@@ -492,55 +539,79 @@ const Home: React.FC = () => {
                                 Promos
                                 <NewChip>New</NewChip>
                             </Tab>
+                            <Tab
+                                active={tab === "catalog"}
+                                onClick={() => setTab("catalog")}>
+                                Compound Finder
+                            </Tab>
                         </TabBar>
-                    </PageHeader>
+                    </TabRow>
                     <div className={styles.homeScreen}>
-                        {tab === "home" ? (
-                            <>
-                                <SearchWrapper>
-                                    <Search
-                                        size={18}
-                                        className="search-icon"
-                                    />
-                                    <InputBox
-                                        palette="secondary"
-                                        value={query}
-                                        onChange={(e) =>
-                                            setQuery(e.currentTarget.value)
-                                        }
-                                        placeholder="Search communities…"
-                                    />
-                                    {query && (
-                                        <div
-                                            className="clear"
-                                            onClick={() => setQuery("")}>
-                                            <X size={18} />
-                                        </div>
-                                    )}
-                                </SearchWrapper>
-                                {loading ? (
-                                    <LoaderWrapper>
-                                        <Preloader type="ring" />
-                                    </LoaderWrapper>
-                                ) : error ? (
-                                    <NoResults>{error}</NoResults>
-                                ) : (
-                                    <>
-                                        <div className={styles.actions}>
-                                            {filteredServers.map(
-                                                renderServerButton,
-                                            )}
-                                        </div>
-                                        {filteredServers.length === 0 && (
-                                            <NoResults>
-                                                No communities found.
-                                            </NoResults>
-                                        )}
-                                    </>
+                        <div
+                            style={{
+                                display: tab === "home" ? undefined : "none",
+                            }}>
+                            <SearchWrapper>
+                                <Search size={18} className="search-icon" />
+                                <InputBox
+                                    palette="secondary"
+                                    value={query}
+                                    onChange={(e) =>
+                                        setQuery(e.currentTarget.value)
+                                    }
+                                    placeholder="Search communities…"
+                                />
+                                {query && (
+                                    <div
+                                        className="clear"
+                                        onClick={() => setQuery("")}>
+                                        <X size={18} />
+                                    </div>
                                 )}
-                            </>
-                        ) : (
-                            <Promos />
+                            </SearchWrapper>
+                            {loading ? (
+                                <LoaderWrapper>
+                                    <Preloader type="ring" />
+                                </LoaderWrapper>
+                            ) : error ? (
+                                <NoResults>{error}</NoResults>
+                            ) : (
+                                <>
+                                    <div className={styles.actions}>
+                                        {filteredServers.map(
+                                            renderServerButton,
+                                        )}
+                                    </div>
+                                    {filteredServers.length === 0 && (
+                                        <NoResults>
+                                            No communities found.
+                                        </NoResults>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                        {/* .homeScreen centers children (align-items: center),
+                            so tab panes must claim the full row width or the
+                            content shrinks to fit and floats mid-screen. */}
+                        {promosVisited && (
+                            <div
+                                style={{
+                                    width: "100%",
+                                    display:
+                                        tab === "promos" ? undefined : "none",
+                                }}>
+                                <Promos />
+                            </div>
+                        )}
+                        {catalogVisited && (
+                            <div
+                                style={{
+                                    width: "100%",
+                                    display:
+                                        tab === "catalog" ? undefined : "none",
+                                }}>
+                                <Catalog />
+                            </div>
                         )}
                     </div>
                 </div>

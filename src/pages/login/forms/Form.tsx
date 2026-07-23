@@ -14,7 +14,6 @@ import WaveSVG from "../../settings/assets/wave.svg";
 
 import { clientController } from "../../../controllers/client/ClientController";
 import { takeError } from "../../../controllers/client/jsx/error";
-import { IS_REVOLT } from "../../../version";
 import FormField from "../FormField";
 import { CaptchaBlock, CaptchaProps } from "./CaptchaBlock";
 import { MailProvider } from "./MailProvider";
@@ -157,7 +156,13 @@ export const Form = observer(({ page, callback }: Props) => {
                     />
                 </div>
                 <div className={styles.subtitle}>
-                    <Text id={page === "create" ? "login.subtitle2" : ""} />
+                    <Text
+                        id={
+                            page === "create"
+                                ? "login.subtitle2"
+                                : "login.subtitle"
+                        }
+                    />
                     <div>(app.revolt.chat)</div>
                 </div>
             </div>
@@ -180,13 +185,13 @@ export const Form = observer(({ page, callback }: Props) => {
                 {(page === "login" ||
                     page === "create" ||
                     page === "reset") && (
-                        <FormField
-                            type="password"
-                            register={register}
-                            showOverline
-                            error={errors.password?.message}
-                        />
-                    )}
+                    <FormField
+                        type="password"
+                        register={register}
+                        showOverline
+                        error={errors.password?.message}
+                    />
+                )}
                 {configuration?.features.invite_only && page === "create" && (
                     <FormField
                         type="invite"
@@ -208,12 +213,12 @@ export const Form = observer(({ page, callback }: Props) => {
                             page === "create"
                                 ? "login.register"
                                 : page === "login"
-                                    ? "login.title"
-                                    : page === "reset"
-                                        ? "login.set_password"
-                                        : page === "resend"
-                                            ? "login.resend"
-                                            : "login.reset"
+                                ? "login.title"
+                                : page === "reset"
+                                ? "login.set_password"
+                                : page === "resend"
+                                ? "login.resend"
+                                : "login.reset"
                         }
                     />
                 </Button>
@@ -228,11 +233,6 @@ export const Form = observer(({ page, callback }: Props) => {
             )}
             {page === "login" && (
                 <>
-                    {!IS_REVOLT && (
-                        <>
-                            <br />
-                        </>
-                    )}
                     <span className={styles.create}>
                         <Text id="login.new" />{" "}
                         <Link to="/login/create">
@@ -245,25 +245,19 @@ export const Form = observer(({ page, callback }: Props) => {
                             <Text id="login.reset" />
                         </Link>
                     </span>
-                    <span className={styles.create}>
-                        <Text id="login.missing_verification" />{" "}
-                        <Link to="/login/resend">
-                            <Text id="login.resend" />
-                        </Link>
-                    </span>
                 </>
             )}
             {(page === "reset" ||
                 page === "resend" ||
                 page === "send_reset") && (
-                    <>
-                        <span className={styles.create}>
-                            <Link to="/login">
-                                <Text id="login.remembered" />
-                            </Link>
-                        </span>
-                    </>
-                )}
+                <>
+                    <span className={styles.create}>
+                        <Link to="/login">
+                            <Text id="login.remembered" />
+                        </Link>
+                    </span>
+                </>
+            )}
         </div>
     );
 });

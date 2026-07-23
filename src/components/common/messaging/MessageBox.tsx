@@ -1,4 +1,5 @@
-import { HappyBeaming, Send, ShieldX } from "@styled-icons/boxicons-solid";
+import { Block } from "@styled-icons/boxicons-regular";
+import { HappyBeaming, Send } from "@styled-icons/boxicons-solid";
 import Axios, { CancelTokenSource } from "axios";
 import { observer } from "mobx-react-lite";
 import { Channel } from "revolt.js";
@@ -45,7 +46,6 @@ import AutoComplete, { useAutoComplete } from "../AutoComplete";
 import { PermissionTooltip } from "../Tooltip";
 import FilePreview from "./bars/FilePreview";
 import ReplyBar from "./bars/ReplyBar";
-import { User } from "@styled-icons/boxicons-regular";
 
 type Props = {
     channel: Channel;
@@ -55,18 +55,21 @@ export type UploadState =
     | { type: "none" }
     | { type: "attached"; files: File[] }
     | {
-        type: "uploading";
-        files: File[];
-        percent: number;
-        cancel: CancelTokenSource;
-    }
+          type: "uploading";
+          files: File[];
+          percent: number;
+          cancel: CancelTokenSource;
+      }
     | { type: "sending"; files: File[] }
     | { type: "failed"; files: File[]; error: string };
 
 const Base = styled.div`
     z-index: 1;
     display: flex;
-    align-items: flex-start;
+    /* Pin the attach/emoji/send slots to the BOTTOM edge: when a long
+       paste grows the textarea, the actions stay next to the caret line
+       instead of riding 400px up with the bar's top. */
+    align-items: flex-end;
     background: var(--message-box);
 
     /* The composition bar floats as a near-pill —
@@ -84,6 +87,9 @@ const Base = styled.div`
     textarea {
         font-size: var(--text-size);
         background: transparent;
+        /* Cap the bar viewport-relatively (reference: 32vh) — on short
+           windows the composer stops growing sooner and scrolls inside. */
+        max-height: 32vh;
 
         &::placeholder {
             white-space: nowrap;
@@ -98,20 +104,26 @@ const Blocked = styled.div`
     align-items: center;
     user-select: none;
     font-size: var(--text-size);
-    color: var(--tertiary-foreground);
+    /* Full text colour, aligned to the composer's own geometry: the
+       icon slot is the file button's 56px (icon lands where + sits) and
+       the text starts exactly where the placeholder starts — switching
+       between sendable and read-only channels moves nothing. */
+    color: var(--foreground);
     flex-grow: 1;
     cursor: not-allowed;
+    min-height: 52px;
 
     .text {
-        padding: var(--message-box-padding);
+        padding: 0 12px 0 0;
     }
 
     .icon {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 48px;
+        width: 56px;
         height: 52px;
+        flex-shrink: 0;
     }
 
     > div > div {
@@ -259,7 +271,7 @@ export default observer(({ channel }: Props) => {
             <Base>
                 <Blocked>
                     <div className="icon">
-                        <ShieldX size={22} />
+                        <Block size={24} />
                     </div>
                     <div className="text">
                         <Text id="app.main.channel.misc.muted" />
@@ -273,13 +285,13 @@ export default observer(({ channel }: Props) => {
         return (
             <Base>
                 <Blocked>
-                    <Action>
+                    <div className="icon">
                         <PermissionTooltip
                             permission="SendMessages"
                             placement="top">
-                            <ShieldX size={22} />
+                            <Block size={24} />
                         </PermissionTooltip>
-                    </Action>
+                    </div>
                     <div className="text">
                         <Text
                             id="app.main.channel.misc.timed_out"
@@ -307,13 +319,13 @@ export default observer(({ channel }: Props) => {
         return (
             <Base>
                 <Blocked>
-                    <Action>
+                    <div className="icon">
                         <PermissionTooltip
                             permission="SendMessages"
                             placement="top">
-                            <ShieldX size={22} />
+                            <Block size={24} />
                         </PermissionTooltip>
-                    </Action>
+                    </div>
                     <div className="text">
                         <Text id="app.main.channel.misc.no_sending" />
                     </div>
@@ -387,15 +399,11 @@ export default observer(({ channel }: Props) => {
                 if (username.toLowerCase() !== "everyone") {
                     const user = Array.from(client.users.values()).find(
                         (u) =>
-                            u.username.toLowerCase() ===
-                            username.toLowerCase(),
+                            u.username.toLowerCase() === username.toLowerCase(),
                     );
 
                     if (user) {
-                        content = content.replace(
-                            mention,
-                            `<@${user._id}>`,
-                        );
+                        content = content.replace(mention, `<@${user._id}>`);
                     }
                 }
             }
@@ -471,7 +479,9 @@ export default observer(({ channel }: Props) => {
                 });
 
                 // Add another scroll to bottom after the message is sent
-                chainedDefer(() => renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE));
+                chainedDefer(() =>
+                    renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE),
+                );
             } catch (error) {
                 state.queue.fail(nonce, takeError(error));
             }
@@ -718,9 +728,7 @@ export default observer(({ channel }: Props) => {
                             uploadState.type === "uploading" ||
                             uploadState.type === "sending"
                         }
-                        remove={async () =>
-                            setUploadState({ type: "none" })
-                        }
+                        remove={async () => setUploadState({ type: "none" })}
                         onChange={(files) =>
                             setUploadState({ type: "attached", files })
                         }

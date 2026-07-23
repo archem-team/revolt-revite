@@ -26,11 +26,12 @@ const ListCategory = styled.div<{ first?: boolean }>`
     padding: 4px 14px;
     padding-top: 12px;
 
-    color: var(--secondary-foreground);
-    /* Role-group headers are plain text on the canvas.
-       They stay opaque (canvas colour, not transparent) because virtuoso pins
-       them as sticky headers over the scrolling rows. */
-    background: var(--background);
+    /* Sheet text: muted grey on the member-list surface. */
+    color: #a3a1a4;
+    /* Role-group headers sit on the member-list sheet. They stay opaque
+       (sheet colour, not transparent) because virtuoso pins them as sticky
+       headers over the scrolling rows. */
+    background: var(--nav-canvas);
 
     ${(props) =>
         !props.first &&
