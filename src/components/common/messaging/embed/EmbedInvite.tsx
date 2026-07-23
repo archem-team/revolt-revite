@@ -26,7 +26,7 @@ const EmbedInviteBase = styled.div`
        from the accent seed, the reference's invite treatment): tinted
        enough to stay distinct under the neutral hover wash, muted
        enough to sit quietly in the chat. */
-    background-color: #4e4256;
+    background-color: #3c3043;
     color: #eeddf5;
     border-radius: var(--border-radius);
     display: flex;
