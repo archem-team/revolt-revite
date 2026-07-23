@@ -325,7 +325,7 @@ export const PRESETS: Record<string, Theme> = {
         // Palette mirrors the iOS app's peptide design tokens:
         // canvas #100518, card #1C1720, chip #332E36, accent #662D91.
         accent: "#662D91",
-        background: "#100518",
+        background: "#1B181F",
         foreground: "#D0CFD0",
         block: "#100518",
         "message-box": "#332E36",
@@ -337,8 +337,8 @@ export const PRESETS: Record<string, Theme> = {
         hover: "#27222B",
         "scrollbar-thumb": "#49454C",
         "scrollbar-track": "transparent",
-        "primary-background": "#130E19",
-        "primary-header": "#1C1720",
+        "primary-background": "#121014",
+        "primary-header": "#26222C",
         // Elevation ladder (content surfaces) — location-neutral.
         "secondary-background": "#27222B",
         "secondary-foreground": "#A3A1A4",
@@ -361,9 +361,9 @@ export const PRESETS: Record<string, Theme> = {
         // Navigation family: ONLY for the rail, sidebar sheets,
         // member column and their hovers — content surfaces use the
         // ladder above.
-        "nav-canvas": "#100518",
-        "nav-rail": "#1C1720",
-        "nav-hover": "#23172B",
+        "nav-canvas": "#1B181F",
+        "nav-rail": "#1B181F",
+        "nav-hover": "#211D28",
         // Recessed input wells (one step below the content panel).
         "surface-sunken": "#100518",
     },
