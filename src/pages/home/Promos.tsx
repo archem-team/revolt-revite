@@ -110,11 +110,12 @@ const Wrapper = styled.div`
     flex-direction: column;
     gap: 16px;
 
-    /* Promo surface ladder, in the canvas violet family: card floats on
-       the panel, chips float on the card, wells recess into it. */
-    --promo-card: #1c1523;
-    --promo-chip: #2a2133;
-    --promo-well: #150f1b;
+    /* Promo surface ladder on the production family: cards share the
+       home directory card surface, chips float a step above, wells
+       recess to the panel tone. */
+    --promo-card: #1b181f;
+    --promo-chip: #26222c;
+    --promo-well: #121014;
 `;
 
 // Promos vary a lot in content (2 vs 14 products, image or not), so a fixed

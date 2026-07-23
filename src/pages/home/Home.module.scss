@@ -3,10 +3,6 @@
     user-select: none;
     position: relative;
 
-    // Directory cards share the promo card surface (--promo-card in
-    // Promos.tsx) so both home tabs sit on one ladder.
-    --secondary-header: #1c1523;
-
     .homeScreen {
         display: flex;
         flex-direction: column;
