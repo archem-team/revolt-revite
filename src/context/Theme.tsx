@@ -428,7 +428,10 @@ export default observer(() => {
 
     useEffect(() => {
         const resize = () =>
-            root.setProperty("--app-height", `${window.innerHeight}px`);
+            root.setProperty(
+                "--app-height",
+                `calc(${window.innerHeight}px - var(--app-banner-height, 0px))`,
+            );
         resize();
 
         window.addEventListener("resize", resize);

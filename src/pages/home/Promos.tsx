@@ -670,172 +670,68 @@ const PromoCard = observer(
         promo: Promo;
         onOpenImage: (src: string) => void;
     }) => {
-    const client = useClient();
-    const [expanded, setExpanded] = useState(false);
-    // Vendor logo ids can reference files missing from this environment's
-    // autumn (e.g. staging seeded from prod data), so a failed load falls
-    // back to the store glyph instead of a broken image.
-    const [logoFailed, setLogoFailed] = useState(false);
-    const autumn =
-        client.configuration?.features.autumn?.url ||
-        "https://peptide.chat/autumn";
+        const client = useClient();
+        const [expanded, setExpanded] = useState(false);
+        // Vendor logo ids can reference files missing from this environment's
+        // autumn (e.g. staging seeded from prod data), so a failed load falls
+        // back to the store glyph instead of a broken image.
+        const [logoFailed, setLogoFailed] = useState(false);
+        const autumn =
+            client.configuration?.features.autumn?.url ||
+            "https://peptide.chat/autumn";
 
-    const resolveImage = (ref: string) =>
-        isUrl(ref) ? ref : `${autumn}/attachments/${ref}`;
+        const resolveImage = (ref: string) =>
+            isUrl(ref) ? ref : `${autumn}/attachments/${ref}`;
 
-    const logoUrl = promo.vendor.logo
-        ? `${autumn}/icons/${promo.vendor.logo}?max_side=256`
-        : null;
+        const logoUrl = promo.vendor.logo
+            ? `${autumn}/icons/${promo.vendor.logo}?max_side=256`
+            : null;
 
-    // Prefer entering an already-joined community; otherwise offer the invite.
-    const joined = promo.vendor.serverId
-        ? client.servers.get(promo.vendor.serverId)
-        : undefined;
-    const inviteCode = inviteCodeFromLink(promo.vendor.inviteLink);
-    const linkTo = joined
-        ? `/server/${promo.vendor.serverId}`
-        : inviteCode
-        ? `/invite/${inviteCode}`
-        : null;
+        // Prefer entering an already-joined community; otherwise offer the invite.
+        const joined = promo.vendor.serverId
+            ? client.servers.get(promo.vendor.serverId)
+            : undefined;
+        const inviteCode = inviteCodeFromLink(promo.vendor.inviteLink);
+        const linkTo = joined
+            ? `/server/${promo.vendor.serverId}`
+            : inviteCode
+            ? `/invite/${inviteCode}`
+            : null;
 
-    const g = promo.guarantee;
-    const when = timeline(promo);
+        const g = promo.guarantee;
+        const when = timeline(promo);
 
-    return (
-        <Card>
-            <CardHead>
-                {logoUrl && !logoFailed ? (
-                    <Logo
-                        src={logoUrl}
-                        loading="lazy"
-                        onError={() => setLogoFailed(true)}
-                    />
-                ) : (
-                    <LogoFallback>
-                        <Store size={22} />
-                    </LogoFallback>
-                )}
-                <VendorMeta>
-                    <span className="name">{promo.vendor.name}</span>
-                    {promo.title && (
-                        <span className="title">{promo.title}</span>
+        return (
+            <Card>
+                <CardHead>
+                    {logoUrl && !logoFailed ? (
+                        <Logo
+                            src={logoUrl}
+                            loading="lazy"
+                            onError={() => setLogoFailed(true)}
+                        />
+                    ) : (
+                        <LogoFallback>
+                            <Store size={22} />
+                        </LogoFallback>
                     )}
-                </VendorMeta>
-                {linkTo && (
-                    <ActionIcon
-                        as={Link}
-                        to={linkTo}
-                        title={
-                            joined ? "Open community" : "Join community"
-                        }>
-                        {joined ? (
-                            <ChevronRight size={20} />
-                        ) : (
-                            <Plus size={20} />
+                    <VendorMeta>
+                        <span className="name">{promo.vendor.name}</span>
+                        {promo.title && (
+                            <span className="title">{promo.title}</span>
                         )}
-                    </ActionIcon>
-                )}
-            </CardHead>
-
-            {promo.items.length > 0 &&
-                (() => {
-                    // One entry per distinct compound, preserving first-seen
-                    // order, with a count of priced variants.
-                    const compounds: { name: string; count: number }[] = [];
-                    const index = new Map<string, number>();
-                    for (const it of promo.items) {
-                        const name = it.product;
-                        const at = index.get(name);
-                        if (at === undefined) {
-                            index.set(name, compounds.length);
-                            compounds.push({ name, count: 1 });
-                        } else {
-                            compounds[at].count++;
-                        }
-                    }
-
-                    const collapsible =
-                        promo.items.length > COLLAPSE_THRESHOLD;
-
-                    // Collapsed: compact chip summary of the compounds.
-                    if (collapsible && !expanded) {
-                        return (
-                            <ProductSummary>
-                                <CompoundChips>
-                                    {compounds.map((c) => (
-                                        <CompoundChip key={c.name}>
-                                            {c.name}
-                                            {c.count > 1 && (
-                                                <span className="count">
-                                                    ×{c.count}
-                                                </span>
-                                            )}
-                                        </CompoundChip>
-                                    ))}
-                                </CompoundChips>
-                                <SummaryToggle
-                                    onClick={() => setExpanded(true)}>
-                                    {`Show all ${promo.items.length} prices`}
-                                    <ChevronDown size={14} />
-                                </SummaryToggle>
-                            </ProductSummary>
-                        );
-                    }
-
-                    // Expanded (or short promo): full pricing table.
-                    return (
-                        <ItemTable>
-                            {promo.items.map((it, i) => {
-                                const moq =
-                                    it.moqKits || it.moqTotal
-                                        ? `MOQ ${[
-                                              it.moqKits
-                                                  ? `${it.moqKits} kits`
-                                                  : null,
-                                              it.moqTotal
-                                                  ? money(it.moqTotal)
-                                                  : null,
-                                          ]
-                                              .filter(Boolean)
-                                              .join(" / ")}`
-                                        : null;
-                                return (
-                                    <div key={i}>
-                                        <ItemRow>
-                                            <span className="product">
-                                                {it.product}
-                                            </span>
-                                            {it.dosage && (
-                                                <span className="dosage">
-                                                    {it.dosage}
-                                                </span>
-                                            )}
-                                            {moq && (
-                                                <span className="moq">
-                                                    {moq}
-                                                </span>
-                                            )}
-                                            <span className="price">
-                                                {money(it.price)}
-                                                <span className="unit">
-                                                    {" "}
-                                                    / {it.unit || "kit"}
-                                                </span>
-                                            </span>
-                                        </ItemRow>
-                                        {it.note && (
-                                            <ItemNote>{it.note}</ItemNote>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                            {collapsible && (
-                                <ItemToggle
-                                    data-expanded={true}
-                                    onClick={() => setExpanded(false)}>
-                                    Show less
-                                    <ChevronDown size={14} />
-                                </ItemToggle>
+                    </VendorMeta>
+                    {linkTo && (
+                        <ActionIcon
+                            as={Link}
+                            to={linkTo}
+                            title={
+                                joined ? "Open community" : "Join community"
+                            }>
+                            {joined ? (
+                                <ChevronRight size={20} />
+                            ) : (
+                                <Plus size={20} />
                             )}
                         </ItemTable>
                     );
@@ -919,12 +815,203 @@ const PromoCard = observer(
                             ))}
                         </div>
                     )}
-                </Gallery>
-            )}
+                </CardHead>
 
-        </Card>
-    );
-});
+                {promo.items.length > 0 &&
+                    (() => {
+                        // One entry per distinct compound, preserving first-seen
+                        // order, with a count of priced variants.
+                        const compounds: { name: string; count: number }[] = [];
+                        const index = new Map<string, number>();
+                        for (const it of promo.items) {
+                            const name = it.product;
+                            const at = index.get(name);
+                            if (at === undefined) {
+                                index.set(name, compounds.length);
+                                compounds.push({ name, count: 1 });
+                            } else {
+                                compounds[at].count++;
+                            }
+                        }
+
+                        const collapsible =
+                            promo.items.length > COLLAPSE_THRESHOLD;
+
+                        // Collapsed: compact chip summary of the compounds.
+                        if (collapsible && !expanded) {
+                            return (
+                                <ProductSummary>
+                                    <CompoundChips>
+                                        {compounds.map((c) => (
+                                            <CompoundChip key={c.name}>
+                                                {c.name}
+                                                {c.count > 1 && (
+                                                    <span className="count">
+                                                        ×{c.count}
+                                                    </span>
+                                                )}
+                                            </CompoundChip>
+                                        ))}
+                                    </CompoundChips>
+                                    <SummaryToggle
+                                        onClick={() => setExpanded(true)}>
+                                        {`Show all ${promo.items.length} prices`}
+                                        <ChevronDown size={14} />
+                                    </SummaryToggle>
+                                </ProductSummary>
+                            );
+                        }
+
+                        // Expanded (or short promo): full pricing table.
+                        return (
+                            <ItemTable>
+                                {promo.items.map((it, i) => {
+                                    const moq =
+                                        it.moqKits || it.moqTotal
+                                            ? `MOQ ${[
+                                                  it.moqKits
+                                                      ? `${it.moqKits} kits`
+                                                      : null,
+                                                  it.moqTotal
+                                                      ? money(it.moqTotal)
+                                                      : null,
+                                              ]
+                                                  .filter(Boolean)
+                                                  .join(" / ")}`
+                                            : null;
+                                    return (
+                                        <div key={i}>
+                                            <ItemRow>
+                                                <span className="product">
+                                                    {it.product}
+                                                </span>
+                                                {it.dosage && (
+                                                    <span className="dosage">
+                                                        {it.dosage}
+                                                    </span>
+                                                )}
+                                                {moq && (
+                                                    <span className="moq">
+                                                        {moq}
+                                                    </span>
+                                                )}
+                                                <span className="price">
+                                                    {money(it.price)}
+                                                    <span className="unit">
+                                                        {" "}
+                                                        / {it.unit || "kit"}
+                                                    </span>
+                                                </span>
+                                            </ItemRow>
+                                            {it.note && (
+                                                <ItemNote>{it.note}</ItemNote>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                                {collapsible && (
+                                    <ItemToggle
+                                        data-expanded={true}
+                                        onClick={() => setExpanded(false)}>
+                                        Show less
+                                        <ChevronDown size={14} />
+                                    </ItemToggle>
+                                )}
+                            </ItemTable>
+                        );
+                    })()}
+
+                <MetaRow>
+                    {promo.warehouse && (
+                        <Chip>
+                            <MapPin size={12} />
+                            {promo.warehouse}
+                        </Chip>
+                    )}
+                    {typeof promo.shippingFee === "number" && (
+                        <Chip>
+                            {promo.shippingFee === 0
+                                ? "Free shipping"
+                                : `Shipping ${money(promo.shippingFee)}`}
+                        </Chip>
+                    )}
+                    {typeof promo.freeShippingThreshold === "number" && (
+                        <Chip>
+                            Free over {money(promo.freeShippingThreshold)}
+                        </Chip>
+                    )}
+                    {g?.purityPct != null && (
+                        <Chip>
+                            <BadgeCheck size={12} />
+                            {g.purityPct}% purity
+                        </Chip>
+                    )}
+                    {g?.volumePct != null && (
+                        <Chip>
+                            <BadgeCheck size={12} />
+                            {g.volumePct}% volume
+                        </Chip>
+                    )}
+                    {g?.customsReship && (
+                        <Chip>
+                            <BadgeCheck size={12} />
+                            Customs reship
+                        </Chip>
+                    )}
+                    {when && (
+                        <Chip>
+                            <Calendar size={12} />
+                            {when}
+                        </Chip>
+                    )}
+                </MetaRow>
+
+                {(promo.discountNote ||
+                    promo.shippingNote ||
+                    promo.moqNote ||
+                    g?.text) && (
+                    <NoteText>
+                        {[
+                            promo.discountNote,
+                            promo.shippingNote,
+                            promo.moqNote,
+                            g?.text,
+                        ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                    </NoteText>
+                )}
+
+                {promo.images && promo.images.length > 0 && (
+                    <Gallery>
+                        <img
+                            className="hero"
+                            src={resolveImage(promo.images[0])}
+                            loading="lazy"
+                            onClick={() =>
+                                onOpenImage(resolveImage(promo.images![0]))
+                            }
+                        />
+                        {promo.images.length > 1 && (
+                            <div className="thumbs">
+                                {promo.images.slice(1).map((src, i) => (
+                                    <img
+                                        key={i}
+                                        src={resolveImage(src)}
+                                        loading="lazy"
+                                        onClick={() =>
+                                            onOpenImage(resolveImage(src))
+                                        }
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </Gallery>
+                )}
+            </Card>
+        );
+    },
+);
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -1055,9 +1142,7 @@ const Promos: React.FC = () => {
                 </SearchWrapper>
                 <SortSelect
                     value={sort}
-                    onChange={(e) =>
-                        setSort(e.currentTarget.value as Sort)
-                    }>
+                    onChange={(e) => setSort(e.currentTarget.value as Sort)}>
                     <option value="newest">Newest</option>
                     <option value="endingSoon">Ending soon</option>
                 </SortSelect>

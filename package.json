@@ -6,6 +6,7 @@
         "build:deps": "cd external && cd components && yarn && yarn build:esm && cd .. && cd revolt.js && yarn && yarn build",
         "build": "yarn && rimraf build && node scripts/setup_assets.js --check && yarn build:deps && vite build",
         "build:highmem": "NODE_OPTIONS='--max-old-space-size=12288' yarn build",
+        "build:ci": "rimraf build && node scripts/setup_assets.js --check && vite build",
         "preview": "vite preview",
         "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
         "fmt": "prettier --write 'src/**/*.{js,jsx,ts,tsx}'",
@@ -52,6 +53,7 @@
         "fs-extra": "^10.0.0",
         "klaw": "^3.0.0",
         "lottie-react": "^2.4.0",
+        "posthog-js": "^1.402.3",
         "sirv-cli": "^1.0.14",
         "vite": "^3.0.5"
     },

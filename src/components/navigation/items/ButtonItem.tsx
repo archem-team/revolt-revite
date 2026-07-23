@@ -13,13 +13,13 @@ import { IconButton } from "@revoltchat/ui";
 import { isTouchscreenDevice } from "../../../lib/isTouchscreenDevice";
 import { stopPropagation } from "../../../lib/stopPropagation";
 
+import { useClient } from "../../../controllers/client/ClientController";
 import { modalController } from "../../../controllers/modals/ModalController";
 import ChannelIcon from "../../common/ChannelIcon";
 import Tooltip from "../../common/Tooltip";
 import UserIcon from "../../common/user/UserIcon";
 import { Username } from "../../common/user/UserShort";
 import UserStatus from "../../common/user/UserStatus";
-import { useClient } from "../../../controllers/client/ClientController";
 
 type CommonProps = Omit<
     JSX.HTMLAttributes<HTMLDivElement>,
@@ -98,8 +98,7 @@ export const UserButton = observer((props: UserProps) => {
                 {/* Only show a second line when there is
                     something to say — a custom status or a DM preview.
                     Plain presence ("Online") stays on the avatar dot. */}
-                {typeof channel?.last_message?.content === "string" &&
-                alert ? (
+                {typeof channel?.last_message?.content === "string" && alert ? (
                     <div className={styles.subText}>
                         {convertMentionsToUsernames(
                             channel.last_message.content,
@@ -197,9 +196,12 @@ export const ChannelButton = observer((props: ChannelProps) => {
                 {channel.channel_type === "Group" && (
                     <div className={styles.subText}>
                         {typeof channel.last_message?.content === "string" &&
-                            alert &&
-                            !muted ? (
-                            convertMentionsToUsernames(channel.last_message.content, client).slice(0, 32)
+                        alert &&
+                        !muted ? (
+                            convertMentionsToUsernames(
+                                channel.last_message.content,
+                                client,
+                            ).slice(0, 32)
                         ) : (
                             <Text
                                 id="quantities.members"

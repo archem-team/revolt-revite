@@ -46,7 +46,6 @@ import AutoComplete, { useAutoComplete } from "../AutoComplete";
 import { PermissionTooltip } from "../Tooltip";
 import FilePreview from "./bars/FilePreview";
 import ReplyBar from "./bars/ReplyBar";
-import { User } from "@styled-icons/boxicons-regular";
 
 type Props = {
     channel: Channel;
@@ -56,11 +55,11 @@ export type UploadState =
     | { type: "none" }
     | { type: "attached"; files: File[] }
     | {
-        type: "uploading";
-        files: File[];
-        percent: number;
-        cancel: CancelTokenSource;
-    }
+          type: "uploading";
+          files: File[];
+          percent: number;
+          cancel: CancelTokenSource;
+      }
     | { type: "sending"; files: File[] }
     | { type: "failed"; files: File[]; error: string };
 
@@ -400,15 +399,11 @@ export default observer(({ channel }: Props) => {
                 if (username.toLowerCase() !== "everyone") {
                     const user = Array.from(client.users.values()).find(
                         (u) =>
-                            u.username.toLowerCase() ===
-                            username.toLowerCase(),
+                            u.username.toLowerCase() === username.toLowerCase(),
                     );
 
                     if (user) {
-                        content = content.replace(
-                            mention,
-                            `<@${user._id}>`,
-                        );
+                        content = content.replace(mention, `<@${user._id}>`);
                     }
                 }
             }
@@ -484,7 +479,9 @@ export default observer(({ channel }: Props) => {
                 });
 
                 // Add another scroll to bottom after the message is sent
-                chainedDefer(() => renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE));
+                chainedDefer(() =>
+                    renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE),
+                );
             } catch (error) {
                 state.queue.fail(nonce, takeError(error));
             }
@@ -731,9 +728,7 @@ export default observer(({ channel }: Props) => {
                             uploadState.type === "uploading" ||
                             uploadState.type === "sending"
                         }
-                        remove={async () =>
-                            setUploadState({ type: "none" })
-                        }
+                        remove={async () => setUploadState({ type: "none" })}
                         onChange={(files) =>
                             setUploadState({ type: "attached", files })
                         }

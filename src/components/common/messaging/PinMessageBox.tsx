@@ -1,3 +1,4 @@
+import { Pin } from "@styled-icons/boxicons-regular";
 import {
     InfoCircle,
     UserPlus,
@@ -12,6 +13,7 @@ import {
     Key,
 } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
+import { useHistory } from "react-router-dom";
 import { Message, Channel, API } from "revolt.js";
 import styled from "styled-components/macro";
 import { decodeTime } from "ulid";
@@ -31,8 +33,6 @@ import Markdown from "../../markdown/Markdown";
 import Tooltip from "../Tooltip";
 import UserShort from "../user/UserShort";
 import MessageBase, { MessageDetail, MessageInfo } from "./MessageBase";
-import { Pin } from "@styled-icons/boxicons-regular";
-import { useHistory } from "react-router-dom";
 
 const SystemContent = styled.div`
     gap: 4px;
@@ -68,7 +68,7 @@ interface Props {
     message: Message;
     highlight?: boolean;
     hideInfo?: boolean;
-    channel: Channel
+    channel: Channel;
 }
 
 const iconDictionary = {
@@ -87,16 +87,14 @@ const iconDictionary = {
 
 export const PinMessageBox = observer(
     ({ attachContext, message, channel, highlight, hideInfo }: Props) => {
-        const data: any = message.system
+        const data: any = message.system;
         if (!data) return null;
         const history = useHistory();
 
-
         let children = null;
-        let userName = message.client ? message.system.by_username : ""
+        let userName = message.client ? message.system.by_username : "";
 
-
-        if (data.type as string == "message_pinned") {
+        if ((data.type as string) == "message_pinned") {
             children = children = (
                 <div
                     onClick={() => {
@@ -107,8 +105,7 @@ export const PinMessageBox = observer(
                         } else {
                             history.push(`/channel/${channel._id}/${data.id}`);
                         }
-                    }}
-                >
+                    }}>
                     <TextReact
                         id={`app.main.channel.system.message_pinned`}
                         fields={{
@@ -118,7 +115,7 @@ export const PinMessageBox = observer(
                 </div>
             );
         }
-        if (data.type as string == "message_unpinned") {
+        if ((data.type as string) == "message_unpinned") {
             children = children = (
                 <div
                     onClick={() => {
@@ -129,8 +126,7 @@ export const PinMessageBox = observer(
                         } else {
                             history.push(`/channel/${channel._id}/${data.id}`);
                         }
-                    }}
-                >
+                    }}>
                     <TextReact
                         id={`app.main.channel.system.message_unpinned`}
                         fields={{
@@ -141,12 +137,8 @@ export const PinMessageBox = observer(
             );
         }
 
-
-
         return (
             <MessageBase highlight={highlight}>
-
-
                 {!hideInfo && (
                     <MessageInfo click={false}>
                         <MessageDetail message={message} position="left" />
@@ -154,8 +146,17 @@ export const PinMessageBox = observer(
                     </MessageInfo>
                 )}
 
-
-                <SystemContent style={{ height: 20, fontSize: 12, display: "block", width: "100%", textAlign: "center", cursor: "pointer" }}>{children}</SystemContent>
+                <SystemContent
+                    style={{
+                        height: 20,
+                        fontSize: 12,
+                        display: "block",
+                        width: "100%",
+                        textAlign: "center",
+                        cursor: "pointer",
+                    }}>
+                    {children}
+                </SystemContent>
             </MessageBase>
         );
     },

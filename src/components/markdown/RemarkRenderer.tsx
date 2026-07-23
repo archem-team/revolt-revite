@@ -23,7 +23,12 @@ import { RenderAnchor } from "./plugins/anchors";
 import { remarkChannels, RenderChannel } from "./plugins/channels";
 import { isOnlyEmoji, remarkEmoji, RenderEmoji } from "./plugins/emoji";
 import { remarkHtmlToText } from "./plugins/htmlToText";
-import { remarkMention, RenderMention, remarkEveryone, RenderEveryoneMention } from "./plugins/mentions";
+import {
+    remarkMention,
+    RenderMention,
+    remarkEveryone,
+    RenderEveryoneMention,
+} from "./plugins/mentions";
 import { remarkSpoiler, RenderSpoiler } from "./plugins/spoiler";
 import { remarkTimestamps } from "./plugins/timestamps";
 import "./prism";

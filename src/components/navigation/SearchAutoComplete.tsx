@@ -1,5 +1,6 @@
-import styled from "styled-components/macro";
 import { User } from "revolt.js";
+import styled from "styled-components/macro";
+
 import { AutoCompleteState } from "../common/AutoComplete";
 import UserIcon from "../common/user/UserIcon";
 
@@ -16,7 +17,7 @@ const Base = styled.div`
     overflow: hidden;
     max-height: 200px;
     overflow-y: auto;
-    
+
     @media (max-width: 768px) {
         margin-top: 8px;
         max-height: 250px;
@@ -49,12 +50,12 @@ const Base = styled.div`
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        
+
         @media (max-width: 768px) {
             padding: 14px 16px;
             font-size: 15px;
             gap: 12px;
-            
+
             /* Add touch feedback for mobile */
             &:active {
                 background: var(--secondary-background);
@@ -70,9 +71,13 @@ interface Props {
     onClick: (userId: string, username: string) => void;
 }
 
-export default function SearchAutoComplete({ state, setState, onClick }: Props) {
+export default function SearchAutoComplete({
+    state,
+    setState,
+    onClick,
+}: Props) {
     if (state.type !== "user") return null;
-    
+
     // Detect if we're on mobile
     const isMobile = window.innerWidth <= 768;
     const iconSize = isMobile ? 24 : 20;
@@ -109,12 +114,13 @@ export default function SearchAutoComplete({ state, setState, onClick }: Props) 
                     </button>
                 ))
             ) : (
-                <div style={{
-                    padding: isMobile ? "16px" : "12px",
-                    textAlign: "center",
-                    color: "var(--tertiary-foreground)",
-                    fontSize: isMobile ? "14px" : "13px"
-                }}>
+                <div
+                    style={{
+                        padding: isMobile ? "16px" : "12px",
+                        textAlign: "center",
+                        color: "var(--tertiary-foreground)",
+                        fontSize: isMobile ? "14px" : "13px",
+                    }}>
                     No users found
                 </div>
             )}

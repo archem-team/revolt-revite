@@ -157,8 +157,8 @@ export default class NotificationOptions
         }
 
         // Check channel notification settings
-        const mentioned = message.mention_ids?.includes(user._id) || 
-                         message.mentionsEveryone;
+        const mentioned =
+            message.mention_ids?.includes(user._id) || message.mentionsEveryone;
         switch (this.computeForChannel(message.channel!)) {
             case "muted":
             case "none":
@@ -260,8 +260,7 @@ export default class NotificationOptions
      */
     async onMessage(message: Message) {
         // Ignore if we are currently looking and focused on the channel.
-        if (message.channel_id === routeInformation.getChannel())
-            return;
+        if (message.channel_id === routeInformation.getChannel()) return;
 
         // Ignore if muted.
         if (!this.shouldNotify(message)) return;

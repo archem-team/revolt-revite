@@ -91,7 +91,8 @@ export default class STheme {
     @computed isLight() {
         return (
             this.settings.get("appearance:theme:light") ??
-            (this.getBase() === "light" || this.getBase() === "materialYouLight")
+            (this.getBase() === "light" ||
+                this.getBase() === "materialYouLight")
         );
     }
 
@@ -148,7 +149,7 @@ export default class STheme {
         for (const key of Object.keys(variables)) {
             const value = variables[key];
             if (typeof value === "string") {
-                variables[`${key  }-contrast`] = getContrastingColour(value);
+                variables[`${key}-contrast`] = getContrastingColour(value);
             }
         }
 

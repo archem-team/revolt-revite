@@ -20,9 +20,9 @@ import { useApplicationState } from "../../../mobx/State";
 import { SIDEBAR_MEMBERS } from "../../../mobx/stores/Layout";
 
 import UpdateIndicator from "../../../components/common/UpdateIndicator";
+import { SearchBar } from "../../../components/navigation/SearchBar";
 import { modalController } from "../../../controllers/modals/ModalController";
 import { ChannelHeaderProps } from "../ChannelHeader";
-import { SearchBar } from "../../../components/navigation/SearchBar";
 
 const Container = styled.div`
     display: flex;

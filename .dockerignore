@@ -8,5 +8,13 @@ node_modules
 .yarn/cache
 .yarn/install-state.gz
 
+# Nested node_modules + submodule build outputs. Excluded so the `COPY . .`
+# app layer never clobbers the artifacts produced by the earlier build:deps
+# layer (which is cached independently of app-code changes).
+**/node_modules
+external/components/esm
+external/revolt.js/dist
+external/revolt.js/esm
+
 Dockerfile
 .dockerignore

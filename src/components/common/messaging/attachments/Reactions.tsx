@@ -122,25 +122,29 @@ export const Reactions = observer(({ message }: Props) => {
                     // Keep hover list readable/clickable even with many reactors.
                     interactive
                     placement="top"
-                    content={(
-                        <div
-                            style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "4px",
-                                maxHeight: "220px",
-                                overflowY: "auto",
-                                padding: "6px",
-                            }}>
-                            {reactingUserIds.map((uid) => (
-                                <UserShort
-                                    // UserShort is resilient to missing user objects.
-                                    key={uid}
-                                    user={client.users.get(uid) ?? undefined}
-                                />
-                            ))}
-                        </div>
-                    ) as any}>
+                    content={
+                        (
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "4px",
+                                    maxHeight: "220px",
+                                    overflowY: "auto",
+                                    padding: "6px",
+                                }}>
+                                {reactingUserIds.map((uid) => (
+                                    <UserShort
+                                        // UserShort is resilient to missing user objects.
+                                        key={uid}
+                                        user={
+                                            client.users.get(uid) ?? undefined
+                                        }
+                                    />
+                                ))}
+                            </div>
+                        ) as any
+                    }>
                     <Reaction
                         active={active}
                         onClick={() =>

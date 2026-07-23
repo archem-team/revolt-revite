@@ -1,0 +1,15 @@
+{
+    "applinks": {
+        "details": [
+            {
+                "appIDs": ["R8387T64JW.chat.zeko.app"],
+                "components": [
+                    {
+                        "/": "*",
+                        "comment": "Open all app.peptide.chat paths in the Zeko iOS app when installed."
+                    }
+                ]
+            }
+        ]
+    }
+}
