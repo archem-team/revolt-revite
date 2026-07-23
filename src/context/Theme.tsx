@@ -340,9 +340,9 @@ export const PRESETS: Record<string, Theme> = {
         "primary-background": "#121014",
         "primary-header": "#26222C",
         // Elevation ladder (content surfaces) — location-neutral.
-        "secondary-background": "#27222B",
+        "secondary-background": "#1B181F",
         "secondary-foreground": "#A3A1A4",
-        "secondary-header": "#27222B",
+        "secondary-header": "#1B181F",
         "tertiary-background": "#332E36",
         // Near-neutral dimmed text (read/inactive rows dim
         // into neutral gray, not into a coloured tint — colour reads as noise
