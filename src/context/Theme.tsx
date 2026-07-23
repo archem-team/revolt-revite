@@ -362,7 +362,7 @@ export const PRESETS: Record<string, Theme> = {
         // member column and their hovers — content surfaces use the
         // ladder above.
         "nav-canvas": "#1B181F",
-        "nav-rail": "#1B181F",
+        "nav-rail": "#26222C",
         "nav-hover": "#211D28",
         // Recessed input wells (one step below the content panel).
         "surface-sunken": "#100518",
