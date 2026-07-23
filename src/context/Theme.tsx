@@ -337,7 +337,7 @@ export const PRESETS: Record<string, Theme> = {
         hover: "#27222B",
         "scrollbar-thumb": "#49454C",
         "scrollbar-track": "transparent",
-        "primary-background": "#121014",
+        "primary-background": "#16111D",
         "primary-header": "#1C1720",
         // Elevation ladder (content surfaces) — location-neutral.
         "secondary-background": "#27222B",
