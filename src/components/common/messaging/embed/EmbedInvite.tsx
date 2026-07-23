@@ -20,13 +20,19 @@ import {
 import { takeError } from "../../../../controllers/client/jsx/error";
 
 const EmbedInviteBase = styled.div`
-    width: 400px;
-    height: 80px;
-    background-color: var(--secondary-background);
+    max-width: 320px;
+    height: 64px;
+    /* Muted brand-tinted container (Material secondary-container tones
+       from the accent seed, the reference's invite treatment): tinted
+       enough to stay distinct under the neutral hover wash, muted
+       enough to sit quietly in the chat. */
+    background-color: #4e4256;
+    color: #eeddf5;
     border-radius: var(--border-radius);
     display: flex;
     align-items: center;
-    padding: 0 12px;
+    gap: 10px;
+    padding: 10px;
     margin-top: 2px;
     ${() =>
         isTouchscreenDevice &&
@@ -35,7 +41,7 @@ const EmbedInviteBase = styled.div`
             height: 130px;
             padding-top: 8px;
             padding-bottom: 10px;
-            width: 100%;
+            max-width: 100%;
             > button {
                 width: 100%;
             }
@@ -44,7 +50,7 @@ const EmbedInviteBase = styled.div`
 
 const EmbedInviteDetails = styled.div`
     flex-grow: 1;
-    padding-inline-start: 12px;
+    min-width: 0;
     ${() =>
         isTouchscreenDevice &&
         css`
@@ -64,9 +70,10 @@ const EmbedInviteMemberCount = styled.div`
     align-items: center;
     gap: 2px;
     font-size: 0.8em;
+    opacity: 0.85;
 
     > svg {
-        color: var(--secondary-foreground);
+        color: inherit;
     }
 `;
 
@@ -102,7 +109,7 @@ export function EmbedInvite({ code }: Props) {
     if (typeof invite === "undefined") {
         return error ? (
             <EmbedInviteBase>
-                <ServerIcon size={55} />
+                <ServerIcon size={42} />
                 <EmbedInviteDetails>
                     <EmbedInviteName>Invalid invite!</EmbedInviteName>
                 </EmbedInviteDetails>
@@ -120,7 +127,7 @@ export function EmbedInvite({ code }: Props) {
                 <ServerIcon
                     attachment={invite.server_icon}
                     server_name={invite.server_name}
-                    size={55}
+                    size={42}
                 />
                 <EmbedInviteDetails>
                     <EmbedInviteName>{invite.server_name}</EmbedInviteName>
