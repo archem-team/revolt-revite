@@ -365,7 +365,7 @@ export const PRESETS: Record<string, Theme> = {
         "nav-rail": "#26222C",
         "nav-hover": "#211D28",
         // Recessed input wells (one step below the content panel).
-        "surface-sunken": "#100518",
+        "surface-sunken": "#121014",
     },
 };
 
