@@ -335,7 +335,7 @@ export const PRESETS: Record<string, Theme> = {
         tooltip: "#332E36",
         error: "#C63945",
         hover: "#27222B",
-        "scrollbar-thumb": "#1F1C23",
+        "scrollbar-thumb": "#17141A",
         "scrollbar-track": "transparent",
         "primary-background": "#121014",
         "primary-header": "#26222C",
