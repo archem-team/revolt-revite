@@ -302,7 +302,9 @@ export const PRESETS: Record<string, Theme> = {
         unreads: "#FFDE18",
         "nav-canvas": "#F1F1F1",
         "nav-rail": "#EBEBEB",
-        "nav-hover": "rgba(0, 0, 0, 0.06)",
+        // Matched to the dark preset's stronger row hover (chat hover here is
+        // 0.2, so 0.06 was disproportionately faint).
+        "nav-hover": "rgba(0, 0, 0, 0.12)",
         "surface-sunken": "#F7F7F7",
     },
     // PepChat brand dark theme. Purple-tinted neutral ramp (#1A1523 →
@@ -330,12 +332,18 @@ export const PRESETS: Record<string, Theme> = {
         block: "#100518",
         "message-box": "#332E36",
         mention: "rgba(102, 45, 145, 0.18)",
-        success: "#3CC374",
+        // Lifted a few tones so the auto-generated `--success-contrast`
+        // (perceived-brightness test in STheme) resolves to black: at the old
+        // #3CC374 it scored just under the threshold and picked white, which
+        // left success button labels at 2.3:1. Also reads better as text.
+        success: "#4FD382",
         warning: "#FFB617",
         tooltip: "#332E36",
         error: "#C63945",
         hover: "#27222B",
-        "scrollbar-thumb": "#49454C",
+        // Sits above the panel/canvas pair rather than between them — at 4px
+        // wide the thumb needs more separation than a large surface does.
+        "scrollbar-thumb": "#3C383F",
         "scrollbar-track": "transparent",
         "primary-background": "#121014",
         "primary-header": "#26222C",
@@ -363,9 +371,12 @@ export const PRESETS: Record<string, Theme> = {
         // ladder above.
         "nav-canvas": "#1B181F",
         "nav-rail": "#26222C",
-        "nav-hover": "#211D28",
-        // Recessed input wells (one step below the content panel).
-        "surface-sunken": "#121014",
+        // Row hover was only ~3 tones over the sheet while the chat panel's
+        // hover is ~9 — the same gesture gave very different feedback.
+        "nav-hover": "#2A2631",
+        // Recessed input wells (one step below the content panel) — must not
+        // equal --primary-background or the well is invisible.
+        "surface-sunken": "#0C0A0E",
     },
 };
 

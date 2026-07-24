@@ -80,6 +80,11 @@
 
         &.name {
             flex-grow: 1;
+            // Without this the column cannot shrink below its content, so a
+            // long username pushes the row past the sidebar edge and the
+            // trailing badge gets chopped off instead of the name eliding.
+            // (`.content` above already carries the same rule.)
+            min-width: 0;
             display: flex;
             // 15px medium — this inner rule was
             // overriding the row's font with a smaller, bolder face.
