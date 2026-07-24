@@ -6,10 +6,11 @@ import { internalSubscribe } from "../../lib/eventEmitter";
 
 import SidebarBase from "./SidebarBase";
 import MemberSidebar from "./right/MemberSidebar";
+import { PinnedSidebar } from "./right/Pinned";
 import { SearchSidebar } from "./right/Search";
 
 export default function RightSidebar() {
-    const [sidebar, setSidebar] = useState<"search" | undefined>();
+    const [sidebar, setSidebar] = useState<"search" | "pins" | undefined>();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchParams, setSearchParams] = useState<any>(null);
     const close = () => {
@@ -21,7 +22,7 @@ export default function RightSidebar() {
     useEffect(
         () =>
             internalSubscribe("RightSidebar", "open", (type: string, data?: any) => {
-                setSidebar(type as "search" | undefined);
+                setSidebar(type as "search" | "pins" | undefined);
                 if (type === "search") {
                     if (typeof data === "string") {
                         // Legacy support for string queries
@@ -47,11 +48,13 @@ export default function RightSidebar() {
 
     const content =
         sidebar === "search" ? (
-            <SearchSidebar 
-                close={close} 
+            <SearchSidebar
+                close={close}
                 initialQuery={searchQuery}
                 searchParams={searchParams}
             />
+        ) : sidebar === "pins" ? (
+            <PinnedSidebar close={close} />
         ) : (
             <MemberSidebar />
         );

@@ -27,7 +27,6 @@ import { PageHeader } from "../../components/ui/Header";
 import { useClient } from "../../controllers/client/ClientController";
 import ChannelHeader from "./ChannelHeader";
 import { MessageArea } from "./messaging/MessageArea";
-import PinnedMessage from "../../components/common/messaging/bars/PinnedMessage";
 
 /**
  * Channel layout: a column on the canvas. The top row is plain text —
@@ -328,7 +327,6 @@ const TextChannel = observer(({ channel }: { channel: ChannelI }) => {
                                         channel={channel}
                                         last_id={lastId}
                                     />
-                                    <PinnedMessage channel={channel} />
                                     <MessageArea
                                         channel={channel}
                                         last_id={lastId}
