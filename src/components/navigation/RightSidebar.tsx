@@ -6,10 +6,11 @@ import { internalSubscribe } from "../../lib/eventEmitter";
 
 import SidebarBase from "./SidebarBase";
 import MemberSidebar from "./right/MemberSidebar";
+import { PinnedSidebar } from "./right/Pinned";
 import { SearchSidebar } from "./right/Search";
 
 export default function RightSidebar() {
-    const [sidebar, setSidebar] = useState<"search" | undefined>();
+    const [sidebar, setSidebar] = useState<"search" | "pins" | undefined>();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchParams, setSearchParams] = useState<any>(null);
     const close = () => {
@@ -20,24 +21,20 @@ export default function RightSidebar() {
 
     useEffect(
         () =>
-            internalSubscribe(
-                "RightSidebar",
-                "open",
-                (type: string, data?: any) => {
-                    setSidebar(type as "search" | undefined);
-                    if (type === "search") {
-                        if (typeof data === "string") {
-                            // Legacy support for string queries
-                            setSearchQuery(data);
-                            setSearchParams(null);
-                        } else if (data?.query !== undefined) {
-                            // New format with search parameters
-                            setSearchQuery(data.query);
-                            setSearchParams(data);
-                        }
+            internalSubscribe("RightSidebar", "open", (type: string, data?: any) => {
+                setSidebar(type as "search" | "pins" | undefined);
+                if (type === "search") {
+                    if (typeof data === "string") {
+                        // Legacy support for string queries
+                        setSearchQuery(data);
+                        setSearchParams(null);
+                    } else if (data?.query !== undefined) {
+                        // New format with search parameters
+                        setSearchQuery(data.query);
+                        setSearchParams(data);
                     }
-                },
-            ),
+                }
+            }),
         [],
     );
 
@@ -56,6 +53,8 @@ export default function RightSidebar() {
                 initialQuery={searchQuery}
                 searchParams={searchParams}
             />
+        ) : sidebar === "pins" ? (
+            <PinnedSidebar close={close} />
         ) : (
             <MemberSidebar />
         );

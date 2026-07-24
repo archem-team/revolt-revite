@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/rules-of-hooks */
+import { Pin } from "@styled-icons/boxicons-regular";
 import {
     UserPlus,
     Cog,
@@ -64,6 +65,18 @@ export default function HeaderActions({ channel }: ChannelHeaderProps) {
         chainedDefer(() => internalEmit("RightSidebar", "open", undefined));
     }
 
+    function openPins() {
+        if (
+            !isTouchscreenDevice &&
+            !layout.getSectionState(SIDEBAR_MEMBERS, true)
+        ) {
+            layout.toggleSectionState(SIDEBAR_MEMBERS, true);
+        }
+
+        slideOpen();
+        chainedDefer(() => internalEmit("RightSidebar", "open", "pins"));
+    }
+
     return (
         <>
             <Container>
@@ -94,9 +107,14 @@ export default function HeaderActions({ channel }: ChannelHeaderProps) {
                 )}
                 {(channel.channel_type === "Group" ||
                     channel.channel_type === "TextChannel") && (
-                    <IconButton onClick={openMembers}>
-                        <Group size={25} />
-                    </IconButton>
+                    <>
+                        <IconButton onClick={openPins}>
+                            <Pin size={22} />
+                        </IconButton>
+                        <IconButton onClick={openMembers}>
+                            <Group size={25} />
+                        </IconButton>
+                    </>
                 )}
                 {/* On desktop the search lives at the top of the member
                     column; keep it in the header on
