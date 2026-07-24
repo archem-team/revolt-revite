@@ -191,6 +191,13 @@ export function createMaterialYouTheme(
         // rail swoosh follows the same container colour.
         "channel-active": mc("primaryContainer"),
         "channel-active-foreground": mc("onPrimaryContainer"),
+        // Navigation family + input well (mirror the container ladder).
+        "nav-canvas": tone("background", 96, 10),
+        "nav-rail": tone("background", 92, 17),
+        // Row hover carries roughly the same weight as the chat panel's hover
+        // (~6-7 tones off its own surface) rather than a 2-tone whisper.
+        "nav-hover": tone("background", 90, 16),
+        "surface-sunken": tone("background", 98, 6),
         "sidebar-active": mc("primaryContainer"),
         // Brand constant: unread signals stay brand yellow in every theme.
         unreads: "#FFDE18",

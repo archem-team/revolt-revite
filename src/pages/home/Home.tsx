@@ -3,14 +3,13 @@ import { Lock, MessageAdd } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useHistory, useLocation } from "react-router-dom";
-import styled from "styled-components/macro";
+import styled, { css } from "styled-components/macro";
 
 import styles from "./Home.module.scss";
 import { Text } from "preact-i18n";
 
 import { CategoryButton, InputBox, Preloader } from "@revoltchat/ui";
 
-import { PageHeader } from "../../components/ui/Header";
 import { useClient } from "../../controllers/client/ClientController";
 import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
 import Promos from "./Promos";
@@ -32,6 +31,15 @@ const Overlay = styled.div`
     h3 {
         padding-top: 1rem;
     }
+`;
+
+/* Plain tab row on the panel — no header bar chrome, same treatment as
+   the chat view's plain-text header. */
+const TabRow = styled.div`
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 14px 20px 0;
 `;
 
 const DisabledWrapper = styled.div`
@@ -59,11 +67,11 @@ interface CachedData {
 
 // Add a styled component for the new text color
 const NewServerWrapper = styled.div`
-    color: #fadf4f;
+    color: #ffde17;
     display: contents;
 
     a {
-        color: #fadf4f;
+        color: #ffde17;
     }
 `;
 
@@ -173,47 +181,57 @@ const NoResults = styled.div`
     margin-bottom: 30px;
 `;
 
-// Tab strip living in the page header, letting the user switch between the
-// community directory ("Home") and the upcoming promos surface.
+// Tab strip letting the user switch between the community directory
+// ("Home") and the promos surface. Active tab is a filled pill — the
+// same selection language the sidebar rows use.
 const TabBar = styled.div`
     display: flex;
-    align-items: stretch;
-    gap: 24px;
-    height: 100%;
+    align-items: center;
+    gap: 6px;
 `;
 
 const Tab = styled.div<{ active: boolean }>`
-    position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
+    padding: 7px 16px;
+    border-radius: var(--radius-pill, 999px);
     color: ${(props) =>
-        props.active ? "var(--foreground)" : "var(--tertiary-foreground)"};
-    transition: color 0.1s ease-in-out;
+        props.active
+            ? "var(--channel-active-foreground)"
+            : "var(--tertiary-foreground)"};
+    background: ${(props) =>
+        props.active ? "var(--channel-active)" : "transparent"};
+    transition: 0.1s ease-in-out background-color, 0.1s ease-in-out color;
 
     &:hover {
-        color: var(--foreground);
+        color: ${(props) =>
+            props.active
+                ? "var(--channel-active-foreground)"
+                : "var(--foreground)"};
+        background: ${(props) =>
+            props.active
+                ? "var(--channel-active)"
+                : "rgba(var(--foreground-rgb), 0.06)"};
     }
 
-    &::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 2px;
-        border-radius: 2px;
-        background: var(--accent);
-        opacity: ${(props) => (props.active ? 1 : 0)};
-        transition: opacity 0.1s ease-in-out;
-    }
+    /* Inside the filled pill the accent chip would vanish — swap it to
+       a translucent wash on the fill. */
+    ${(props) =>
+        props.active &&
+        css`
+            .newchip {
+                background: rgba(255, 255, 255, 0.2);
+                color: inherit;
+            }
+        `}
 `;
 
 // Small accent "NEW" pill shown on the Promos tab.
-const NewChip = styled.span`
+const NewChip = styled.span.attrs({ className: "newchip" })`
     font-size: 10px;
     font-weight: 700;
     line-height: 1;
@@ -221,8 +239,8 @@ const NewChip = styled.span`
     text-transform: uppercase;
     padding: 3px 6px;
     border-radius: 6px;
-    color: var(--accent-contrast, #11171c);
-    background: var(--accent);
+    color: var(--channel-active-foreground);
+    background: var(--channel-active);
 `;
 
 
@@ -479,7 +497,7 @@ const Home: React.FC = () => {
         <div className={styles.home}>
             <Overlay>
                 <div className="content">
-                    <PageHeader icon={<></>} withTransparency>
+                    <TabRow>
                         <TabBar>
                             <Tab
                                 active={tab === "home"}
@@ -493,7 +511,7 @@ const Home: React.FC = () => {
                                 <NewChip>New</NewChip>
                             </Tab>
                         </TabBar>
-                    </PageHeader>
+                    </TabRow>
                     <div className={styles.homeScreen}>
                         {tab === "home" ? (
                             <>

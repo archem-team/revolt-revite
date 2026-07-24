@@ -144,5 +144,18 @@ export default defineConfig({
     },
     resolve: {
         preserveSymlinks: true,
+        alias: [
+            // Serve the UI library as project source instead of a
+            // node_modules dep: dev URLs then carry no ?v hash and no
+            // immutable cache header, so submodule rebuilds show up on a
+            // normal reload (browsers otherwise pin stale modules forever).
+            {
+                find: /^@revoltchat\/ui$/,
+                replacement: resolve(
+                    __dirname,
+                    "external/components/esm/index.js",
+                ),
+            },
+        ],
     },
 });

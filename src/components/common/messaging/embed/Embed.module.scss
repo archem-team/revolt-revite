@@ -30,7 +30,9 @@
 
         padding: 12px;
         width: fit-content;
-        background: var(--primary-header);
+        // One surface step above the panel hover, so the card
+        // stays visible when the message row's hover paints under it.
+        background: #332e36;
         border-radius: var(--border-radius);
 
         .siteinfo {
