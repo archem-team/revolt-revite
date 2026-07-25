@@ -10,7 +10,11 @@ import { isTouchscreenDevice } from "../../../../lib/isTouchscreenDevice";
 import { getRenderer } from "../../../../lib/renderer/Singleton";
 
 export const Bar = styled.div<{ position: "top" | "bottom"; accent?: boolean }>`
-    z-index: 1;
+    /* Above the message list. These bars float over the messages but render
+       BEFORE MessageArea in Channel.tsx, so at an equal z-index anything
+       inside a message that also stacks (embed buttons, spoilers) would paint
+       over them on DOM order alone. */
+    z-index: 2;
     position: relative;
 
     @keyframes bottomBounce {
