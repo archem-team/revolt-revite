@@ -59,7 +59,14 @@ export function RenderMention({ match }: CustomComponentProps) {
 const EveryoneMention = styled.span`
     padding: 0 6px;
     flex-shrink: 0;
-    
+
+    /* Same box as the user mention above. That one is inline-flex, so its
+       pill fills the line box; a plain inline span's background only covers
+       the glyph metrics, which made this pill noticeably shorter. */
+    align-items: center;
+    display: inline-flex;
+    vertical-align: middle;
+
     font-weight: 600;
     cursor: pointer;
     /* Mention pill: gold text on a dark olive pill. */
