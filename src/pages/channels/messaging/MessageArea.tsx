@@ -73,7 +73,11 @@ export const MESSAGE_AREA_PADDING = 82;
 
 export const MessageArea = observer(({ last_id, channel }: Props) => {
     const history = useHistory();
-    const session = useSession()!;
+    // Not asserted non-null: getActiveSession() looks the session up by the
+    // current id and returns undefined while there isn't one — during logout,
+    // an account switch, or before a session is established. This component
+    // can still be mounted at that moment.
+    const session = useSession();
 
     // ? Required data for message links.
     const { message } = useParams<{ message: string }>();
@@ -260,7 +264,7 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
 
     // ? If we are waiting for network, try again.
     useEffect(() => {
-        switch (session.state) {
+        switch (session?.state) {
             case "Online":
                 if (renderer.state === "WAITING_FOR_NETWORK") {
                     renderer.init();
@@ -275,7 +279,7 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
                 renderer.markStale();
                 break;
         }
-    }, [renderer, session.state]);
+    }, [renderer, session?.state]);
 
     // ? When the container is scrolled.
     // ? Also handle StayAtBottom
