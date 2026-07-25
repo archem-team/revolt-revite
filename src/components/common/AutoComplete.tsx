@@ -281,6 +281,12 @@ export function useAutoComplete(
 
                 setValue(content.join(""));
 
+                // Close the popup here rather than waiting for a later
+                // onChange to notice the token is complete. While it stays
+                // open onKeyDown keeps claiming Enter, so the next Enter
+                // selects again instead of sending the message.
+                setState({ type: "none" });
+
                 // Put the caret straight after what we inserted and keep the
                 // composer focused. Picking with the mouse blurs it, and after
                 // the value updates the caret would otherwise jump to the end
