@@ -389,8 +389,12 @@ export default observer(({ channel }: Props) => {
             // kept for potential future logic, but currently does nothing
         }
 
-        // Convert @username mentions to <@USER_ID> format
-        const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+        // Convert @username mentions to <@USER_ID> format.
+        // Hyphens are part of a username: without them "@john-doe" matched
+        // only "@john", the lookup for that name failed, and the mention was
+        // sent as plain text. Same character class the search autocomplete
+        // uses (lib/hooks/useSearchAutoComplete.ts).
+        const mentionRegex = /@([\w-]+)/g;
         const mentionMatches = content.match(mentionRegex);
 
         if (mentionMatches) {
