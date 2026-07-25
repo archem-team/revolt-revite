@@ -251,45 +251,46 @@ export function useAutoComplete(
                 const [_type, search, index] = result;
 
                 const content = el.value.split("");
+                let inserted: string[];
+
                 if (state.type === "emoji") {
                     const selected = state.matches[state.selected];
-                    content.splice(
-                        index,
-                        search.length,
+                    inserted = [
                         selected instanceof CustomEmoji
                             ? selected._id
                             : selected,
                         ": ",
-                    );
+                    ];
+                    content.splice(index, search.length, ...inserted);
                 } else if (state.type === "user") {
                     const selectedUser = state.matches[state.selected];
                     // Handle @everyone special case
-                    if (selectedUser._id === "@everyone") {
-                        content.splice(
-                            index,
-                            search.length + 1,
-                            "@everyone ",
-                        );
-                    } else {
-                        content.splice(
-                            index,
-                            search.length + 1,
-                            "@",
-                            selectedUser.username,
-                            " ",
-                        );
-                    }
+                    inserted =
+                        selectedUser._id === "@everyone"
+                            ? ["@everyone "]
+                            : ["@", selectedUser.username, " "];
+                    content.splice(index, search.length + 1, ...inserted);
                 } else {
-                    content.splice(
-                        index,
-                        search.length + 1,
+                    inserted = [
                         "<#",
                         state.matches[state.selected]._id,
                         "> ",
-                    );
+                    ];
+                    content.splice(index, search.length + 1, ...inserted);
                 }
 
                 setValue(content.join(""));
+
+                // Put the caret straight after what we inserted and keep the
+                // composer focused. Picking with the mouse blurs it, and after
+                // the value updates the caret would otherwise jump to the end
+                // of the draft — either way you had to click back in to carry
+                // on typing. Deferred so it runs after the re-render.
+                const caret = index + inserted.join("").length;
+                setTimeout(() => {
+                    el.focus();
+                    el.setSelectionRange(caret, caret);
+                }, 0);
             }
         }
     }
