@@ -34,35 +34,48 @@ const VENDOR_BADGES_MASK = TRUSTED_SELLER_BADGE | VERIFIED_VENDOR_BADGE;
 const BotBadge = styled.div`
     display: inline-block;
     flex-shrink: 0;
-    height: 1.4em;
-    /* Centre the label in the pill regardless of the author row's
-       line-height (the .detail row runs a 20px line box). */
+    /* The line box sets the pill height, so the label stays centred whatever
+       the author row's line-height is (the .detail row runs a 20px box). */
     line-height: 1.4em;
-    padding: 0 4px;
-    font-size: 0.6em;
+    padding: 0 6px;
+    /* Absolute, not em-relative: at 0.6em the same badge rendered ~8.4px in a
+       message row but ~6.7px in the member list (whose rows are 0.8em). */
+    font-size: 0.625rem;
+    font-weight: 700;
+    /* Small uppercase text needs a little tracking to stay readable. */
+    letter-spacing: 0.03em;
     user-select: none;
     text-transform: uppercase;
     color: var(--accent-contrast);
     background: var(--accent);
-    border-radius: calc(var(--border-radius) / 2);
+    border-radius: var(--radius-pill);
 `;
 
-const NewHereBadge = styled.div`
+const LOTUS_MASK =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8.55 12zm10.43-1.61zm-3.49-.76c-.18-2.79-1.31-5.51-3.43-7.63a12.188 12.188 0 0 0-3.55 7.63c1.28.68 2.46 1.56 3.49 2.63 1.03-1.06 2.21-1.94 3.49-2.63zm-6.5 2.65c-.14-.1-.3-.19-.45-.29.15.11.31.19.45.29zm6.42-.25c-.13.09-.27.16-.4.26.13-.1.27-.17.4-.26zM12 15.45C9.85 12.17 6.18 10 2 10c0 5.32 3.36 9.82 8.03 11.49.63.23 1.29.4 1.97.51.68-.12 1.33-.29 1.97-.51C18.64 19.82 22 15.32 22 10c-4.18 0-7.85 2.17-10 5.45z'/%3E%3C/svg%3E";
+
+/* Stoat's new-user mark: the Material Symbols "spa" lotus, filled, at 16px
+   (Message.tsx -> <Symbol size={16} fill>spa</Symbol>). revite ships boxicons
+   only, so the glyph is inlined rather than adding a Material icon package for
+   one path.
+
+   Stoat tints it --md-sys-color-primary, which in an M3 dark scheme is a light
+   tone-80 purple. Our --accent is the raw brand purple (tone 31) and would sit
+   at ~2:1 here, so the accent is lifted toward the foreground instead — the
+   same hue, light enough to read on both the sidebar and the chat panel. */
+const NewHereBadge = styled.span`
     display: inline-block;
     flex-shrink: 0;
-    height: 1.3em;
-    /* Centre the label in the pill regardless of the author row's
-       line-height (the .detail row runs a 20px line box). */
-    line-height: 1.3em;
-    padding: 0 5px;
-    font-size: 0.55em;
-    font-weight: 600;
-    user-select: none;
-    text-transform: uppercase;
-    color: white;
-    background: #3BA55D;
-    border-radius: 10px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    background-color: color-mix(
+        in srgb,
+        var(--accent),
+        var(--foreground) 45%
+    );
+    -webkit-mask: url("${LOTUS_MASK}") center / contain no-repeat;
+    mask: url("${LOTUS_MASK}") center / contain no-repeat;
 `;
 
 const TrustedSellerBadge = styled.img`
@@ -76,6 +89,16 @@ const BadgeWrapper = styled.span`
     display: flex;
     align-items: center;
     gap: 4px;
+    /* Lets the row shrink inside a narrow column (member list, DM sidebar) so
+       the name elides rather than the trailing badge being clipped away. */
+    min-width: 0;
+
+    /* Only the name (first child) yields. Everything after it is a badge or a
+       Tooltip wrapper around one — and Tooltip renders a plain <div> with no
+       flex-shrink of its own, so pin them here rather than on each badge. */
+    > *:not(:first-child) {
+        flex-shrink: 0;
+    }
 `;
 
 type UsernameProps = Omit<
@@ -92,6 +115,13 @@ type UsernameProps = Omit<
 };
 
 const Name = styled.span<{ colour?: string | null }>`
+    /* The name is what yields when space runs out — badges after it carry
+       flex-shrink: 0 and stay put. */
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
     ${(props) =>
         props.colour &&
         (props.colour.includes("gradient")
@@ -229,7 +259,7 @@ export const Username = observer(
                 <BadgeWrapper>
                     {el}
                     <Tooltip content="I'm new here!">
-                        <NewHereBadge>NEW</NewHereBadge>
+                        <NewHereBadge />
                     </Tooltip>
                 </BadgeWrapper>
             );

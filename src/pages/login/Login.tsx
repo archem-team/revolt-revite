@@ -76,11 +76,6 @@ export default observer(() => {
                         <LocaleSelector />
                     </div>
                     <div className={styles.form}>
-                        {/*<div style={styles.version}>
-                            API: <code>{configuration?.revolt ?? "???"}</code>{" "}
-                            &middot; revolt.js: <code>{LIBRARY_VERSION}</code>{" "}
-                            &middot; App: <code>{APP_VERSION}</code>
-                        </div>*/}
                         <Switch>
                             <Route path="/login/create">
                                 <FormCreate />
@@ -143,35 +138,23 @@ export default observer(() => {
                         </div>
                     </div>
                     <div className={styles.bottom}>
-                        <div className={styles.links}>
-                            <div className={styles.revolt}>
-                                <a
-                                    href="https://copper-mildrid-58.tiiny.site"
-                                    target="_blank"
-                                    rel="noreferrer">
-                                    Acceptable Usage Policy
-                                </a>
-                                <a
-                                    href="https://emerald-theresita-57.tiiny.site"
-                                    target="_blank"
-                                    rel="noreferrer">
-                                    <Text id="general.tos" />
-                                </a>
-                                <a
-                                    href="https://crimson-elena-61.tiiny.site"
-                                    target="_blank"
-                                    rel="noreferrer">
-                                    <Text id="general.privacy" />
-                                </a>
-                            </div>
-                        </div>
                         <a
-                            className={styles.attribution}
-                            href="https://unsplash.com/@kirp"
+                            href="https://copper-mildrid-58.tiiny.site"
                             target="_blank"
                             rel="noreferrer">
-                            <Text id="general.image_by" /> &lrm;@kirp &rlm;·
-                            unsplash.com
+                            Acceptable Usage Policy
+                        </a>
+                        <a
+                            href="https://emerald-theresita-57.tiiny.site"
+                            target="_blank"
+                            rel="noreferrer">
+                            <Text id="general.tos" />
+                        </a>
+                        <a
+                            href="https://crimson-elena-61.tiiny.site"
+                            target="_blank"
+                            rel="noreferrer">
+                            <Text id="general.privacy" />
                         </a>
                     </div>
                 </div>

@@ -14,7 +14,7 @@ import {
 } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import { Link } from "react-router-dom";
-import styled from "styled-components/macro";
+import styled, { css } from "styled-components/macro";
 
 import { useEffect, useMemo, useState } from "preact/hooks";
 
@@ -109,6 +109,13 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 16px;
+
+    /* Promo surface ladder on the production family: cards share the
+       home directory card surface, chips float a step above, wells
+       recess to the panel tone. */
+    --promo-card: #1b181f;
+    --promo-chip: #26222c;
+    --promo-well: #121014;
 `;
 
 // Promos vary a lot in content (2 vs 14 products, image or not), so a fixed
@@ -176,7 +183,7 @@ const SortSelect = styled.select`
     padding: 0 32px 0 12px;
     border: none;
     border-radius: var(--border-radius);
-    background-color: var(--secondary-background);
+    background-color: var(--promo-card);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23848484' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
@@ -238,10 +245,10 @@ const Glyph = styled.div`
     display: grid;
     place-items: center;
     border-radius: 50%;
-    color: var(--accent);
+    color: var(--channel-active);
     background: radial-gradient(
         circle at center,
-        color-mix(in srgb, var(--accent) 22%, transparent),
+        color-mix(in srgb, var(--channel-active) 22%, transparent),
         transparent 70%
     );
 
@@ -251,7 +258,7 @@ const Glyph = styled.div`
         inset: 18px;
         border-radius: 50%;
         border: 2px dashed
-            color-mix(in srgb, var(--accent) 45%, transparent);
+            color-mix(in srgb, var(--channel-active) 45%, transparent);
         animation: promo-spin 18s linear infinite;
     }
 
@@ -261,8 +268,8 @@ const Glyph = styled.div`
         font-weight: 700;
         padding: 3px 7px;
         border-radius: 8px;
-        color: var(--accent-contrast, #11171c);
-        background: var(--accent);
+        color: var(--channel-active-foreground);
+        background: var(--channel-active);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         animation: promo-bob 3.4s ease-in-out infinite;
     }
@@ -277,7 +284,7 @@ const Glyph = styled.div`
         left: -18px;
         animation-delay: 1.2s;
         background: var(--primary-background);
-        color: var(--accent);
+        color: var(--channel-active);
     }
 
     @keyframes promo-spin {
@@ -312,7 +319,7 @@ const Card = styled.div`
     gap: 12px;
     padding: 14px;
     border-radius: 10px;
-    background: var(--secondary-background);
+    background: var(--promo-card);
     /* Masonry layout: keep each card whole within its column and use a bottom
        margin for the vertical gap (column-gap only spaces columns). */
     break-inside: avoid;
@@ -331,7 +338,7 @@ const Logo = styled.img`
     border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0;
-    background: var(--primary-background);
+    background: var(--promo-chip);
 `;
 
 const LogoFallback = styled.div`
@@ -341,7 +348,7 @@ const LogoFallback = styled.div`
     flex-shrink: 0;
     display: grid;
     place-items: center;
-    background: var(--primary-background);
+    background: var(--promo-chip);
     color: var(--tertiary-foreground);
 `;
 
@@ -355,7 +362,7 @@ const ActionIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--accent);
+    background: var(--channel-active);
     cursor: pointer;
     transition: filter 0.15s ease, transform 0.15s ease;
 
@@ -366,7 +373,7 @@ const ActionIcon = styled.div`
        centres without inline-baseline offset. */
     & > svg {
         display: block;
-        color: var(--accent-contrast, #11171c);
+        color: var(--channel-active-foreground);
     }
 
     &:hover {
@@ -396,7 +403,9 @@ const VendorMeta = styled.div`
     }
 `;
 
-const Chip = styled.span<{ accent?: boolean }>`
+/* Chips carry three weights of fact: logistics stay quiet, guarantees
+   read as trust marks, and the deadline is the card's one warm element. */
+const Chip = styled.span<{ accent?: boolean; tone?: "trust" | "deadline" }>`
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -406,10 +415,33 @@ const Chip = styled.span<{ accent?: boolean }>`
     padding: 5px 8px;
     border-radius: 6px;
     white-space: nowrap;
-    color: ${(props) =>
-        props.accent ? "var(--accent-contrast, #11171c)" : "var(--foreground)"};
-    background: ${(props) =>
-        props.accent ? "var(--accent)" : "var(--primary-background)"};
+    color: var(--tertiary-foreground);
+    background: var(--promo-well);
+
+    ${(props) =>
+        props.tone === "trust" &&
+        css`
+            color: var(--foreground);
+            background: var(--promo-chip);
+
+            svg {
+                color: var(--success);
+            }
+        `}
+
+    ${(props) =>
+        props.tone === "deadline" &&
+        css`
+            color: var(--warning);
+            background: rgba(255, 182, 23, 0.12);
+        `}
+
+    ${(props) =>
+        props.accent &&
+        css`
+            color: var(--channel-active-foreground);
+            background: var(--channel-active);
+        `}
 `;
 
 const ItemTable = styled.div`
@@ -417,7 +449,7 @@ const ItemTable = styled.div`
     flex-direction: column;
     border-radius: 8px;
     overflow: hidden;
-    background: var(--primary-background);
+    background: var(--promo-well);
 `;
 
 const ItemRow = styled.div`
@@ -426,9 +458,11 @@ const ItemRow = styled.div`
     gap: 8px;
     padding: 9px 12px;
     font-size: 13px;
+    /* Prices line up digit-for-digit for column scanning. */
+    font-variant-numeric: tabular-nums;
 
     & + & {
-        border-top: 1px solid var(--secondary-background);
+        border-top: 1px solid var(--promo-chip);
     }
 
     .product {
@@ -463,7 +497,7 @@ const ItemNote = styled.div`
     padding: 0 12px 9px;
     font-size: 12px;
     color: var(--tertiary-foreground);
-    background: var(--primary-background);
+    background: var(--promo-well);
 `;
 
 // Long promos can list a dozen-plus priced variants. Rather than show the
@@ -494,7 +528,8 @@ const CompoundChip = styled.span`
     padding: 7px 10px;
     border-radius: 7px;
     color: var(--foreground);
-    background: var(--primary-background);
+    /* The merchandise floats; logistics recess. */
+    background: var(--promo-chip);
 
     .count {
         font-size: 11px;
@@ -511,16 +546,16 @@ const ItemToggle = styled.button`
     width: 100%;
     padding: 9px 12px;
     border: none;
-    border-top: 1px solid var(--secondary-background);
-    background: var(--primary-background);
-    color: var(--accent);
+    border-top: 1px solid var(--promo-chip);
+    background: var(--promo-well);
+    color: var(--channel-active);
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
 
     &:hover {
-        background: var(--secondary-background);
+        background: var(--promo-card);
     }
 
     svg {
@@ -542,7 +577,7 @@ const SummaryToggle = styled.button`
     padding: 0;
     border: none;
     background: none;
-    color: var(--accent);
+    color: var(--channel-active);
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;
@@ -576,7 +611,7 @@ const Gallery = styled.div`
         border-radius: 8px;
         object-fit: cover;
         cursor: zoom-in;
-        background: var(--primary-background);
+        background: var(--promo-well);
     }
 
     .thumbs {
@@ -591,7 +626,7 @@ const Gallery = styled.div`
             object-fit: cover;
             flex-shrink: 0;
             cursor: pointer;
-            background: var(--primary-background);
+            background: var(--promo-well);
         }
     }
 `;
@@ -824,25 +859,25 @@ const PromoCard = observer(
                     <Chip>Free over {money(promo.freeShippingThreshold)}</Chip>
                 )}
                 {g?.purityPct != null && (
-                    <Chip>
+                    <Chip tone="trust">
                         <BadgeCheck size={12} />
                         {g.purityPct}% purity
                     </Chip>
                 )}
                 {g?.volumePct != null && (
-                    <Chip>
+                    <Chip tone="trust">
                         <BadgeCheck size={12} />
                         {g.volumePct}% volume
                     </Chip>
                 )}
                 {g?.customsReship && (
-                    <Chip>
+                    <Chip tone="trust">
                         <BadgeCheck size={12} />
                         Customs reship
                     </Chip>
                 )}
                 {when && (
-                    <Chip>
+                    <Chip tone="deadline">
                         <Calendar size={12} />
                         {when}
                     </Chip>

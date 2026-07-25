@@ -32,7 +32,7 @@ import ConnectionStatus from "../items/ConnectionStatus";
    full-height sheet one surface step above the canvas, rounded on the side
    that meets the server rail. */
 const HomeSidebarBase = styled(GenericSidebarBase)`
-    background: var(--secondary-background);
+    background: var(--nav-canvas);
 
     ${() =>
         !isTouchscreenDevice &&

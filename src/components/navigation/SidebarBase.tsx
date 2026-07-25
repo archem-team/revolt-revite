@@ -17,7 +17,7 @@ export default styled.div<{ railBackdrop?: boolean }>`
        sidebar opts in via railBackdrop. */
     background: ${(props) =>
         props.railBackdrop && !isTouchscreenDevice
-            ? "var(--primary-header)"
+            ? "var(--nav-rail)"
             : "transparent"};
 `;
 
@@ -36,7 +36,7 @@ export const GenericSidebarBase = styled.div<{
     /* Sidebars/member lists sit directly on their
        backing surface (canvas or panel) with no panel chrome of their own. */
     background: ${isTouchscreenDevice
-        ? "var(--secondary-background)"
+        ? "var(--nav-canvas)"
         : "transparent"};
 
     ${(props) =>

@@ -34,6 +34,12 @@
     --border-radius-channel-icon: var(--border-radius-half);
     --border-radius-server-icon: var(--border-radius-half);
 
+    /* Focus indicator. The raw accent is too dark against these surfaces to
+       reach the 3:1 WCAG 2.2 requires of a focus ring, so it is lifted toward
+       the foreground — which lightens it on dark themes and darkens it on
+       light ones, keeping the brand hue in both. Mirrored in the components
+       submodule's common.css for Storybook. */
+    --focus-ring: color-mix(in srgb, var(--accent), var(--foreground) 35%);
     --input-border-width: 1px;
     --textarea-padding: var(--space-4);
     --textarea-line-height: var(--space-5);

@@ -6,7 +6,7 @@ import { Channel, Message, API } from "revolt.js";
 import styled, { css } from "styled-components/macro";
 
 import { Text } from "preact-i18n";
-import { useLayoutEffect, useState } from "preact/hooks";
+import { useLayoutEffect, useRef, useState } from "preact/hooks";
 
 import { getRenderer } from "../../../../lib/renderer/Singleton";
 
@@ -145,14 +145,23 @@ export const MessageReply = observer(
         if (view.state !== "RENDER") return null;
 
         const [message, setMessage] = useState<Message | undefined>(undefined);
+        const attemptedFetch = useRef(false);
 
         useLayoutEffect(() => {
             const message = channel.client.messages.get(id);
             if (message) {
                 setMessage(message);
-            } else {
-                channel.fetchMessage(id).then(setMessage);
+                return;
             }
+
+            // Fetch the target once per mount — this effect re-runs on
+            // every history fetch, and deleted targets 404 each time.
+            if (attemptedFetch.current) return;
+            attemptedFetch.current = true;
+
+            channel.fetchMessage(id).then(setMessage, () => {
+                // Deleted or inaccessible — keep the placeholder row.
+            });
         }, [id, channel, view.messages]);
 
         if (!message) {

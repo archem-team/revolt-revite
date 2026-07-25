@@ -108,8 +108,11 @@ export default function Embed({ embed }: Props) {
                     className={classNames(styles.embed, styles.website)}
                     style={{
                         borderInlineStartColor:
-                            embed.colour ?? "var(--tertiary-background)",
-                        width: width + CONTAINER_PADDING,
+                            embed.colour ?? "var(--scrollbar-thumb)",
+                        width:
+                            Number.isFinite(width) && width > 0
+                                ? width + CONTAINER_PADDING
+                                : undefined,
                     }}>
                     <div>
                         {(embed.type === "Text"
@@ -166,10 +169,14 @@ export default function Embed({ embed }: Props) {
                             (embed.type === "Text" ? (
                                 <Attachment attachment={embed.media!} />
                             ) : (
-                                <EmbedMedia embed={embed} height={height} />
+                                <EmbedMedia
+                                    embed={embed}
+                                    width={width}
+                                    height={height}
+                                />
                             ))}
                     </div>
-                    {!largeMedia && embed.type === "Website" && (
+                    {!largeMedia && embed.type === "Website" && embed.image && (
                         <div>
                             <EmbedMedia
                                 embed={embed}
