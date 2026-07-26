@@ -20,7 +20,13 @@ import { observer } from "mobx-react-lite";
 import { Link } from "react-router-dom";
 import styled, { css, keyframes } from "styled-components/macro";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "preact/hooks";
 
 import { Button, InputBox, Preloader } from "@revoltchat/ui";
 
@@ -74,7 +80,18 @@ export interface Promo {
 }
 
 type Sort = "newest" | "updated" | "price_asc" | "price_desc" | "vendor_asc";
-type FilterKey = "all" | "us" | "cn" | "in" | "freeShipping" | "endingSoon" | "recentlyUpdated" | "tirzepatide" | "retatrutide" | "semaglutide" | "hgh";
+type FilterKey =
+    | "all"
+    | "us"
+    | "cn"
+    | "in"
+    | "freeShipping"
+    | "endingSoon"
+    | "recentlyUpdated"
+    | "tirzepatide"
+    | "retatrutide"
+    | "semaglutide"
+    | "hgh";
 
 // ─── Caching ──────────────────────────────────────────────────────────────────
 
@@ -166,7 +183,10 @@ function formatLastUpdated(dateStr: string): string {
     if (hours < 24) return `Updated ${hours}h ago`;
     if (days === 1) return "Updated yesterday";
     if (days < 7) return `Updated ${days}d ago`;
-    const formattedDate = new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const formattedDate = new Date(dateStr).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+    });
     return `Updated ${formattedDate}`;
 }
 
@@ -190,28 +210,50 @@ function getPromoBadge(promo: Promo, lastVisit: number | null): BadgeType {
     return null;
 }
 
-function matchesFilter(promo: Promo, filter: FilterKey, lastVisit: number | null): boolean {
+function matchesFilter(
+    promo: Promo,
+    filter: FilterKey,
+    lastVisit: number | null,
+): boolean {
     switch (filter) {
-        case "all": return true;
-        case "us": return !!(promo.warehouse?.toLowerCase().match(/\bus\b|united.?states/));
-        case "cn": return !!(promo.warehouse?.toLowerCase().match(/\bcn\b|china/));
-        case "in": return !!(promo.warehouse?.toLowerCase().match(/\bin\b|india/));
+        case "all":
+            return true;
+        case "us":
+            return !!promo.warehouse
+                ?.toLowerCase()
+                .match(/\bus\b|united.?states/);
+        case "cn":
+            return !!promo.warehouse?.toLowerCase().match(/\bcn\b|china/);
+        case "in":
+            return !!promo.warehouse?.toLowerCase().match(/\bin\b|india/);
         case "freeShipping":
-            return promo.shippingFee === 0 || promo.freeShippingThreshold != null;
+            return (
+                promo.shippingFee === 0 || promo.freeShippingThreshold != null
+            );
         case "recentlyUpdated": {
             const now = Date.now();
             const createdMs = new Date(promo.createdAt).getTime();
             const updatedMs = new Date(promo.updatedAt).getTime();
-            const isFreshUpdate = updatedMs - createdMs > 60_000 && now - updatedMs < 3 * 24 * 60 * 60 * 1000;
-            const isUpdatedSinceLastVisit = lastVisit ? updatedMs > lastVisit : false;
+            const isFreshUpdate =
+                updatedMs - createdMs > 60_000 &&
+                now - updatedMs < 3 * 24 * 60 * 60 * 1000;
+            const isUpdatedSinceLastVisit = lastVisit
+                ? updatedMs > lastVisit
+                : false;
             return isFreshUpdate || isUpdatedSinceLastVisit;
         }
         case "tirzepatide":
-            return promo.items.some((it) => it.product.toLowerCase().includes("tirzepatide"));
+            return promo.items.some((it) =>
+                it.product.toLowerCase().includes("tirzepatide"),
+            );
         case "retatrutide":
-            return promo.items.some((it) => it.product.toLowerCase().includes("retatrutide"));
+            return promo.items.some((it) =>
+                it.product.toLowerCase().includes("retatrutide"),
+            );
         case "semaglutide":
-            return promo.items.some((it) => it.product.toLowerCase().includes("semaglutide"));
+            return promo.items.some((it) =>
+                it.product.toLowerCase().includes("semaglutide"),
+            );
         case "hgh":
             return promo.items.some(
                 (it) =>
@@ -219,7 +261,8 @@ function matchesFilter(promo: Promo, filter: FilterKey, lastVisit: number | null
                     it.product.toLowerCase().includes("growth hormone") ||
                     it.product.toLowerCase().includes("somatropin"),
             );
-        default: return true;
+        default:
+            return true;
     }
 }
 
@@ -227,18 +270,33 @@ function escapeRegExp(string: string) {
     return string.replace(/[.*+?^${}()|[\\\]\\\\]/g, "\\$&");
 }
 
-function highlightText(text: string | null | undefined, query: string): React.ReactNode {
+function highlightText(
+    text: string | null | undefined,
+    query: string,
+): React.ReactNode {
     if (!text) return "";
     if (!query.trim()) return text;
-    const parts = text.split(new RegExp("(" + escapeRegExp(query.trim()) + ")", "gi"));
+    const parts = text.split(
+        new RegExp("(" + escapeRegExp(query.trim()) + ")", "gi"),
+    );
     return (
         <>
             {parts.map((part, i) =>
                 part.toLowerCase() === query.trim().toLowerCase() ? (
-                    <mark key={i} style={{ background: "color-mix(in srgb, var(--accent) 35%, transparent)", color: "inherit", borderRadius: "2px", padding: "0 1px" }}>{part}</mark>
+                    <mark
+                        key={i}
+                        style={{
+                            background:
+                                "color-mix(in srgb, var(--accent) 35%, transparent)",
+                            color: "inherit",
+                            borderRadius: "2px",
+                            padding: "0 1px",
+                        }}>
+                        {part}
+                    </mark>
                 ) : (
                     part
-                )
+                ),
             )}
         </>
     );
@@ -247,23 +305,23 @@ function highlightText(text: string | null | undefined, query: string): React.Re
 function getSearchScore(p: Promo, q: string): number {
     if (!q) return 0;
     const query = q.toLowerCase().trim();
-    
+
     if (p.vendor.name?.toLowerCase().trim() === query) {
         return 100;
     }
-    
+
     if (p.vendor.name?.toLowerCase().includes(query)) {
         return 80;
     }
-    
+
     if (p.title?.toLowerCase().includes(query)) {
         return 60;
     }
-    
+
     if (p.items.some((it) => it.product?.toLowerCase().includes(query))) {
         return 40;
     }
-    
+
     const notesStr = [
         p.warehouse,
         p.shippingNote,
@@ -271,24 +329,29 @@ function getSearchScore(p: Promo, q: string): number {
         p.moqNote,
         p.timelineText,
         p.guarantee?.text,
-        p.shippingFee === 0 ? "free shipping" : ""
-    ].filter(Boolean).join(" ").toLowerCase();
-    
+        p.shippingFee === 0 ? "free shipping" : "",
+    ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
     if (notesStr.includes(query)) {
         return 20;
     }
-    
+
     return 0;
 }
 
-
-function getCardBadge(promo: Promo): { label: string; color: string; bg: string } | null {
+function getCardBadge(
+    promo: Promo,
+): { label: string; color: string; bg: string } | null {
     const now = Date.now();
     const createdMs = new Date(promo.createdAt).getTime();
     const updatedMs = new Date(promo.updatedAt).getTime();
     const threeDays = 3 * 24 * 60 * 60 * 1000;
     const isNewPromo = now - createdMs < threeDays;
-    const isRecentlyUpdated = updatedMs - createdMs > 60_000 && now - updatedMs < 24 * 60 * 60 * 1000;
+    const isRecentlyUpdated =
+        updatedMs - createdMs > 60_000 && now - updatedMs < 24 * 60 * 60 * 1000;
 
     // Maximum ONE status badge per card
     if (isEndingSoon(promo)) {
@@ -318,7 +381,9 @@ function getCardBadge(promo: Promo): { label: string; color: string; bg: string 
 
 // ─── Featured Badge — Why is this promo in Hot Promos? ────────────────────────
 
-function getFeaturedBadge(promo: Promo): { label: string; subLabel?: string; color: string; bg: string } | null {
+function getFeaturedBadge(
+    promo: Promo,
+): { label: string; subLabel?: string; color: string; bg: string } | null {
     const now = Date.now();
     const createdMs = new Date(promo.createdAt).getTime();
     const updatedMs = new Date(promo.updatedAt).getTime();
@@ -326,10 +391,13 @@ function getFeaturedBadge(promo: Promo): { label: string; subLabel?: string; col
     const threeDays = 3 * 24 * 60 * 60 * 1000;
 
     const isEnding = isEndingSoon(promo);
-    const isRecentlyUpd = updatedMs - createdMs > 60_000 && now - updatedMs < oneDay;
+    const isRecentlyUpd =
+        updatedMs - createdMs > 60_000 && now - updatedMs < oneDay;
     const isNew = now - createdMs < threeDays;
     const isFreeShip = promo.shippingFee === 0;
-    const isUsWarehouse = !!promo.warehouse?.toLowerCase().match(/\bus\b|united.?states/);
+    const isUsWarehouse = !!promo.warehouse
+        ?.toLowerCase()
+        .match(/\bus\b|united.?states/);
     const isFreeThreshold = promo.freeShippingThreshold != null;
 
     // Optional secondary reason pill (focused on shipping/delivery)
@@ -349,12 +417,22 @@ function getFeaturedBadge(promo: Promo): { label: string; subLabel?: string; col
 
     // Priority 2: ✨ Recently Updated (Blue #3b82f6)
     if (isRecentlyUpd) {
-        return { label: "✨ Recently Updated", subLabel, color: "#fff", bg: "#3b82f6" };
+        return {
+            label: "✨ Recently Updated",
+            subLabel,
+            color: "#fff",
+            bg: "#3b82f6",
+        };
     }
 
     // Priority 3: 🆕 New Promotion (Green #22c55e)
     if (isNew) {
-        return { label: "🆕 New Promotion", subLabel, color: "#fff", bg: "#22c55e" };
+        return {
+            label: "🆕 New Promotion",
+            subLabel,
+            color: "#fff",
+            bg: "#22c55e",
+        };
     }
 
     // Priority 4: 💙 Free Shipping (Cyan #0891b2)
@@ -371,7 +449,9 @@ function getFeaturedBadge(promo: Promo): { label: string; subLabel?: string; col
     if (isUsWarehouse) {
         return {
             label: "🇺🇸 US Warehouse",
-            subLabel: isFreeThreshold ? `🚚 Free Over $${promo.freeShippingThreshold}` : undefined,
+            subLabel: isFreeThreshold
+                ? `🚚 Free Over $${promo.freeShippingThreshold}`
+                : undefined,
             color: "#fff",
             bg: "#6366f1",
         };
@@ -400,7 +480,7 @@ function getHotPromoScore(promo: Promo): number {
     const oneDay = 24 * 60 * 60 * 1000;
     const threeDays = 3 * 24 * 60 * 60 * 1000;
     const sevenDays = 7 * 24 * 60 * 60 * 1000;
-    
+
     if (now - new Date(promo.createdAt).getTime() < threeDays) score += 30;
     else if (now - new Date(promo.createdAt).getTime() < sevenDays) score += 15;
 
@@ -411,7 +491,8 @@ function getHotPromoScore(promo: Promo): number {
     if (promo.shippingFee === 0) score += 20;
     else if (promo.freeShippingThreshold != null) score += 12;
 
-    if (promo.warehouse?.toLowerCase().match(/\bus\b|united.?states/)) score += 15;
+    if (promo.warehouse?.toLowerCase().match(/\bus\b|united.?states/))
+        score += 15;
     if (promo.images && promo.images.length > 0) score += 8;
 
     return score;
@@ -590,12 +671,12 @@ const StatIconWrap = styled.div<{ color: string }>`
     border-radius: 8px;
     display: grid;
     place-items: center;
-    background: color-mix(in srgb, ${p => p.color} 15%, transparent);
-    color: ${p => p.color};
+    background: color-mix(in srgb, ${(p) => p.color} 15%, transparent);
+    color: ${(p) => p.color};
     flex-shrink: 0;
 
     svg {
-        color: ${p => p.color};
+        color: ${(p) => p.color};
     }
 `;
 
@@ -608,7 +689,7 @@ const StatText = styled.div`
 const StatNumber = styled.span<{ color: string }>`
     font-size: 20px;
     font-weight: 800;
-    color: ${p => p.color};
+    color: ${(p) => p.color};
     line-height: 1.2;
 `;
 
@@ -624,7 +705,6 @@ const StatDesc = styled.span`
     color: var(--secondary-foreground);
     line-height: 1.2;
 `;
-
 
 const OverviewHeader = styled.div`
     display: flex;
@@ -674,7 +754,9 @@ const ViewAllUpdatesBtn = styled.button`
         text-decoration: underline;
     }
 
-    svg { color: var(--accent); }
+    svg {
+        color: var(--accent);
+    }
 `;
 
 const StatCardsRow = styled.div`
@@ -699,7 +781,8 @@ const StatCard = styled.div<{ accent: string }>`
 
     &:hover {
         border-color: color-mix(in srgb, ${(p) => p.accent} 30%, transparent);
-        box-shadow: 0 2px 12px color-mix(in srgb, ${(p) => p.accent} 8%, transparent);
+        box-shadow: 0 2px 12px
+            color-mix(in srgb, ${(p) => p.accent} 8%, transparent);
     }
 `;
 
@@ -756,7 +839,6 @@ const ViewAllLink = styled.button`
         margin-left: 0;
     }
 `;
-
 
 // ─── Overview Redesign ────────────────────────────────────────────────────────
 
@@ -829,7 +911,7 @@ const OverviewStatCard = styled.div<{ accent: string }>`
 
     &:hover {
         border-color: color-mix(in srgb, var(--foreground) 15%, transparent);
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 `;
 
@@ -890,8 +972,9 @@ const StatVendorItem = styled.li<{ muted?: boolean }>`
     align-items: center;
     gap: 5px;
     font-size: 11px;
-    color: ${(p) => p.muted ? "var(--tertiary-foreground)" : "var(--secondary-foreground)"};
-    font-weight: ${(p) => p.muted ? 400 : 500};
+    color: ${(p) =>
+        p.muted ? "var(--tertiary-foreground)" : "var(--secondary-foreground)"};
+    font-weight: ${(p) => (p.muted ? 400 : 500)};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -937,7 +1020,9 @@ const ViewAllUpdatesLink = styled.button`
         text-decoration: underline;
     }
 
-    svg { color: var(--accent); }
+    svg {
+        color: var(--accent);
+    }
 `;
 
 // ─── Card Badge Tag ───────────────────────────────────────────────────────────
@@ -1069,7 +1154,11 @@ const VendorMonogram = styled.div`
     flex-shrink: 0;
     display: grid;
     place-items: center;
-    background: color-mix(in srgb, var(--accent) 14%, var(--primary-background));
+    background: color-mix(
+        in srgb,
+        var(--accent) 14%,
+        var(--primary-background)
+    );
     color: var(--accent);
     font-size: 13px;
     font-weight: 700;
@@ -1108,12 +1197,15 @@ const QuickStatCell = styled.div<{ clickable?: boolean }>`
     gap: 2px;
     padding: 12px 10px;
     text-align: center;
-    border-right: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    border-right: 1px solid
+        color-mix(in srgb, var(--foreground) 8%, transparent);
     transition: background 0.15s ease;
-    cursor: ${(p) => p.clickable ? "pointer" : "default"};
+    cursor: ${(p) => (p.clickable ? "pointer" : "default")};
     user-select: none;
 
-    ${(p) => p.clickable && `
+    ${(p) =>
+        p.clickable &&
+        `
         &:hover {
             background: color-mix(in srgb, var(--foreground) 5%, transparent);
         }
@@ -1122,13 +1214,18 @@ const QuickStatCell = styled.div<{ clickable?: boolean }>`
         }
     `}
 
-    &:last-child { border-right: none; }
+    &:last-child {
+        border-right: none;
+    }
 
     @media (max-width: 640px) {
-        &:nth-child(2) { border-right: none; }
+        &:nth-child(2) {
+            border-right: none;
+        }
         &:nth-child(1),
         &:nth-child(2) {
-            border-bottom: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+            border-bottom: 1px solid
+                color-mix(in srgb, var(--foreground) 8%, transparent);
         }
     }
 `;
@@ -1167,7 +1264,9 @@ const UpdatedTag = styled.span`
         font-size: 10px;
     }
 
-    svg { color: var(--tertiary-foreground); }
+    svg {
+        color: var(--tertiary-foreground);
+    }
 `;
 
 // ─── Filter Chip Divider ──────────────────────────────────────────────────────
@@ -1222,7 +1321,8 @@ const SearchWrapper = styled.div`
         border-radius: 12px;
         font-size: 14px;
         background: var(--secondary-background);
-        border: 1.5px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+        border: 1.5px solid
+            color-mix(in srgb, var(--foreground) 10%, transparent);
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
         @media (min-width: 640px) {
@@ -1239,7 +1339,8 @@ const SearchWrapper = styled.div`
 
         &:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent);
+            box-shadow: 0 0 0 4px
+                color-mix(in srgb, var(--accent) 12%, transparent);
             outline: none;
         }
 
@@ -1381,7 +1482,6 @@ const SuggestionItem = styled.li`
     }
 `;
 
-
 const SortSelect = styled.select`
     height: 44px;
     width: 100%;
@@ -1443,7 +1543,9 @@ const FilterChipsRow = styled.div`
     contain: inline-size;
 
     scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
+    &::-webkit-scrollbar {
+        display: none;
+    }
 `;
 
 // Sticky wrapper for Search + Sort + Filter Chips on mobile
@@ -1459,7 +1561,8 @@ const StickySearchBar = styled.div`
         z-index: 20;
         background: var(--primary-background);
         padding: 8px 0 6px;
-        border-bottom: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+        border-bottom: 1px solid
+            color-mix(in srgb, var(--foreground) 6%, transparent);
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
@@ -1492,12 +1595,24 @@ const FilterChip = styled.button<{ active: boolean }>`
         ${(p) =>
             p.active
                 ? css`
-                      background: color-mix(in srgb, var(--accent-contrast, #11171c) 20%, transparent);
+                      background: color-mix(
+                          in srgb,
+                          var(--accent-contrast, #11171c) 20%,
+                          transparent
+                      );
                       color: var(--accent-contrast, #11171c);
                   `
                 : css`
-                      background: color-mix(in srgb, var(--foreground) 8%, transparent);
-                      color: color-mix(in srgb, var(--foreground) 60%, transparent);
+                      background: color-mix(
+                          in srgb,
+                          var(--foreground) 8%,
+                          transparent
+                      );
+                      color: color-mix(
+                          in srgb,
+                          var(--foreground) 60%,
+                          transparent
+                      );
                   `}
     }
 
@@ -1518,19 +1633,30 @@ const FilterChip = styled.button<{ active: boolean }>`
                   background: var(--accent);
                   color: var(--accent-contrast, #11171c);
                   border: 1.5px solid var(--accent);
-                  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent),
-                              0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
+                  box-shadow: 0 0 0 3px
+                          color-mix(in srgb, var(--accent) 20%, transparent),
+                      0 2px 8px
+                          color-mix(in srgb, var(--accent) 30%, transparent);
                   transform: translateY(-1px);
               `
             : css`
                   background: transparent;
                   color: color-mix(in srgb, var(--foreground) 55%, transparent);
-                  border: 1.5px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+                  border: 1.5px solid
+                      color-mix(in srgb, var(--foreground) 10%, transparent);
 
                   &:hover {
-                      border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+                      border-color: color-mix(
+                          in srgb,
+                          var(--accent) 45%,
+                          transparent
+                      );
                       color: var(--foreground);
-                      background: color-mix(in srgb, var(--accent) 7%, transparent);
+                      background: color-mix(
+                          in srgb,
+                          var(--accent) 7%,
+                          transparent
+                      );
                       transform: translateY(-1px);
                   }
               `}
@@ -1600,13 +1726,16 @@ const MarketActivityAlert = styled.div`
     }
 
     @keyframes alertGlow {
-        0%, 100% {
-            box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent),
-                        0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+        0%,
+        100% {
+            box-shadow: 0 0 0 0
+                    color-mix(in srgb, var(--accent) 0%, transparent),
+                0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
         }
         50% {
-            box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent),
-                        0 0 8px 2px color-mix(in srgb, var(--accent) 30%, transparent);
+            box-shadow: 0 0 0 4px
+                    color-mix(in srgb, var(--accent) 18%, transparent),
+                0 0 8px 2px color-mix(in srgb, var(--accent) 30%, transparent);
         }
     }
 
@@ -1832,7 +1961,11 @@ const ActiveFilterNoticeBar = styled.div`
     gap: 10px;
     padding: 10px 16px;
     border-radius: 12px;
-    background: color-mix(in srgb, var(--accent) 10%, var(--primary-background));
+    background: color-mix(
+        in srgb,
+        var(--accent) 10%,
+        var(--primary-background)
+    );
     border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
     margin-bottom: 20px;
     animation: promoFadeIn 0.2s ease-out;
@@ -1887,8 +2020,15 @@ const ActiveFilterNoticeBar = styled.div`
     }
 
     @keyframes promo-pulse {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.25); opacity: 0.6; }
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.25);
+            opacity: 0.6;
+        }
     }
 `;
 
@@ -1911,8 +2051,14 @@ const Grid = styled.div`
     }
 
     @keyframes promoGridSwap {
-        from { opacity: 0.45; transform: translateY(6px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0.45;
+            transform: translateY(6px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 `;
 
@@ -1945,7 +2091,9 @@ const HotPromosGrid = styled.div`
         overscroll-behavior-x: contain;
         contain: inline-size;
 
-        &::-webkit-scrollbar { display: none; }
+        &::-webkit-scrollbar {
+            display: none;
+        }
 
         > * {
             flex: 0 0 84%;
@@ -1999,7 +2147,8 @@ const Card = styled.div`
     break-inside: avoid;
     margin-bottom: 20px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    transition: transform 0.18s ease, box-shadow 0.18s ease,
+        border-color 0.18s ease;
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -2015,7 +2164,8 @@ const Card = styled.div`
 
     &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.16), 0 1px 6px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.16),
+            0 1px 6px rgba(0, 0, 0, 0.08);
         border-color: color-mix(in srgb, var(--foreground) 12%, transparent);
     }
 `;
@@ -2062,7 +2212,10 @@ const CarouselDot = styled.div<{ active: boolean }>`
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
-const badgeColors: Record<Exclude<BadgeType, null>, { bg: string; text: string }> = {
+const badgeColors: Record<
+    Exclude<BadgeType, null>,
+    { bg: string; text: string }
+> = {
     new: { bg: "#22c55e", text: "#fff" },
     updated: { bg: "#3b82f6", text: "#fff" },
     "ending-soon": { bg: "#f97316", text: "#fff" },
@@ -2318,8 +2471,14 @@ const CompoundChip = styled.span<{ highlighted?: boolean }>`
     line-height: 1;
     padding: 4px 8px;
     border-radius: 5px;
-    color: ${(p) => (p.highlighted ? "var(--accent-contrast, #11171c)" : "var(--secondary-foreground)")};
-    background: ${(p) => (p.highlighted ? "var(--accent)" : "color-mix(in srgb, var(--foreground) 5%, transparent)")};
+    color: ${(p) =>
+        p.highlighted
+            ? "var(--accent-contrast, #11171c)"
+            : "var(--secondary-foreground)"};
+    background: ${(p) =>
+        p.highlighted
+            ? "var(--accent)"
+            : "color-mix(in srgb, var(--foreground) 5%, transparent)"};
     transition: background 0.15s ease;
     max-width: 100%;
     min-width: 0;
@@ -2330,7 +2489,10 @@ const CompoundChip = styled.span<{ highlighted?: boolean }>`
     .count {
         font-size: 9px;
         font-weight: 600;
-        color: ${(p) => (p.highlighted ? "var(--accent-contrast, #11171c)" : "var(--tertiary-foreground)")};
+        color: ${(p) =>
+            p.highlighted
+                ? "var(--accent-contrast, #11171c)"
+                : "var(--tertiary-foreground)"};
     }
 `;
 
@@ -2412,7 +2574,7 @@ const MetaRow = styled.div`
 
     /* On mobile, show max 2 highlights to reduce density */
     @media (max-width: 720px) {
-        > *:nth-child(n+3) {
+        > *:nth-child(n + 3) {
             display: none;
         }
     }
@@ -2664,7 +2826,11 @@ const FooterBtn = styled.div<{ primary?: boolean }>`
     ${(p) =>
         p.primary
             ? css`
-                  background: color-mix(in srgb, var(--accent) 90%, transparent);
+                  background: color-mix(
+                      in srgb,
+                      var(--accent) 90%,
+                      transparent
+                  );
                   color: var(--accent-contrast, #11171c);
 
                   & > svg {
@@ -2685,7 +2851,11 @@ const FooterBtn = styled.div<{ primary?: boolean }>`
                   }
 
                   &:hover {
-                      background: color-mix(in srgb, var(--accent) 12%, var(--primary-background));
+                      background: color-mix(
+                          in srgb,
+                          var(--accent) 12%,
+                          var(--primary-background)
+                      );
                       color: var(--foreground);
                   }
               `}
@@ -2793,7 +2963,11 @@ const SuggestionChipBtn = styled.button`
 
     &:hover {
         color: var(--foreground);
-        background: color-mix(in srgb, var(--accent) 12%, var(--primary-background));
+        background: color-mix(
+            in srgb,
+            var(--accent) 12%,
+            var(--primary-background)
+        );
         border-color: color-mix(in srgb, var(--accent) 40%, transparent);
         transform: translateY(-1px);
     }
@@ -2818,8 +2992,7 @@ const Glyph = styled.div`
         position: absolute;
         inset: 18px;
         border-radius: 50%;
-        border: 2px dashed
-            color-mix(in srgb, var(--accent) 45%, transparent);
+        border: 2px dashed color-mix(in srgb, var(--accent) 45%, transparent);
         animation: promo-spin 18s linear infinite;
     }
 
@@ -2849,16 +3022,26 @@ const Glyph = styled.div`
     }
 
     @keyframes promo-spin {
-        to { transform: rotate(360deg); }
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     @keyframes promo-bob {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-6px); }
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-6px);
+        }
     }
 
     @media (prefers-reduced-motion: reduce) {
-        &::before, .float { animation: none; }
+        &::before,
+        .float {
+            animation: none;
+        }
     }
 `;
 
@@ -2870,400 +3053,571 @@ interface PromoCardProps {
     lastVisit: number | null;
     featured?: boolean;
     searchQuery?: string;
-    featuredReason?: { label: string; subLabel?: string; color: string; bg: string } | null;
+    featuredReason?: {
+        label: string;
+        subLabel?: string;
+        color: string;
+        bg: string;
+    } | null;
 }
 
-const PromoCard = observer(({ promo, onOpenImage, lastVisit, featured, searchQuery = "", featuredReason }: PromoCardProps) => {
-    const client = useClient();
-    const [expanded, setExpanded] = useState(false);
-    const [notesExpanded, setNotesExpanded] = useState(false);
-    const [logoFailed, setLogoFailed] = useState(false);
-    const autumn =
-        client.configuration?.features.autumn?.url ||
-        "https://peptide.chat/autumn";
+const PromoCard = observer(
+    ({
+        promo,
+        onOpenImage,
+        lastVisit,
+        featured,
+        searchQuery = "",
+        featuredReason,
+    }: PromoCardProps) => {
+        const client = useClient();
+        const [expanded, setExpanded] = useState(false);
+        const [notesExpanded, setNotesExpanded] = useState(false);
+        const [logoFailed, setLogoFailed] = useState(false);
+        const autumn =
+            client.configuration?.features.autumn?.url ||
+            "https://peptide.chat/autumn";
 
-    const resolveImage = (ref: string) => {
-        if (!ref) return "";
-        if (isUrl(ref)) return ref;
-        if (ref.startsWith("/")) return ref;
-        return `${autumn}/attachments/${ref}`;
-    };
+        const resolveImage = (ref: string) => {
+            if (!ref) return "";
+            if (isUrl(ref)) return ref;
+            if (ref.startsWith("/")) return ref;
+            return `${autumn}/attachments/${ref}`;
+        };
 
-    const logoUrl = promo.vendor.logo
-        ? isUrl(promo.vendor.logo)
-            ? promo.vendor.logo
-            : promo.vendor.logo.startsWith("/")
-            ? promo.vendor.logo
-            : `${autumn}/icons/${promo.vendor.logo}?max_side=256`
-        : null;
+        const logoUrl = promo.vendor.logo
+            ? isUrl(promo.vendor.logo)
+                ? promo.vendor.logo
+                : promo.vendor.logo.startsWith("/")
+                ? promo.vendor.logo
+                : `${autumn}/icons/${promo.vendor.logo}?max_side=256`
+            : null;
 
-    const handleLogoError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-        const img = e.currentTarget;
-        if (!img.dataset.retried && promo.vendor.logo && !isUrl(promo.vendor.logo)) {
-            img.dataset.retried = "true";
-            const fallbackAutumn = autumn.includes("peptide.chat")
-                ? "https://autumn.revolt.chat"
-                : "https://peptide.chat/autumn";
-            img.src = `${fallbackAutumn}/icons/${promo.vendor.logo}?max_side=256`;
-        } else {
-            setLogoFailed(true);
-        }
-    };
-
-    const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, ref: string) => {
-        const img = e.currentTarget;
-        if (!img.dataset.retried && ref && !isUrl(ref)) {
-            img.dataset.retried = "true";
-            const fallbackAutumn = autumn.includes("peptide.chat")
-                ? "https://autumn.revolt.chat"
-                : "https://peptide.chat/autumn";
-            img.src = `${fallbackAutumn}/attachments/${ref}`;
-        } else {
-            img.style.display = "none";
-        }
-    };
-
-    const joined = promo.vendor.serverId
-        ? client.servers.get(promo.vendor.serverId)
-        : undefined;
-    const inviteCode = inviteCodeFromLink(promo.vendor.inviteLink);
-    const linkTo = joined
-        ? `/server/${promo.vendor.serverId}`
-        : inviteCode
-        ? `/invite/${inviteCode}`
-        : null;
-
-    const g = promo.guarantee;
-    const when = timeline(promo);
-    const badge = getPromoBadge(promo, lastVisit);
-    const collapseAt = featured ? FEATURED_COLLAPSE_THRESHOLD : COLLAPSE_THRESHOLD;
-
-    const CardEl = (featured ? FeaturedCard : Card) as typeof Card;
-
-    return (
-        <CardEl data-featured={featured ? "true" : undefined}>
-            {/* Card Badge — aligned left with breathing room */}
-            {featured && featuredReason ? (
-                <BadgeRow>
-                    <FeaturedReasonBadge bg={featuredReason.bg} textColor={featuredReason.color}>
-                        {featuredReason.label}
-                    </FeaturedReasonBadge>
-                    {featuredReason.subLabel && (
-                        <SecondaryReasonPill>
-                            {featuredReason.subLabel}
-                        </SecondaryReasonPill>
-                    )}
-                </BadgeRow>
-            ) : (() => {
-                const cb = getCardBadge(promo);
-                return cb ? (
-                    <BadgeRow>
-                        <CardBadgeTag bg={cb.bg} textColor={cb.color}>{cb.label}</CardBadgeTag>
-                    </BadgeRow>
-                ) : null;
-            })()
+        const handleLogoError = (
+            e: React.SyntheticEvent<HTMLImageElement, Event>,
+        ) => {
+            const img = e.currentTarget;
+            if (
+                !img.dataset.retried &&
+                promo.vendor.logo &&
+                !isUrl(promo.vendor.logo)
+            ) {
+                img.dataset.retried = "true";
+                const fallbackAutumn = autumn.includes("peptide.chat")
+                    ? "https://autumn.revolt.chat"
+                    : "https://peptide.chat/autumn";
+                img.src = `${fallbackAutumn}/icons/${promo.vendor.logo}?max_side=256`;
+            } else {
+                setLogoFailed(true);
             }
+        };
 
-            {/* Card Head: logo + vendor + warehouse + action icon */}
-            <CardHead>
-                {logoUrl && !logoFailed ? (
-                    <Logo
-                        src={logoUrl}
-                        loading="lazy"
-                        onError={handleLogoError}
-                    />
+        const handleImageError = (
+            e: React.SyntheticEvent<HTMLImageElement, Event>,
+            ref: string,
+        ) => {
+            const img = e.currentTarget;
+            if (!img.dataset.retried && ref && !isUrl(ref)) {
+                img.dataset.retried = "true";
+                const fallbackAutumn = autumn.includes("peptide.chat")
+                    ? "https://autumn.revolt.chat"
+                    : "https://peptide.chat/autumn";
+                img.src = `${fallbackAutumn}/attachments/${ref}`;
+            } else {
+                img.style.display = "none";
+            }
+        };
+
+        const joined = promo.vendor.serverId
+            ? client.servers.get(promo.vendor.serverId)
+            : undefined;
+        const inviteCode = inviteCodeFromLink(promo.vendor.inviteLink);
+        const linkTo = joined
+            ? `/server/${promo.vendor.serverId}`
+            : inviteCode
+            ? `/invite/${inviteCode}`
+            : null;
+
+        const g = promo.guarantee;
+        const when = timeline(promo);
+        const badge = getPromoBadge(promo, lastVisit);
+        const collapseAt = featured
+            ? FEATURED_COLLAPSE_THRESHOLD
+            : COLLAPSE_THRESHOLD;
+
+        const CardEl = (featured ? FeaturedCard : Card) as typeof Card;
+
+        return (
+            <CardEl data-featured={featured ? "true" : undefined}>
+                {/* Card Badge — aligned left with breathing room */}
+                {featured && featuredReason ? (
+                    <BadgeRow>
+                        <FeaturedReasonBadge
+                            bg={featuredReason.bg}
+                            textColor={featuredReason.color}>
+                            {featuredReason.label}
+                        </FeaturedReasonBadge>
+                        {featuredReason.subLabel && (
+                            <SecondaryReasonPill>
+                                {featuredReason.subLabel}
+                            </SecondaryReasonPill>
+                        )}
+                    </BadgeRow>
                 ) : (
-                    <VendorMonogram aria-label={`${promo.vendor.name} logo`}>
-                        {promo.vendor.name ? getVendorInitials(promo.vendor.name) : <Store size={20} />}
-                    </VendorMonogram>
+                    (() => {
+                        const cb = getCardBadge(promo);
+                        return cb ? (
+                            <BadgeRow>
+                                <CardBadgeTag bg={cb.bg} textColor={cb.color}>
+                                    {cb.label}
+                                </CardBadgeTag>
+                            </BadgeRow>
+                        ) : null;
+                    })()
                 )}
-                <VendorMeta>
-                    <span className="vendor-name">{highlightText(promo.vendor.name, searchQuery)}</span>
-                    {promo.warehouse && (
-                        <span className="warehouse-row">
-                            <MapPin size={11} />
-                            {highlightText(promo.warehouse, searchQuery)}
-                        </span>
-                    )}
-                </VendorMeta>
-                {linkTo && (
-                    <ActionIcon
-                        as={Link}
-                        to={linkTo}
-                        title={joined ? "Open community" : "Join community"}>
-                        {joined ? (
-                            <ChevronRight size={18} />
-                        ) : (
-                            <Plus size={18} />
-                        )}
-                    </ActionIcon>
-                )}
-            </CardHead>
 
-            {/* Promotion Title */}
-            {promo.title && <PromoTitle>{highlightText(promo.title, searchQuery)}</PromoTitle>}
-
-            {/* Lead Price — most prominent visual anchor */}
-            {promo.items.length > 0 && (() => {
-                const prices = promo.items
-                    .map((it) => it.price)
-                    .filter((p): p is number => typeof p === "number" && isFinite(p));
-                if (prices.length === 0) return null;
-                const minPrice = Math.min(...prices);
-                const hasMultiple = promo.items.length > 1;
-                return (
-                    <PriceHighlight>
-                        <PriceValue>{money(minPrice)}</PriceValue>
-                        {hasMultiple && <PriceLabel>starting price</PriceLabel>}
-                        {!hasMultiple && promo.items[0].unit && (
-                            <PriceLabel>/ {promo.items[0].unit}</PriceLabel>
-                        )}
-                    </PriceHighlight>
-                );
-            })()}
-
-            {/* Products */}
-            {promo.items.length > 0 &&
-                (() => {
-                    const compounds: { name: string; count: number }[] = [];
-                    const index = new Map<string, number>();
-                    for (const it of promo.items) {
-                        const name = it.product;
-                        const at = index.get(name);
-                        if (at === undefined) {
-                            index.set(name, compounds.length);
-                            compounds.push({ name, count: 1 });
-                        } else {
-                            compounds[at].count++;
-                        }
-                    }
-
-                    const collapsible = promo.items.length > collapseAt;
-
-                    if (collapsible && !expanded) {
-                        const CHIP_LIMIT = 3;
-                        const visibleCompounds = compounds.slice(0, CHIP_LIMIT);
-                        const hiddenCount = compounds.length - CHIP_LIMIT;
-                        return (
-                            <ProductSummary>
-                                <CompoundChips>
-                                    {visibleCompounds.map((c) => {
-                                        const isMatched = searchQuery && c.name.toLowerCase().includes(searchQuery.toLowerCase());
-                                        return (
-                                            <CompoundChip key={c.name} highlighted={!!isMatched}>
-                                                {highlightText(c.name, searchQuery)}
-                                                {c.count > 1 && (
-                                                    <span className="count">×{c.count}</span>
-                                                )}
-                                            </CompoundChip>
-                                        );
-                                    })}
-                                    {hiddenCount > 0 && (
-                                        <MoreChip onClick={() => setExpanded(true)}>
-                                            +{hiddenCount} more
-                                        </MoreChip>
-                                    )}
-                                </CompoundChips>
-                            </ProductSummary>
-                        );
-                    }
-
-                    return (
-                        <ItemTable>
-                            {promo.items.map((it, i) => {
-                                const moq =
-                                    it.moqKits || it.moqTotal
-                                        ? `MOQ ${[
-                                              it.moqKits ? `${it.moqKits} kits` : null,
-                                              it.moqTotal ? money(it.moqTotal) : null,
-                                          ]
-                                              .filter(Boolean)
-                                              .join(" / ")}`
-                                        : null;
-                                return (
-                                    <div key={i}>
-                                        <ItemRow>
-                                            <span className="product">{highlightText(it.product, searchQuery)}</span>
-                                            {it.dosage && (
-                                                <span className="dosage">{highlightText(it.dosage, searchQuery)}</span>
-                                            )}
-                                            {moq && <span className="moq">{moq}</span>}
-                                            <span className="price">
-                                                {money(it.price)}
-                                                <span className="unit">
-                                                    {" "}/ {it.unit || "kit"}
-                                                </span>
-                                            </span>
-                                        </ItemRow>
-                                        {it.note && <ItemNote>{highlightText(it.note, searchQuery)}</ItemNote>}
-                                    </div>
-                                );
-                            })}
-                            {collapsible && (
-                                <ItemToggle
-                                    data-expanded={true}
-                                    onClick={() => setExpanded(false)}>
-                                    Show less
-                                    <ChevronDown size={14} />
-                                </ItemToggle>
+                {/* Card Head: logo + vendor + warehouse + action icon */}
+                <CardHead>
+                    {logoUrl && !logoFailed ? (
+                        <Logo
+                            src={logoUrl}
+                            loading="lazy"
+                            onError={handleLogoError}
+                        />
+                    ) : (
+                        <VendorMonogram
+                            aria-label={`${promo.vendor.name} logo`}>
+                            {promo.vendor.name ? (
+                                getVendorInitials(promo.vendor.name)
+                            ) : (
+                                <Store size={20} />
                             )}
-                        </ItemTable>
-                    );
-                })()}
-
-            {/* Highlights row — strict max 2-3 strongest benefits */}
-            <MetaRow>
-                {(() => {
-                    const chips: JSX.Element[] = [];
-
-                    // 1. Merged Shipping Chip
-                    if (typeof promo.shippingFee === "number" && promo.shippingFee === 0) {
-                        chips.push(<Chip key="ship">💙 Free Shipping</Chip>);
-                    } else if (typeof promo.shippingFee === "number" && typeof promo.freeShippingThreshold === "number") {
-                        chips.push(<Chip key="ship">🚚 Shipping {money(promo.shippingFee)} • Free over {money(promo.freeShippingThreshold)}</Chip>);
-                    } else if (typeof promo.shippingFee === "number") {
-                        chips.push(<Chip key="ship">🚚 Shipping {money(promo.shippingFee)}</Chip>);
-                    } else if (typeof promo.freeShippingThreshold === "number") {
-                        chips.push(<Chip key="ship">🚚 Free over {money(promo.freeShippingThreshold)}</Chip>);
-                    }
-
-                    // 2. Customs Reship
-                    if (g?.customsReship) {
-                        chips.push(
-                            <Chip key="reship">
-                                <BadgeCheck size={11} />
-                                Customs Reship
-                            </Chip>
-                        );
-                    }
-
-                    // 3. 99% Purity
-                    if (g?.purityPct != null && g.purityPct >= 98) {
-                        chips.push(
-                            <Chip key="purity">
-                                <BadgeCheck size={11} />
-                                {g.purityPct}% Purity
-                            </Chip>
-                        );
-                    }
-
-                    // 4. Sourcing Chip (suppress if location is in header)
-                    const headerWh = (promo.warehouse || "").toLowerCase();
-                    const hasCnHeader = headerWh.includes("cn") || headerWh.includes("china");
-                    if (!hasCnHeader && promo.warehouse?.toLowerCase().match(/\bcn\b|china/)) {
-                        chips.push(<Chip key="china">🇨🇳 China Direct</Chip>);
-                    }
-
-                    // STRICT LIMIT: Max 2-3 highlights per card
-                    return chips.slice(0, 3);
-                })()}
-            </MetaRow>
-
-            {/* Notes & Description block: 2-line clamped summary -> expands to structured bullets */}
-            {(promo.discountNote || promo.shippingNote || promo.moqNote || g?.text) && (() => {
-                const rawTexts = [
-                    promo.discountNote,
-                    promo.shippingNote,
-                    promo.moqNote,
-                    g?.text
-                ].filter(Boolean) as string[];
-
-                const parseNoteBullets = () => {
-                    const points: string[] = [];
-                    for (const text of rawTexts) {
-                        const parts = text.split(/[,;\n]+|(?<=\w)\.\s+/).map((s) => s.trim()).filter(Boolean);
-                        for (const pt of parts) {
-                            points.push(pt);
-                        }
-                    }
-                    return points;
-                };
-
-                const bullets = parseNoteBullets();
-
-                return (
-                    <NoteBlock>
-                        {!notesExpanded ? (
-                            <>
-                                <NoteText>
-                                    {rawTexts.reduce((prev, curr, idx) => (prev === null ? [curr] : [...prev, " • ", curr]), null as any)}
-                                </NoteText>
-                                <ReadMoreLink onClick={() => setNotesExpanded(true)}>
-                                    View Details →
-                                </ReadMoreLink>
-                            </>
-                        ) : (
-                            <>
-                                <NoteBulletList>
-                                    {bullets.map((pt, i) => (
-                                        <li key={i}>{highlightText(pt, searchQuery)}</li>
-                                    ))}
-                                </NoteBulletList>
-                                <ReadMoreLink onClick={() => setNotesExpanded(false)}>
-                                    Show less
-                                </ReadMoreLink>
-                            </>
-                        )}
-                    </NoteBlock>
-                );
-            })()}
-
-            {/* Images: max 1 hero + max 3 thumbnails with +N counter */}
-            {promo.images && promo.images.length > 0 && (
-                <Gallery>
-                    <img
-                        className="hero"
-                        src={resolveImage(promo.images[0])}
-                        loading="lazy"
-                        onError={(e) => handleImageError(e, promo.images![0])}
-                        onClick={() => onOpenImage(resolveImage(promo.images![0]))}
-                    />
-                    {promo.images.length > 1 && (
-                        <div className="thumbs">
-                            {promo.images.slice(1, 4).map((src, i) => {
-                                const isLast = i === 2 && promo.images!.length > 4;
-                                const extraCount = promo.images!.length - 4;
-                                return (
-                                    <div key={i} className="thumb-wrapper" onClick={() => onOpenImage(resolveImage(src))}>
-                                        <img
-                                            src={resolveImage(src)}
-                                            loading="lazy"
-                                            onError={(e) => handleImageError(e, src)}
-                                        />
-                                        {isLast && extraCount > 0 && (
-                                            <div className="more-overlay">+{extraCount}</div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                        </VendorMonogram>
                     )}
-                </Gallery>
-            )}
+                    <VendorMeta>
+                        <span className="vendor-name">
+                            {highlightText(promo.vendor.name, searchQuery)}
+                        </span>
+                        {promo.warehouse && (
+                            <span className="warehouse-row">
+                                <MapPin size={11} />
+                                {highlightText(promo.warehouse, searchQuery)}
+                            </span>
+                        )}
+                    </VendorMeta>
+                    {linkTo && (
+                        <ActionIcon
+                            as={Link}
+                            to={linkTo}
+                            title={
+                                joined ? "Open community" : "Join community"
+                            }>
+                            {joined ? (
+                                <ChevronRight size={18} />
+                            ) : (
+                                <Plus size={18} />
+                            )}
+                        </ActionIcon>
+                    )}
+                </CardHead>
 
-            {/* Footer: Expiration timeline (left) vs Freshness timestamp (right) */}
-            <CardFooter>
-                <CountdownText urgent={!!promo.endDate && isEndingSoon(promo)}>
-                    {promo.endDate && isEndingSoon(promo) ? (
-                        <>
-                            <Time size={13} />
-                            Ends in {formatCountdown(promo.endDate)}
-                        </>
-                    ) : when ? (
-                        <>
-                            <Calendar size={13} />
-                            {highlightText(when, searchQuery)}
-                        </>
-                    ) : null}
-                </CountdownText>
-                <UpdatedTag>
-                    <Refresh size={10} />
-                    {formatLastUpdated(promo.updatedAt)}
-                </UpdatedTag>
-            </CardFooter>
-        </CardEl>
-    );
-});
+                {/* Promotion Title */}
+                {promo.title && (
+                    <PromoTitle>
+                        {highlightText(promo.title, searchQuery)}
+                    </PromoTitle>
+                )}
+
+                {/* Lead Price — most prominent visual anchor */}
+                {promo.items.length > 0 &&
+                    (() => {
+                        const prices = promo.items
+                            .map((it) => it.price)
+                            .filter(
+                                (p): p is number =>
+                                    typeof p === "number" && isFinite(p),
+                            );
+                        if (prices.length === 0) return null;
+                        const minPrice = Math.min(...prices);
+                        const hasMultiple = promo.items.length > 1;
+                        return (
+                            <PriceHighlight>
+                                <PriceValue>{money(minPrice)}</PriceValue>
+                                {hasMultiple && (
+                                    <PriceLabel>starting price</PriceLabel>
+                                )}
+                                {!hasMultiple && promo.items[0].unit && (
+                                    <PriceLabel>
+                                        / {promo.items[0].unit}
+                                    </PriceLabel>
+                                )}
+                            </PriceHighlight>
+                        );
+                    })()}
+
+                {/* Products */}
+                {promo.items.length > 0 &&
+                    (() => {
+                        const compounds: { name: string; count: number }[] = [];
+                        const index = new Map<string, number>();
+                        for (const it of promo.items) {
+                            const name = it.product;
+                            const at = index.get(name);
+                            if (at === undefined) {
+                                index.set(name, compounds.length);
+                                compounds.push({ name, count: 1 });
+                            } else {
+                                compounds[at].count++;
+                            }
+                        }
+
+                        const collapsible = promo.items.length > collapseAt;
+
+                        if (collapsible && !expanded) {
+                            const CHIP_LIMIT = 3;
+                            const visibleCompounds = compounds.slice(
+                                0,
+                                CHIP_LIMIT,
+                            );
+                            const hiddenCount = compounds.length - CHIP_LIMIT;
+                            return (
+                                <ProductSummary>
+                                    <CompoundChips>
+                                        {visibleCompounds.map((c) => {
+                                            const isMatched =
+                                                searchQuery &&
+                                                c.name
+                                                    .toLowerCase()
+                                                    .includes(
+                                                        searchQuery.toLowerCase(),
+                                                    );
+                                            return (
+                                                <CompoundChip
+                                                    key={c.name}
+                                                    highlighted={!!isMatched}>
+                                                    {highlightText(
+                                                        c.name,
+                                                        searchQuery,
+                                                    )}
+                                                    {c.count > 1 && (
+                                                        <span className="count">
+                                                            ×{c.count}
+                                                        </span>
+                                                    )}
+                                                </CompoundChip>
+                                            );
+                                        })}
+                                        {hiddenCount > 0 && (
+                                            <MoreChip
+                                                onClick={() =>
+                                                    setExpanded(true)
+                                                }>
+                                                +{hiddenCount} more
+                                            </MoreChip>
+                                        )}
+                                    </CompoundChips>
+                                </ProductSummary>
+                            );
+                        }
+
+                        return (
+                            <ItemTable>
+                                {promo.items.map((it, i) => {
+                                    const moq =
+                                        it.moqKits || it.moqTotal
+                                            ? `MOQ ${[
+                                                  it.moqKits
+                                                      ? `${it.moqKits} kits`
+                                                      : null,
+                                                  it.moqTotal
+                                                      ? money(it.moqTotal)
+                                                      : null,
+                                              ]
+                                                  .filter(Boolean)
+                                                  .join(" / ")}`
+                                            : null;
+                                    return (
+                                        <div key={i}>
+                                            <ItemRow>
+                                                <span className="product">
+                                                    {highlightText(
+                                                        it.product,
+                                                        searchQuery,
+                                                    )}
+                                                </span>
+                                                {it.dosage && (
+                                                    <span className="dosage">
+                                                        {highlightText(
+                                                            it.dosage,
+                                                            searchQuery,
+                                                        )}
+                                                    </span>
+                                                )}
+                                                {moq && (
+                                                    <span className="moq">
+                                                        {moq}
+                                                    </span>
+                                                )}
+                                                <span className="price">
+                                                    {money(it.price)}
+                                                    <span className="unit">
+                                                        {" "}
+                                                        / {it.unit || "kit"}
+                                                    </span>
+                                                </span>
+                                            </ItemRow>
+                                            {it.note && (
+                                                <ItemNote>
+                                                    {highlightText(
+                                                        it.note,
+                                                        searchQuery,
+                                                    )}
+                                                </ItemNote>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                                {collapsible && (
+                                    <ItemToggle
+                                        data-expanded={true}
+                                        onClick={() => setExpanded(false)}>
+                                        Show less
+                                        <ChevronDown size={14} />
+                                    </ItemToggle>
+                                )}
+                            </ItemTable>
+                        );
+                    })()}
+
+                {/* Highlights row — strict max 2-3 strongest benefits */}
+                <MetaRow>
+                    {(() => {
+                        const chips: JSX.Element[] = [];
+
+                        // 1. Merged Shipping Chip
+                        if (
+                            typeof promo.shippingFee === "number" &&
+                            promo.shippingFee === 0
+                        ) {
+                            chips.push(
+                                <Chip key="ship">💙 Free Shipping</Chip>,
+                            );
+                        } else if (
+                            typeof promo.shippingFee === "number" &&
+                            typeof promo.freeShippingThreshold === "number"
+                        ) {
+                            chips.push(
+                                <Chip key="ship">
+                                    🚚 Shipping {money(promo.shippingFee)} •
+                                    Free over{" "}
+                                    {money(promo.freeShippingThreshold)}
+                                </Chip>,
+                            );
+                        } else if (typeof promo.shippingFee === "number") {
+                            chips.push(
+                                <Chip key="ship">
+                                    🚚 Shipping {money(promo.shippingFee)}
+                                </Chip>,
+                            );
+                        } else if (
+                            typeof promo.freeShippingThreshold === "number"
+                        ) {
+                            chips.push(
+                                <Chip key="ship">
+                                    🚚 Free over{" "}
+                                    {money(promo.freeShippingThreshold)}
+                                </Chip>,
+                            );
+                        }
+
+                        // 2. Customs Reship
+                        if (g?.customsReship) {
+                            chips.push(
+                                <Chip key="reship">
+                                    <BadgeCheck size={11} />
+                                    Customs Reship
+                                </Chip>,
+                            );
+                        }
+
+                        // 3. 99% Purity
+                        if (g?.purityPct != null && g.purityPct >= 98) {
+                            chips.push(
+                                <Chip key="purity">
+                                    <BadgeCheck size={11} />
+                                    {g.purityPct}% Purity
+                                </Chip>,
+                            );
+                        }
+
+                        // 4. Sourcing Chip (suppress if location is in header)
+                        const headerWh = (promo.warehouse || "").toLowerCase();
+                        const hasCnHeader =
+                            headerWh.includes("cn") ||
+                            headerWh.includes("china");
+                        if (
+                            !hasCnHeader &&
+                            promo.warehouse?.toLowerCase().match(/\bcn\b|china/)
+                        ) {
+                            chips.push(
+                                <Chip key="china">🇨🇳 China Direct</Chip>,
+                            );
+                        }
+
+                        // STRICT LIMIT: Max 2-3 highlights per card
+                        return chips.slice(0, 3);
+                    })()}
+                </MetaRow>
+
+                {/* Notes & Description block: 2-line clamped summary -> expands to structured bullets */}
+                {(promo.discountNote ||
+                    promo.shippingNote ||
+                    promo.moqNote ||
+                    g?.text) &&
+                    (() => {
+                        const rawTexts = [
+                            promo.discountNote,
+                            promo.shippingNote,
+                            promo.moqNote,
+                            g?.text,
+                        ].filter(Boolean) as string[];
+
+                        const parseNoteBullets = () => {
+                            const points: string[] = [];
+                            for (const text of rawTexts) {
+                                const parts = text
+                                    .split(/[,;\n]+|(?<=\w)\.\s+/)
+                                    .map((s) => s.trim())
+                                    .filter(Boolean);
+                                for (const pt of parts) {
+                                    points.push(pt);
+                                }
+                            }
+                            return points;
+                        };
+
+                        const bullets = parseNoteBullets();
+
+                        return (
+                            <NoteBlock>
+                                {!notesExpanded ? (
+                                    <>
+                                        <NoteText>
+                                            {rawTexts.reduce(
+                                                (prev, curr, idx) =>
+                                                    prev === null
+                                                        ? [curr]
+                                                        : [
+                                                              ...prev,
+                                                              " • ",
+                                                              curr,
+                                                          ],
+                                                null as any,
+                                            )}
+                                        </NoteText>
+                                        <ReadMoreLink
+                                            onClick={() =>
+                                                setNotesExpanded(true)
+                                            }>
+                                            View Details →
+                                        </ReadMoreLink>
+                                    </>
+                                ) : (
+                                    <>
+                                        <NoteBulletList>
+                                            {bullets.map((pt, i) => (
+                                                <li key={i}>
+                                                    {highlightText(
+                                                        pt,
+                                                        searchQuery,
+                                                    )}
+                                                </li>
+                                            ))}
+                                        </NoteBulletList>
+                                        <ReadMoreLink
+                                            onClick={() =>
+                                                setNotesExpanded(false)
+                                            }>
+                                            Show less
+                                        </ReadMoreLink>
+                                    </>
+                                )}
+                            </NoteBlock>
+                        );
+                    })()}
+
+                {/* Images: max 1 hero + max 3 thumbnails with +N counter */}
+                {promo.images && promo.images.length > 0 && (
+                    <Gallery>
+                        <img
+                            className="hero"
+                            src={resolveImage(promo.images[0])}
+                            loading="lazy"
+                            onError={(e) =>
+                                handleImageError(e, promo.images![0])
+                            }
+                            onClick={() =>
+                                onOpenImage(resolveImage(promo.images![0]))
+                            }
+                        />
+                        {promo.images.length > 1 && (
+                            <div className="thumbs">
+                                {promo.images.slice(1, 4).map((src, i) => {
+                                    const isLast =
+                                        i === 2 && promo.images!.length > 4;
+                                    const extraCount = promo.images!.length - 4;
+                                    return (
+                                        <div
+                                            key={i}
+                                            className="thumb-wrapper"
+                                            onClick={() =>
+                                                onOpenImage(resolveImage(src))
+                                            }>
+                                            <img
+                                                src={resolveImage(src)}
+                                                loading="lazy"
+                                                onError={(e) =>
+                                                    handleImageError(e, src)
+                                                }
+                                            />
+                                            {isLast && extraCount > 0 && (
+                                                <div className="more-overlay">
+                                                    +{extraCount}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </Gallery>
+                )}
+
+                {/* Footer: Expiration timeline (left) vs Freshness timestamp (right) */}
+                <CardFooter>
+                    <CountdownText
+                        urgent={!!promo.endDate && isEndingSoon(promo)}>
+                        {promo.endDate && isEndingSoon(promo) ? (
+                            <>
+                                <Time size={13} />
+                                Ends in {formatCountdown(promo.endDate)}
+                            </>
+                        ) : when ? (
+                            <>
+                                <Calendar size={13} />
+                                {highlightText(when, searchQuery)}
+                            </>
+                        ) : null}
+                    </CountdownText>
+                    <UpdatedTag>
+                        <Refresh size={10} />
+                        {formatLastUpdated(promo.updatedAt)}
+                    </UpdatedTag>
+                </CardFooter>
+            </CardEl>
+        );
+    },
+);
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -3375,7 +3729,9 @@ const Promos: React.FC = () => {
                 .catch(() => {
                     if (cancelled) return;
                     if (!hadCache) {
-                        setError("Failed to load promos. Please try again later.");
+                        setError(
+                            "Failed to load promos. Please try again later.",
+                        );
                         setLoading(false);
                     }
                 });
@@ -3402,7 +3758,11 @@ const Promos: React.FC = () => {
             : [];
         const endingSoonPromos = promos
             .filter(isEndingSoon)
-            .sort((a, b) => new Date(a.endDate!).getTime() - new Date(b.endDate!).getTime());
+            .sort(
+                (a, b) =>
+                    new Date(a.endDate!).getTime() -
+                    new Date(b.endDate!).getTime(),
+            );
 
         const newCount = newPromos.length;
         const updatedCount = updatedPromos.length;
@@ -3424,13 +3784,23 @@ const Promos: React.FC = () => {
 
         const endingHint =
             endingSoonCount > 0 && endingSoonPromos[0].endDate
-                ? `Soonest: ${formatCountdown(endingSoonPromos[0].endDate)} left`
+                ? `Soonest: ${formatCountdown(
+                      endingSoonPromos[0].endDate,
+                  )} left`
                 : "No urgent deadlines";
 
-        return { newCount, updatedCount, endingSoonCount, newHint, updatedHint, endingHint,
+        return {
+            newCount,
+            updatedCount,
+            endingSoonCount,
+            newHint,
+            updatedHint,
+            endingHint,
             newVendors: newPromos.slice(0, 3).map((p) => p.vendor.name),
             updatedVendors: updatedPromos.slice(0, 3).map((p) => p.vendor.name),
-            endingSoonVendors: endingSoonPromos.slice(0, 3).map((p) => p.vendor.name),
+            endingSoonVendors: endingSoonPromos
+                .slice(0, 3)
+                .map((p) => p.vendor.name),
         };
     }, [loading, promos, lastVisit]);
 
@@ -3448,17 +3818,28 @@ const Promos: React.FC = () => {
         ).length;
         const usVendors = new Set(
             promos
-                .filter((p) => p.warehouse?.toLowerCase().match(/\bus\b|united.?states/))
+                .filter((p) =>
+                    p.warehouse?.toLowerCase().match(/\bus\b|united.?states/),
+                )
                 .map((p) => p.vendor.name),
         ).size;
-        const freeShippingCount = promos.filter((p) => p.shippingFee === 0).length;
-        return { totalActive, uniqueVendors, endingSoon, warehouseDeals,
-            addedThisWeek, usVendors, freeShippingCount };
+        const freeShippingCount = promos.filter(
+            (p) => p.shippingFee === 0,
+        ).length;
+        return {
+            totalActive,
+            uniqueVendors,
+            endingSoon,
+            warehouseDeals,
+            addedThisWeek,
+            usVendors,
+            freeShippingCount,
+        };
     }, [loading, promos]);
 
     // Search input state (immediate feedback)
     const [inputValue, setInputValue] = useState(query);
-    
+
     // Synced search state
     useEffect(() => {
         setInputValue(query);
@@ -3498,7 +3879,9 @@ const Promos: React.FC = () => {
         setRecentSearches((prev) => {
             const next = [
                 trimmed,
-                ...prev.filter((s) => s.toLowerCase() !== trimmed.toLowerCase()),
+                ...prev.filter(
+                    (s) => s.toLowerCase() !== trimmed.toLowerCase(),
+                ),
             ].slice(0, 5);
             safeStorage.set("recent_promo_searches", JSON.stringify(next));
             return next;
@@ -3545,14 +3928,19 @@ const Promos: React.FC = () => {
 
     const handleViewAllUpdates = () => {
         setActiveFilter("recentlyUpdated");
-        allPromosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        allPromosRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+        });
     };
 
     // Filtered & Sorted promos based on activeFilter, query, and sort
     const filtered = useMemo(() => {
         let list = promos;
         if (activeFilter !== "all") {
-            list = list.filter((p) => matchesFilter(p, activeFilter, lastVisit));
+            list = list.filter((p) =>
+                matchesFilter(p, activeFilter, lastVisit),
+            );
         }
 
         const q = query.trim().toLowerCase();
@@ -3570,23 +3958,34 @@ const Promos: React.FC = () => {
         const getMinPrice = (p: Promo): number => {
             const prices = p.items
                 .map((it) => it.price)
-                .filter((pr): pr is number => typeof pr === "number" && isFinite(pr));
+                .filter(
+                    (pr): pr is number =>
+                        typeof pr === "number" && isFinite(pr),
+                );
             return prices.length > 0 ? Math.min(...prices) : Infinity;
         };
 
         return [...result].sort((a, b) => {
             if (sort === "newest") {
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                return (
+                    new Date(b.createdAt).getTime() -
+                    new Date(a.createdAt).getTime()
+                );
             }
             if (sort === "updated") {
-                return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+                return (
+                    new Date(b.updatedAt).getTime() -
+                    new Date(a.updatedAt).getTime()
+                );
             }
             if (sort === "price_asc") {
                 return getMinPrice(a) - getMinPrice(b);
             }
             if (sort === "price_desc") {
-                const priceA = getMinPrice(a) === Infinity ? -1 : getMinPrice(a);
-                const priceB = getMinPrice(b) === Infinity ? -1 : getMinPrice(b);
+                const priceA =
+                    getMinPrice(a) === Infinity ? -1 : getMinPrice(a);
+                const priceB =
+                    getMinPrice(b) === Infinity ? -1 : getMinPrice(b);
                 return priceB - priceA;
             }
             if (sort === "vendor_asc") {
@@ -3620,7 +4019,8 @@ const Promos: React.FC = () => {
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        return () =>
+            document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     // Hot Promos Today — category-diversified selection with UNIQUE primary badges
@@ -3630,7 +4030,10 @@ const Promos: React.FC = () => {
         const sorted = [...promos].sort((a, b) => {
             const scoreDiff = getHotPromoScore(b) - getHotPromoScore(a);
             if (scoreDiff !== 0) return scoreDiff;
-            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+            return (
+                new Date(b.updatedAt).getTime() -
+                new Date(a.updatedAt).getTime()
+            );
         });
 
         const selected: Promo[] = [];
@@ -3645,24 +4048,34 @@ const Promos: React.FC = () => {
         };
 
         // Slot 1: Ending Soon (Highest urgency)
-        const endingSoonCandidate = sorted.find((p) => isEndingSoon(p) && !usedIds.has(p.id));
+        const endingSoonCandidate = sorted.find(
+            (p) => isEndingSoon(p) && !usedIds.has(p.id),
+        );
         if (endingSoonCandidate) addCandidate(endingSoonCandidate);
 
         // Slot 2: Free Shipping / Free Over Threshold (Monetary savings)
         const freeShippingCandidate = sorted.find((p) => {
             if (usedIds.has(p.id)) return false;
             const b = getFeaturedBadge(p);
-            return (p.shippingFee === 0 || p.freeShippingThreshold != null) && (!b || !usedBadgeLabels.has(b.label));
+            return (
+                (p.shippingFee === 0 || p.freeShippingThreshold != null) &&
+                (!b || !usedBadgeLabels.has(b.label))
+            );
         });
-        if (freeShippingCandidate && selected.length < 4) addCandidate(freeShippingCandidate);
+        if (freeShippingCandidate && selected.length < 4)
+            addCandidate(freeShippingCandidate);
 
         // Slot 3: US Warehouse (Fast delivery)
         const usWarehouseCandidate = sorted.find((p) => {
             if (usedIds.has(p.id)) return false;
             const b = getFeaturedBadge(p);
-            return !!p.warehouse?.toLowerCase().match(/\bus\b|united.?states/) && (!b || !usedBadgeLabels.has(b.label));
+            return (
+                !!p.warehouse?.toLowerCase().match(/\bus\b|united.?states/) &&
+                (!b || !usedBadgeLabels.has(b.label))
+            );
         });
-        if (usWarehouseCandidate && selected.length < 4) addCandidate(usWarehouseCandidate);
+        if (usWarehouseCandidate && selected.length < 4)
+            addCandidate(usWarehouseCandidate);
 
         // Slot 4: New / Recently Updated
         const freshCandidate = sorted.find((p) => {
@@ -3722,7 +4135,8 @@ const Promos: React.FC = () => {
     const getFilterCount = useCallback(
         (key: FilterKey) => {
             if (key === "all") return promos.length;
-            return promos.filter((p) => matchesFilter(p, key, lastVisit)).length;
+            return promos.filter((p) => matchesFilter(p, key, lastVisit))
+                .length;
         },
         [promos, lastVisit],
     );
@@ -3733,7 +4147,9 @@ const Promos: React.FC = () => {
             <PageTitleRow>
                 <PageTitleBlock>
                     <PageTitle>Promos</PageTitle>
-                    <PageSubtitle>Discover promotions from trusted vendors.</PageSubtitle>
+                    <PageSubtitle>
+                        Discover promotions from trusted vendors.
+                    </PageSubtitle>
                 </PageTitleBlock>
                 {ownedServers.length > 0 && (
                     <SubmitBtn onClick={() => setSubmitting(true)}>
@@ -3787,8 +4203,12 @@ const Promos: React.FC = () => {
                             </span>
                         </div>
                         <div className="alert-right">
-                            <button className="alert-link" onClick={handleViewAllUpdates}>
-                                <span className="link-text-desktop">View all →</span>
+                            <button
+                                className="alert-link"
+                                onClick={handleViewAllUpdates}>
+                                <span className="link-text-desktop">
+                                    View all →
+                                </span>
                                 <span className="link-text-mobile">All →</span>
                             </button>
                             <button
@@ -3803,100 +4223,108 @@ const Promos: React.FC = () => {
 
             {/* ── Search + Sort + Filters (sticky on mobile) ── */}
             <StickySearchBar>
-            <SearchSortRow>
-                <SearchWrapper>
-                    <Search size={20} className="search-icon" />
-                    <InputBox
-                        ref={searchInputRef}
-                        palette="secondary"
-                        value={inputValue}
-                        onInput={(e) => setInputValue(e.currentTarget.value)}
-                        onFocus={() => setSearchFocused(true)}
-                        placeholder="Search compounds, vendors..."
-                        aria-label="Search compounds, vendors..."
-                    />
-                    {inputValue && (
-                        <ClearButton onClick={() => {
-                            setInputValue("");
-                            setQuery("");
-                            searchInputRef.current?.focus();
-                        }}>
-                            <X size={16} />
-                        </ClearButton>
-                    )}
-                    
-                    {/* Recent Searches Dropdown */}
-                    {searchFocused && recentSearches.length > 0 && (
-                        <RecentSearchesPopup ref={recentSearchesRef}>
-                            <RecentTitle>Recent Searches</RecentTitle>
-                            {recentSearches.map((s, idx) => (
-                                <RecentItem 
-                                    key={idx} 
-                                    onClick={() => {
-                                        setInputValue(s);
-                                        setQuery(s);
-                                        setSearchFocused(false);
-                                    }}
-                                >
-                                    <span>{s}</span>
-                                    <RecentDeleteBtn 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setRecentSearches((prev) => {
-                                                const next = prev.filter((item) => item !== s);
-                                                safeStorage.set("recent_promo_searches", JSON.stringify(next));
-                                                return next;
-                                            });
-                                        }}
-                                    >
-                                        <X size={12} />
-                                    </RecentDeleteBtn>
-                                </RecentItem>
-                            ))}
-                        </RecentSearchesPopup>
-                    )}
-                </SearchWrapper>
-                <SortSelect
-                    value={sort}
-                    onChange={(e) => setSort(e.currentTarget.value as Sort)}>
-                    <option value="newest">Newest First</option>
-                    <option value="updated">Recently Updated</option>
-                    <option value="price_asc">Price Low → High</option>
-                    <option value="price_desc">Price High → Low</option>
-                    <option value="vendor_asc">Vendor A-Z</option>
-                </SortSelect>
-            </SearchSortRow>
+                <SearchSortRow>
+                    <SearchWrapper>
+                        <Search size={20} className="search-icon" />
+                        <InputBox
+                            ref={searchInputRef}
+                            palette="secondary"
+                            value={inputValue}
+                            onInput={(e) =>
+                                setInputValue(e.currentTarget.value)
+                            }
+                            onFocus={() => setSearchFocused(true)}
+                            placeholder="Search compounds, vendors..."
+                            aria-label="Search compounds, vendors..."
+                        />
+                        {inputValue && (
+                            <ClearButton
+                                onClick={() => {
+                                    setInputValue("");
+                                    setQuery("");
+                                    searchInputRef.current?.focus();
+                                }}>
+                                <X size={16} />
+                            </ClearButton>
+                        )}
 
-            {/* ── Filter Chips ──────────────────────────────────────────── */}
-            <FilterChipsRow role="group" aria-label="Filter promotions">
-                {filterChips.map((chip) => {
-                    const count = getFilterCount(chip.key);
-                    return (
-                        <FilterChip
-                            key={chip.key}
-                            active={activeFilter === chip.key}
-                            aria-pressed={activeFilter === chip.key}
-                            onClick={() => setActiveFilter(chip.key)}>
-                            <span>{chip.label}</span>
-                            <span className="chip-count">{count}</span>
-                        </FilterChip>
-                    );
-                })}
-                <FilterDivider aria-hidden="true" />
-                {compoundChips.map((chip) => {
-                    const count = getFilterCount(chip.key);
-                    return (
-                        <FilterChip
-                            key={chip.key}
-                            active={activeFilter === chip.key}
-                            aria-pressed={activeFilter === chip.key}
-                            onClick={() => setActiveFilter(chip.key)}>
-                            <span>{chip.label}</span>
-                            <span className="chip-count">{count}</span>
-                        </FilterChip>
-                    );
-                })}
-            </FilterChipsRow>
+                        {/* Recent Searches Dropdown */}
+                        {searchFocused && recentSearches.length > 0 && (
+                            <RecentSearchesPopup ref={recentSearchesRef}>
+                                <RecentTitle>Recent Searches</RecentTitle>
+                                {recentSearches.map((s, idx) => (
+                                    <RecentItem
+                                        key={idx}
+                                        onClick={() => {
+                                            setInputValue(s);
+                                            setQuery(s);
+                                            setSearchFocused(false);
+                                        }}>
+                                        <span>{s}</span>
+                                        <RecentDeleteBtn
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setRecentSearches((prev) => {
+                                                    const next = prev.filter(
+                                                        (item) => item !== s,
+                                                    );
+                                                    safeStorage.set(
+                                                        "recent_promo_searches",
+                                                        JSON.stringify(next),
+                                                    );
+                                                    return next;
+                                                });
+                                            }}>
+                                            <X size={12} />
+                                        </RecentDeleteBtn>
+                                    </RecentItem>
+                                ))}
+                            </RecentSearchesPopup>
+                        )}
+                    </SearchWrapper>
+                    <SortSelect
+                        value={sort}
+                        onChange={(e) =>
+                            setSort(e.currentTarget.value as Sort)
+                        }>
+                        <option value="newest">Newest First</option>
+                        <option value="updated">Recently Updated</option>
+                        <option value="price_asc">Price Low → High</option>
+                        <option value="price_desc">Price High → Low</option>
+                        <option value="vendor_asc">Vendor A-Z</option>
+                    </SortSelect>
+                </SearchSortRow>
+
+                {/* ── Filter Chips ──────────────────────────────────────────── */}
+                <FilterChipsRow role="group" aria-label="Filter promotions">
+                    {filterChips.map((chip) => {
+                        const count = getFilterCount(chip.key);
+                        return (
+                            <FilterChip
+                                key={chip.key}
+                                active={activeFilter === chip.key}
+                                aria-pressed={activeFilter === chip.key}
+                                onClick={() => setActiveFilter(chip.key)}>
+                                <span>{chip.label}</span>
+                                <span className="chip-count">{count}</span>
+                            </FilterChip>
+                        );
+                    })}
+                    <FilterDivider aria-hidden="true" />
+                    {compoundChips.map((chip) => {
+                        const count = getFilterCount(chip.key);
+                        return (
+                            <FilterChip
+                                key={chip.key}
+                                active={activeFilter === chip.key}
+                                aria-pressed={activeFilter === chip.key}
+                                onClick={() => setActiveFilter(chip.key)}>
+                                <span>{chip.label}</span>
+                                <span className="chip-count">{count}</span>
+                            </FilterChip>
+                        );
+                    })}
+                </FilterChipsRow>
             </StickySearchBar>
 
             {/* ── Main Content ───────────────────────────────── */}
@@ -3935,39 +4363,65 @@ const Promos: React.FC = () => {
                     <Glyph>
                         <Search size={38} />
                     </Glyph>
-                    
+
                     {/* 1. Contextual Explanation */}
                     <h3>
                         {query && activeFilter !== "all"
                             ? "No promotions match your current search and filters."
                             : query
                             ? `No promotions found for "${query}".`
-                            : `No promotions available with the selected "${filterChips.find(c => c.key === activeFilter)?.label || compoundChips.find(c => c.key === activeFilter)?.label || activeFilter}" filter.`}
+                            : `No promotions available with the selected "${
+                                  filterChips.find(
+                                      (c) => c.key === activeFilter,
+                                  )?.label ||
+                                  compoundChips.find(
+                                      (c) => c.key === activeFilter,
+                                  )?.label ||
+                                  activeFilter
+                              }" filter.`}
                     </h3>
 
                     {/* 2. Active Constraint Summary */}
                     <ActiveFilterSummaryRow>
                         <span className="summary-title">Active Filters:</span>
                         {query && (
-                            <SummaryTag onClick={() => { setInputValue(""); setQuery(""); }}>
+                            <SummaryTag
+                                onClick={() => {
+                                    setInputValue("");
+                                    setQuery("");
+                                }}>
                                 <Search size={11} /> "{query}" <X size={10} />
                             </SummaryTag>
                         )}
                         {activeFilter !== "all" && (
                             <SummaryTag onClick={() => setActiveFilter("all")}>
-                                {filterChips.find(c => c.key === activeFilter)?.label || compoundChips.find(c => c.key === activeFilter)?.label || activeFilter} <X size={10} />
+                                {filterChips.find((c) => c.key === activeFilter)
+                                    ?.label ||
+                                    compoundChips.find(
+                                        (c) => c.key === activeFilter,
+                                    )?.label ||
+                                    activeFilter}{" "}
+                                <X size={10} />
                             </SummaryTag>
                         )}
                     </ActiveFilterSummaryRow>
 
                     {/* 7. Supporting Text */}
                     <p style={{ maxWidth: 420 }}>
-                        Try another search, remove some filters, or browse all active promotions.
+                        Try another search, remove some filters, or browse all
+                        active promotions.
                     </p>
 
                     {/* 4. Clickable Suggestion Chips */}
                     <div style={{ marginTop: 18 }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--tertiary-foreground)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        <span
+                            style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                color: "var(--tertiary-foreground)",
+                                textTransform: "uppercase",
+                                letterSpacing: 0.5,
+                            }}>
                             Try one of these instead:
                         </span>
                         <SuggestionChipGrid>
@@ -3976,14 +4430,19 @@ const Promos: React.FC = () => {
                                 { label: "Retatrutide", filter: "retatrutide" },
                                 { label: "Semaglutide", filter: "semaglutide" },
                                 { label: "🇺🇸 US Warehouse", filter: "us" },
-                                { label: "🚚 Free Shipping", filter: "freeShipping" },
+                                {
+                                    label: "🚚 Free Shipping",
+                                    filter: "freeShipping",
+                                },
                             ].map((item) => (
                                 <SuggestionChipBtn
                                     key={item.filter}
                                     onClick={() => {
                                         setInputValue("");
                                         setQuery("");
-                                        setActiveFilter(item.filter as FilterKey);
+                                        setActiveFilter(
+                                            item.filter as FilterKey,
+                                        );
                                     }}>
                                     {item.label}
                                 </SuggestionChipBtn>
@@ -3992,7 +4451,15 @@ const Promos: React.FC = () => {
                     </div>
 
                     {/* 3. Recovery Actions */}
-                    <div className="cta" style={{ marginTop: 24, display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+                    <div
+                        className="cta"
+                        style={{
+                            marginTop: 24,
+                            display: "flex",
+                            gap: 10,
+                            flexWrap: "wrap",
+                            justifyContent: "center",
+                        }}>
                         {activeFilter !== "all" && (
                             <Button
                                 compact
@@ -4034,12 +4501,43 @@ const Promos: React.FC = () => {
                             <div className="notice-left">
                                 <span className="live-dot" />
                                 <span className="notice-text">
-                                    Showing <strong>{filtered.length}</strong> {filtered.length === 1 ? "promotion" : "promotions"}
-                                    {query ? <> matching "<strong>{query}</strong>"</> : null}
-                                    {activeFilter !== "all" ? <> filtered by <strong>{filterChips.find(c => c.key === activeFilter)?.label || compoundChips.find(c => c.key === activeFilter)?.label || activeFilter}</strong></> : null}
+                                    Showing <strong>{filtered.length}</strong>{" "}
+                                    {filtered.length === 1
+                                        ? "promotion"
+                                        : "promotions"}
+                                    {query ? (
+                                        <>
+                                            {" "}
+                                            matching "<strong>{query}</strong>"
+                                        </>
+                                    ) : null}
+                                    {activeFilter !== "all" ? (
+                                        <>
+                                            {" "}
+                                            filtered by{" "}
+                                            <strong>
+                                                {filterChips.find(
+                                                    (c) =>
+                                                        c.key === activeFilter,
+                                                )?.label ||
+                                                    compoundChips.find(
+                                                        (c) =>
+                                                            c.key ===
+                                                            activeFilter,
+                                                    )?.label ||
+                                                    activeFilter}
+                                            </strong>
+                                        </>
+                                    ) : null}
                                 </span>
                             </div>
-                            <button className="reset-btn" onClick={() => { setActiveFilter("all"); setInputValue(""); setQuery(""); }}>
+                            <button
+                                className="reset-btn"
+                                onClick={() => {
+                                    setActiveFilter("all");
+                                    setInputValue("");
+                                    setQuery("");
+                                }}>
                                 <X size={13} />
                                 Reset Filters
                             </button>
@@ -4082,7 +4580,10 @@ const Promos: React.FC = () => {
                             {/* Pagination dots — visible only on mobile carousel */}
                             <HotCarouselDots>
                                 {hotPromos.map((_, i) => (
-                                    <CarouselDot key={i} active={hotSlide === i} />
+                                    <CarouselDot
+                                        key={i}
+                                        active={hotSlide === i}
+                                    />
                                 ))}
                             </HotCarouselDots>
                         </HotPromosSectionWrapper>
@@ -4095,7 +4596,8 @@ const Promos: React.FC = () => {
                             <div>
                                 <AllPromosTitle>All Promotions</AllPromosTitle>
                                 <AllPromosCount>
-                                    Browse every active promotion from trusted vendors.
+                                    Browse every active promotion from trusted
+                                    vendors.
                                 </AllPromosCount>
                             </div>
                         </AllPromosHeader>
@@ -4111,13 +4613,11 @@ const Promos: React.FC = () => {
                                     />
                                 ))}
                             </Grid>
-                        ) : (
-                            activeFilter !== "all" || query ? (
-                                <Centered style={{ marginTop: 16 }}>
-                                    All matching promos are featured above.
-                                </Centered>
-                            ) : null
-                        )}
+                        ) : activeFilter !== "all" || query ? (
+                            <Centered style={{ marginTop: 16 }}>
+                                All matching promos are featured above.
+                            </Centered>
+                        ) : null}
                     </div>
                 </>
             )}
