@@ -10,7 +10,11 @@ import { isTouchscreenDevice } from "../../../../lib/isTouchscreenDevice";
 import { getRenderer } from "../../../../lib/renderer/Singleton";
 
 export const Bar = styled.div<{ position: "top" | "bottom"; accent?: boolean }>`
-    z-index: 1;
+    /* Above the message list. These bars float over the messages but render
+       BEFORE MessageArea in Channel.tsx, so at an equal z-index anything
+       inside a message that also stacks (embed buttons, spoilers) would paint
+       over them on DOM order alone. */
+    z-index: 2;
     position: relative;
 
     @keyframes bottomBounce {
@@ -78,20 +82,19 @@ export const Bar = styled.div<{ position: "top" | "bottom"; accent?: boolean }>`
         ${(props) =>
             props.accent
                 ? css`
-                      /* Banner recipe: the accent knocked down to a
-                         ~55% translucent wash over the chat surface. */
-                      color: #ffffff;
-                      background-color: rgba(
-                          var(--accent-rgb),
-                          max(var(--min-opacity), 0.55)
-                      );
+                      /* Banner speaks the selected-pill language: lavender
+                         glass with the pill's dark text. High-opacity so
+                         the label always reads; still translucent enough
+                         that overlapped content ghosts through. */
+                      color: var(--channel-active-foreground);
+                      background-color: rgba(var(--channel-active-rgb), 0.9);
                       backdrop-filter: blur(20px);
                   `
                 : css`
                       color: var(--secondary-foreground);
                       background-color: rgba(
                           var(--secondary-background-rgb),
-                          max(var(--min-opacity), 0.9)
+                          0.9
                       );
                       backdrop-filter: blur(20px);
                   `}

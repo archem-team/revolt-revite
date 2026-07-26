@@ -166,7 +166,7 @@
             flex-shrink: 0;
             height: 50px;
             width: 50px;
-            background: var(--secondary-background);
+            background: var(--message-box);
             border-radius: var(--border-radius);
             display: flex;
             align-items: center;
@@ -340,7 +340,7 @@
     > div {
         height: 8px;
         width: 24px;
-        background: var(--secondary-background);
+        background: var(--message-box);
         border-radius: 2px;
     }
 }
@@ -484,7 +484,7 @@
             transition: 0.1s ease background-color;
 
             &:hover {
-                background: var(--secondary-background);
+                background: rgba(var(--foreground-rgb), 0.06);
             }
         }
 
@@ -557,7 +557,7 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
-        background: var(--secondary-background);
+        background: var(--message-box);
         padding: 12px;
         border-radius: var(--border-radius);
     }

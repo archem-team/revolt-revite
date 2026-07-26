@@ -2352,7 +2352,19 @@ const ActionIcon = styled.div`
     }
 `;
 
-// ─── Promotion Title ──────────────────────────────────────────────────────────
+
+// ─── Empty / Loader ───────────────────────────────────────────────────────────
+
+const Centered = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--tertiary-foreground);
+    font-size: 14px;
+    text-align: center;
+    margin-top: 48px;
+`;
 
 const PromoTitle = styled.div`
     font-size: 14px;
@@ -2376,8 +2388,6 @@ const PromoTitle = styled.div`
         }
     }
 `;
-
-// ─── Item Table ───────────────────────────────────────────────────────────────
 
 const ItemTable = styled.div`
     display: flex;
@@ -2445,55 +2455,24 @@ const ItemNote = styled.div`
     background: var(--primary-background);
 `;
 
-const COLLAPSE_THRESHOLD = 5;
-const FEATURED_COLLAPSE_THRESHOLD = 4;
-
-const ProductSummary = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    min-width: 0;
-`;
-
-const CompoundChips = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    min-width: 0;
-`;
-
-const CompoundChip = styled.span<{ highlighted?: boolean }>`
+const Chip = styled.span<{ accent?: boolean; tone?: string }>`
     display: inline-flex;
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1;
-    padding: 4px 8px;
-    border-radius: 5px;
-    color: ${(p) =>
-        p.highlighted
-            ? "var(--accent-contrast, #11171c)"
-            : "var(--secondary-foreground)"};
-    background: ${(p) =>
-        p.highlighted
-            ? "var(--accent)"
-            : "color-mix(in srgb, var(--foreground) 5%, transparent)"};
-    transition: background 0.15s ease;
+    padding: 5px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
     max-width: 100%;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-
-    .count {
-        font-size: 9px;
-        font-weight: 600;
-        color: ${(p) =>
-            p.highlighted
-                ? "var(--accent-contrast, #11171c)"
-                : "var(--tertiary-foreground)"};
-    }
+    color: ${(props) =>
+        props.accent ? "var(--accent-contrast, #11171c)" : "var(--foreground)"};
+    background: ${(props) =>
+        props.accent ? "var(--accent)" : "var(--primary-background)"};
 `;
 
 const MoreChip = styled.button`
@@ -2515,538 +2494,6 @@ const MoreChip = styled.button`
     }
 `;
 
-const ItemToggle = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    width: 100%;
-    padding: 9px 12px;
-    border: none;
-    border-top: 1px solid var(--secondary-background);
-    background: var(--primary-background);
-    color: var(--accent);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover {
-        background: var(--secondary-background);
-    }
-
-    svg {
-        transition: transform 0.15s ease;
-    }
-
-    &[data-expanded="true"] svg {
-        transform: rotate(180deg);
-    }
-`;
-
-const SummaryToggle = styled.button`
-    align-self: flex-start;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0;
-    border: none;
-    background: none;
-    color: var(--accent);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover {
-        text-decoration: underline;
-    }
-`;
-
-// ─── Meta Row ─────────────────────────────────────────────────────────────────
-
-const MetaRow = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    min-width: 0;
-    max-width: 100%;
-
-    /* On mobile, show max 2 highlights to reduce density */
-    @media (max-width: 720px) {
-        > *:nth-child(n + 3) {
-            display: none;
-        }
-    }
-`;
-
-const Chip = styled.span<{ accent?: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1;
-    padding: 5px 8px;
-    border-radius: 6px;
-    white-space: nowrap;
-    max-width: 100%;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: ${(props) =>
-        props.accent ? "var(--accent-contrast, #11171c)" : "var(--foreground)"};
-    background: ${(props) =>
-        props.accent ? "var(--accent)" : "var(--primary-background)"};
-`;
-
-// Clamp note text to 2 lines with smooth bottom fade-out mask
-const NoteBlock = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: 2px;
-    min-width: 0;
-
-    [data-featured="true"] & {
-        @media (max-width: 720px) {
-            display: none;
-        }
-    }
-`;
-
-const NoteText = styled.div`
-    font-size: 12px;
-    color: var(--secondary-foreground);
-    line-height: 1.45;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    mask-image: linear-gradient(180deg, #000 65%, transparent 100%);
-    -webkit-mask-image: linear-gradient(180deg, #000 65%, transparent 100%);
-    overflow-wrap: anywhere;
-
-    @media (max-width: 720px) {
-        font-size: 11px;
-        line-height: 1.35;
-        -webkit-line-clamp: 2;
-    }
-
-    [data-featured="true"] & {
-        @media (max-width: 720px) {
-            -webkit-line-clamp: 1;
-        }
-    }
-`;
-
-const ReadMoreLink = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    background: none;
-    border: none;
-    padding: 0;
-    font-family: inherit;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--accent);
-    cursor: pointer;
-    align-self: flex-start;
-    touch-action: manipulation;
-    transition: opacity 0.15s ease;
-
-    /* Larger tap target on mobile */
-    @media (max-width: 720px) {
-        font-size: 11px;
-        padding: 4px 0;
-        min-height: 24px;
-        align-items: center;
-    }
-
-    [data-featured="true"] & {
-        @media (max-width: 720px) {
-            display: none;
-        }
-    }
-
-    &:hover {
-        opacity: 0.8;
-        text-decoration: underline;
-    }
-`;
-
-const NoteBulletList = styled.ul`
-    margin: 4px 0 0;
-    padding: 0 0 0 14px;
-    font-size: 12px;
-    color: var(--secondary-foreground);
-    line-height: 1.5;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-
-    li {
-        margin: 0;
-        padding: 0;
-        &::marker {
-            color: var(--accent);
-        }
-    }
-`;
-
-// ─── Gallery ──────────────────────────────────────────────────────────────────
-
-const Gallery = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 0;
-    max-width: 100%;
-
-    @media (max-width: 720px) {
-        display: none;
-    }
-
-    .hero {
-        width: 100%;
-        height: clamp(120px, 20vw, 170px);
-        border-radius: 10px;
-        object-fit: cover;
-        cursor: zoom-in;
-        background: linear-gradient(
-            135deg,
-            var(--primary-background) 0%,
-            color-mix(in srgb, var(--accent) 6%, var(--primary-background)) 100%
-        );
-        border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
-        transition: transform 0.18s ease, opacity 0.18s ease;
-
-        @media (max-width: 720px) {
-            height: clamp(65px, 18vw, 90px);
-        }
-
-        &:hover {
-            transform: scale(1.012);
-            opacity: 0.93;
-        }
-    }
-
-    .thumbs {
-        display: flex;
-        gap: 6px;
-        min-width: 0;
-        overflow: hidden;
-
-        .thumb-wrapper {
-            position: relative;
-            width: 48px;
-            height: 48px;
-            border-radius: 7px;
-            overflow: hidden;
-            flex-shrink: 0;
-            cursor: pointer;
-
-            img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                transition: opacity 0.15s ease;
-            }
-
-            &:hover img {
-                opacity: 0.82;
-            }
-
-            .more-overlay {
-                position: absolute;
-                inset: 0;
-                background: rgba(0, 0, 0, 0.65);
-                color: #fff;
-                font-size: 11px;
-                font-weight: 700;
-                display: grid;
-                place-items: center;
-            }
-        }
-    }
-`;
-
-// ─── Card Footer ──────────────────────────────────────────────────────────────
-
-const CardFooter = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
-    min-height: 24px;
-    padding-top: 10px;
-    border-top: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
-    margin-top: auto;
-    min-width: 0;
-
-    @media (max-width: 720px) {
-        gap: 6px;
-        padding-top: 8px;
-        flex-wrap: nowrap;
-    }
-`;
-
-const CountdownText = styled.div<{ urgent?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: ${(p) => (p.urgent ? 700 : 500)};
-    color: ${(p) => (p.urgent ? "#f97316" : "var(--tertiary-foreground)")};
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-
-    svg {
-        color: ${(p) => (p.urgent ? "#f97316" : "var(--tertiary-foreground)")};
-    }
-`;
-
-// Slightly reduced visual weight — integrates into card without dominating
-const FooterBtn = styled.div<{ primary?: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
-    transition: filter 0.15s ease, transform 0.15s ease, background 0.15s ease;
-
-    ${(p) =>
-        p.primary
-            ? css`
-                  background: color-mix(
-                      in srgb,
-                      var(--accent) 90%,
-                      transparent
-                  );
-                  color: var(--accent-contrast, #11171c);
-
-                  & > svg {
-                      color: var(--accent-contrast, #11171c);
-                  }
-
-                  &:hover {
-                      filter: brightness(1.12);
-                      transform: translateY(-1px);
-                  }
-              `
-            : css`
-                  background: var(--primary-background);
-                  color: var(--secondary-foreground);
-
-                  & > svg {
-                      color: var(--secondary-foreground);
-                  }
-
-                  &:hover {
-                      background: color-mix(
-                          in srgb,
-                          var(--accent) 12%,
-                          var(--primary-background)
-                      );
-                      color: var(--foreground);
-                  }
-              `}
-`;
-
-// ─── Empty / Loader ───────────────────────────────────────────────────────────
-
-const Centered = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    color: var(--tertiary-foreground);
-    font-size: 14px;
-    text-align: center;
-    margin-top: 48px;
-`;
-
-const Empty = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 56px 24px;
-    gap: 6px;
-
-    h3 {
-        margin: 18px 0 0;
-        font-size: 19px;
-        color: var(--foreground);
-    }
-
-    p {
-        margin: 0;
-        max-width: 360px;
-        font-size: 14px;
-        line-height: 1.55;
-        color: var(--secondary-foreground);
-    }
-
-    .cta {
-        margin-top: 18px;
-    }
-`;
-
-const ActiveFilterSummaryRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin: 10px 0 14px;
-
-    .summary-title {
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--tertiary-foreground);
-    }
-`;
-
-const SummaryTag = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-    cursor: pointer;
-    transition: background 0.15s ease;
-
-    &:hover {
-        background: color-mix(in srgb, var(--accent) 22%, transparent);
-    }
-`;
-
-const SuggestionChipGrid = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 10px;
-    max-width: 460px;
-`;
-
-const SuggestionChipBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 6px 12px;
-    border-radius: 14px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--secondary-foreground);
-    background: var(--primary-background);
-    border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
-    cursor: pointer;
-    transition: all 0.15s ease;
-
-    &:hover {
-        color: var(--foreground);
-        background: color-mix(
-            in srgb,
-            var(--accent) 12%,
-            var(--primary-background)
-        );
-        border-color: color-mix(in srgb, var(--accent) 40%, transparent);
-        transform: translateY(-1px);
-    }
-`;
-
-const Glyph = styled.div`
-    position: relative;
-    width: 96px;
-    height: 96px;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    color: var(--accent);
-    background: radial-gradient(
-        circle at center,
-        color-mix(in srgb, var(--accent) 22%, transparent),
-        transparent 70%
-    );
-
-    &::before {
-        content: "";
-        position: absolute;
-        inset: 18px;
-        border-radius: 50%;
-        border: 2px dashed color-mix(in srgb, var(--accent) 45%, transparent);
-        animation: promo-spin 18s linear infinite;
-    }
-
-    .float {
-        position: absolute;
-        font-size: 11px;
-        font-weight: 700;
-        padding: 3px 7px;
-        border-radius: 8px;
-        color: var(--accent-contrast, #11171c);
-        background: var(--accent);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-        animation: promo-bob 3.4s ease-in-out infinite;
-    }
-
-    .float.a {
-        top: -6px;
-        right: -14px;
-    }
-
-    .float.b {
-        bottom: -2px;
-        left: -18px;
-        animation-delay: 1.2s;
-        background: var(--primary-background);
-        color: var(--accent);
-    }
-
-    @keyframes promo-spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    @keyframes promo-bob {
-        0%,
-        100% {
-            transform: translateY(0);
-        }
-        50% {
-            transform: translateY(-6px);
-        }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        &::before,
-        .float {
-            animation: none;
-        }
-    }
-`;
-
-// ─── PromoCard component ───────────────────────────────────────────────────────
-
 interface PromoCardProps {
     promo: Promo;
     onOpenImage: (src: string) => void;
@@ -3060,6 +2507,325 @@ interface PromoCardProps {
         bg: string;
     } | null;
 }
+
+
+
+// Long promos can list a dozen-plus priced variants. Rather than show the
+// whole table up front, we collapse to one chip per distinct compound and
+// reveal the full pricing on demand so cards stay scannable. Small promos
+// (few line items) skip the chip summary and show the table directly.
+const COLLAPSE_THRESHOLD = 5;
+const FEATURED_COLLAPSE_THRESHOLD = 4;
+
+const ProductSummary = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const CompoundChips = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+`;
+
+const CompoundChip = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 7px 10px;
+    border-radius: 7px;
+    color: var(--foreground);
+    /* The merchandise floats; logistics recess. */
+    background: var(--promo-chip);
+
+    .count {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--tertiary-foreground);
+    }
+`;
+
+const ItemToggle = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 9px 12px;
+    border: none;
+    border-top: 1px solid var(--promo-chip);
+    background: var(--promo-well);
+    color: var(--channel-active);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+        background: var(--promo-card);
+    }
+
+    svg {
+        transition: transform 0.15s ease;
+    }
+
+    &[data-expanded="true"] svg {
+        transform: rotate(180deg);
+    }
+`;
+
+// Standalone (not table-attached) variant of the toggle, used under the
+// compound-chip summary.
+const SummaryToggle = styled.button`
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--channel-active);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+`;
+
+const MetaRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+`;
+
+const NoteText = styled.div`
+    font-size: 13px;
+    color: var(--secondary-foreground);
+    line-height: 1.4;
+`;
+
+const NoteBlock = styled.div`
+    margin-top: 6px;
+    padding: 8px 10px;
+    border-left: 3px solid var(--accent);
+    background: var(--promo-well, rgba(0, 0, 0, 0.12));
+    border-radius: 0 6px 6px 0;
+    font-size: 13px;
+    color: var(--secondary-foreground);
+    line-height: 1.5;
+`;
+
+const NoteBulletList = styled.ul`
+    margin: 4px 0 0 0;
+    padding-left: 18px;
+    font-size: 13px;
+    color: var(--secondary-foreground);
+    line-height: 1.6;
+
+    li {
+        margin-bottom: 2px;
+    }
+`;
+
+const ReadMoreLink = styled.span`
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--accent);
+    cursor: pointer;
+    font-weight: 600;
+    user-select: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+`;
+
+const Gallery = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .hero {
+        width: 100%;
+        height: clamp(150px, 28vw, 220px);
+        border-radius: 8px;
+        object-fit: cover;
+        cursor: zoom-in;
+        background: var(--promo-well);
+    }
+
+    .thumbs {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+
+        img {
+            width: 52px;
+            height: 52px;
+            border-radius: 6px;
+            object-fit: cover;
+            flex-shrink: 0;
+            cursor: pointer;
+            background: var(--promo-well);
+        }
+    }
+`;
+
+
+
+const CardFooter = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0 0;
+    border-top: 1px solid var(--promo-chip);
+    margin-top: 10px;
+    gap: 6px;
+`;
+
+const CountdownText = styled.span<{ urgent?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: ${({ urgent }) => (urgent ? 700 : 500)};
+    color: ${({ urgent }) =>
+        urgent ? "var(--status-danger, #e83c3c)" : "var(--secondary-foreground)"};
+    min-height: 18px;
+`;
+
+const SuggestionChipBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    border-radius: 99px;
+    border: 1px solid var(--promo-chip);
+    background: var(--promo-well);
+    color: var(--foreground);
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+
+    &:hover {
+        background: var(--promo-chip);
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+`;
+
+const Empty = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 48px 20px 56px;
+    gap: 10px;
+
+    h3 {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--foreground);
+        margin: 0;
+    }
+
+    p {
+        max-width: 380px;
+        font-size: 14px;
+        color: var(--secondary-foreground);
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    .cta {
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+`;
+
+const Glyph = styled.div`
+    position: relative;
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tertiary-foreground);
+    margin-bottom: 4px;
+
+    .float {
+        position: absolute;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent);
+        background: var(--promo-chip);
+        padding: 2px 5px;
+        border-radius: 5px;
+        white-space: nowrap;
+
+        &.a { top: 0; right: -4px; }
+        &.b { bottom: 0; left: -4px; }
+    }
+`;
+
+const ActiveFilterSummaryRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+
+    .summary-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--tertiary-foreground);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+`;
+
+const SummaryTag = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border: 1px solid var(--accent);
+    border-radius: 99px;
+    background: transparent;
+    color: var(--accent);
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover {
+        background: var(--accent);
+        color: #fff;
+    }
+`;
+
+const SuggestionChipGrid = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 10px;
+`;
+
+
 
 const PromoCard = observer(
     ({
@@ -3145,7 +2911,7 @@ const PromoCard = observer(
             ? FEATURED_COLLAPSE_THRESHOLD
             : COLLAPSE_THRESHOLD;
 
-        const CardEl = (featured ? FeaturedCard : Card) as typeof Card;
+        const CardEl = (featured ? FeaturedCard : Card) as any;
 
         return (
             <CardEl data-featured={featured ? "true" : undefined}>

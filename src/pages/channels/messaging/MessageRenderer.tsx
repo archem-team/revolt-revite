@@ -8,9 +8,11 @@ import styled from "styled-components/macro";
 import { decodeTime } from "ulid";
 
 import { Text } from "preact-i18n";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useState } from "preact/hooks";
 
-import { MessageDivider, Preloader } from "@revoltchat/ui";
+import { MessageDivider } from "@revoltchat/ui";
+
+import MessageSkeleton from "../../../components/common/messaging/MessageSkeleton";
 
 import { internalSubscribe, internalEmit } from "../../../lib/eventEmitter";
 import { ChannelRenderer } from "../../../lib/renderer/Singleton";
@@ -18,12 +20,12 @@ import { ChannelRenderer } from "../../../lib/renderer/Singleton";
 import { useApplicationState } from "../../../mobx/State";
 
 import Message from "../../../components/common/messaging/Message";
+import { PinMessageBox } from "../../../components/common/messaging/PinMessageBox";
 import { SystemMessage } from "../../../components/common/messaging/SystemMessage";
 import { useClient } from "../../../controllers/client/ClientController";
 import RequiresOnline from "../../../controllers/client/jsx/RequiresOnline";
 import ConversationStart from "./ConversationStart";
 import MessageEditor from "./MessageEditor";
-import { PinMessageBox } from "../../../components/common/messaging/PinMessageBox";
 
 interface Props {
     last_id?: string;
@@ -46,6 +48,27 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
     const client = useClient();
     const userId = client.user!._id;
     const queue = useApplicationState().queue;
+
+    // Fetch corrections apply here because this commit is the one that
+    // changes the message DOM — MessageArea commits separately (and
+    // earlier), so measuring there reads the old layout.
+    useLayoutEffect(() => {
+        const state = renderer.scrollState;
+        if (state.type !== "Anchor") return;
+
+        const el = document.getElementById(state.id);
+        const area = el?.closest(
+            '[data-scroll-offset="with-padding"]',
+        ) as HTMLElement | null;
+
+        if (el && area) {
+            const delta = el.getBoundingClientRect().top - state.previousTop;
+            area.scrollTo({ top: area.scrollTop + delta });
+        }
+
+        renderer.consumeAnchor();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [renderer.scrollState]);
 
     const [editing, setEditing] = useState<string | undefined>(undefined);
     const stopEditing = () => {
@@ -85,7 +108,15 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
     } else {
         render.push(
             <RequiresOnline>
-                <Preloader type="ring" />
+                {/* Rows hug the wall's bottom, adjacent to the real
+                    messages below it. The wall doubles as the fetch
+                    sentinel: visible ghosts pull the next page. */}
+                <MessageSkeleton
+                    wall
+                    align="end"
+                    onVisible={() => renderer.loadTop()}
+                    permitFetching={!renderer.fetching}
+                />
             </RequiresOnline>,
         );
     }
@@ -151,7 +182,7 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
         );
         blocked = 0;
     }
-    let lastPinned = null
+    let lastPinned = null;
 
     for (const [i, message] of renderer.messages.entries()) {
         if (previous) {
@@ -165,7 +196,10 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
             );
         }
 
-        if (message.system?.type as any == "message_pinned" || message.system?.type as any == "message_unpinned") {
+        if (
+            (message.system?.type as any) == "message_pinned" ||
+            (message.system?.type as any) == "message_unpinned"
+        ) {
             render.push(
                 <PinMessageBox
                     key={message._id}
@@ -173,8 +207,7 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
                     attachContext
                     channel={renderer.channel}
                     highlight={highlight === message._id}
-                />
-                ,
+                />,
             );
         } else if (message.author_id === "00000000000000000000000000") {
             render.push(
@@ -184,7 +217,7 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
                     attachContext
                     highlight={highlight === message._id}
                 />,
-            )
+            );
         } else if (message.author?.relationship === "Blocked") {
             blocked++;
         } else {
@@ -217,7 +250,6 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
     const nonces = renderer.messages.map((x) => x.nonce);
     if (renderer.atBottom) {
         for (const msg of queue.get(renderer.channel._id)) {
-
             if (nonces.includes(msg.id)) continue;
 
             if (previous) {
@@ -235,7 +267,6 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
                     author_id: userId!,
                 } as MessageI;
             }
-
 
             render.push(
                 <Message
@@ -255,7 +286,14 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
     } else {
         render.push(
             <RequiresOnline>
-                <Preloader type="ring" />
+                {/* Rows hug the wall's top, adjacent to the real messages
+                    above it. */}
+                <MessageSkeleton
+                    wall
+                    align="start"
+                    onVisible={() => renderer.loadBottom()}
+                    permitFetching={!renderer.fetching}
+                />
             </RequiresOnline>,
         );
     }

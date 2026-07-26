@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "preact/hooks";
 
+import { useClient } from "../../controllers/client/ClientController";
 import { apiToCommunity, apiToReview, matchesFilters } from "./dataUtils";
 import type {
     Community,
@@ -9,7 +10,6 @@ import type {
     SubmitForm,
 } from "./types";
 import { API_BASE, BACKEND_API_BASE } from "./types";
-import { useClient } from "../../controllers/client/ClientController";
 
 export function useDirectory() {
     const client = useClient();

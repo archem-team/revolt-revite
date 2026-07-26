@@ -9,8 +9,9 @@ import { Text } from "preact-i18n";
 
 import { CategoryButton, Checkbox, ObservedInputElement } from "@revoltchat/ui";
 
-import { isMaterialYouBase } from "../../../context/materialTheme";
 import { useApplicationState } from "../../../mobx/State";
+
+import { isMaterialYouBase } from "../../../context/materialTheme";
 
 import { ThemeBaseSelector } from "./legacy/ThemeBaseSelector";
 

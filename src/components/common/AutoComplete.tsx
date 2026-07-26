@@ -17,19 +17,19 @@ import UserIcon from "./user/UserIcon";
 export type AutoCompleteState =
     | { type: "none" }
     | ({ selected: number; within: boolean } & (
-        | {
-            type: "emoji";
-            matches: (string | CustomEmoji)[];
-        }
-        | {
-            type: "user";
-            matches: User[];
-        }
-        | {
-            type: "channel";
-            matches: Channel[];
-        }
-    ));
+          | {
+                type: "emoji";
+                matches: (string | CustomEmoji)[];
+            }
+          | {
+                type: "user";
+                matches: User[];
+            }
+          | {
+                type: "channel";
+                matches: Channel[];
+            }
+      ));
 
 export type SearchClues = {
     users?: { type: "channel"; id: string } | { type: "all" };
@@ -89,8 +89,8 @@ export function useAutoComplete(
                         current === "#"
                             ? "channel"
                             : current === ":"
-                                ? "emoji"
-                                : "user",
+                            ? "emoji"
+                            : "user",
                         search.toLowerCase(),
                         current === ":" ? j + 1 : j,
                     ];
@@ -177,18 +177,23 @@ export function useAutoComplete(
                 let matches = (
                     search.length > 0
                         ? users.filter((user) =>
-                            user.username.toLowerCase().match(regex),
-                        )
+                              user.username.toLowerCase().match(regex),
+                          )
                         : users
                 )
                     .splice(0, 5)
                     .filter((x) => typeof x !== "undefined");
 
                 // Add @everyone if it matches the search and we're in a channel context
-                if (searchClues.users.type === "channel" && 
-                    (search.length === 0 || "everyone".match(regex))) {
+                if (
+                    searchClues.users.type === "channel" &&
+                    (search.length === 0 || "everyone".match(regex))
+                ) {
                     // Add a special "everyone" entry at the beginning
-                    matches = [{ _id: "@everyone", username: "everyone" } as any, ...matches].slice(0, 5);
+                    matches = [
+                        { _id: "@everyone", username: "everyone" } as any,
+                        ...matches,
+                    ].slice(0, 5);
                 }
 
                 if (matches.length > 0) {
@@ -216,8 +221,8 @@ export function useAutoComplete(
                 const matches = (
                     search.length > 0
                         ? channels.filter((channel) =>
-                            channel.name!.toLowerCase().match(regex),
-                        )
+                              channel.name!.toLowerCase().match(regex),
+                          )
                         : channels
                 )
                     .splice(0, 5)
@@ -251,45 +256,52 @@ export function useAutoComplete(
                 const [_type, search, index] = result;
 
                 const content = el.value.split("");
+                let inserted: string[];
+
                 if (state.type === "emoji") {
                     const selected = state.matches[state.selected];
-                    content.splice(
-                        index,
-                        search.length,
+                    inserted = [
                         selected instanceof CustomEmoji
                             ? selected._id
                             : selected,
                         ": ",
-                    );
+                    ];
+                    content.splice(index, search.length, ...inserted);
                 } else if (state.type === "user") {
                     const selectedUser = state.matches[state.selected];
                     // Handle @everyone special case
-                    if (selectedUser._id === "@everyone") {
-                        content.splice(
-                            index,
-                            search.length + 1,
-                            "@everyone ",
-                        );
-                    } else {
-                        content.splice(
-                            index,
-                            search.length + 1,
-                            "@",
-                            selectedUser.username,
-                            " ",
-                        );
-                    }
+                    inserted =
+                        selectedUser._id === "@everyone"
+                            ? ["@everyone "]
+                            : ["@", selectedUser.username, " "];
+                    content.splice(index, search.length + 1, ...inserted);
                 } else {
-                    content.splice(
-                        index,
-                        search.length + 1,
+                    inserted = [
                         "<#",
                         state.matches[state.selected]._id,
                         "> ",
-                    );
+                    ];
+                    content.splice(index, search.length + 1, ...inserted);
                 }
 
                 setValue(content.join(""));
+
+                // Close the popup here rather than waiting for a later
+                // onChange to notice the token is complete. While it stays
+                // open onKeyDown keeps claiming Enter, so the next Enter
+                // selects again instead of sending the message.
+                setState({ type: "none" });
+
+                // Put the caret straight after what we inserted and keep the
+                // composer focused. Picking with the mouse blurs it, and after
+                // the value updates the caret would otherwise jump to the end
+                // of the draft — either way you had to click back in to carry
+                // on typing. Deferred so it runs after the re-render.
+                const caret = index + inserted.join("").length;
+                setTimeout(() => {
+                    el.focus();
+                    el.setSelectionRange(caret, caret);
+                }, 0);
             }
         }
     }
@@ -370,36 +382,46 @@ export function useAutoComplete(
 const Base = styled.div<{ detached?: boolean }>`
     position: relative;
 
+    /* Popup card floating above the composer — compact,
+       raised and shadowed rather than a full-width strip. */
     > div {
         bottom: 0;
-        width: 100%;
         position: absolute;
-        background: var(--primary-header);
+        width: fit-content;
+        min-width: 220px;
+        max-width: 480px;
+        margin: 0 8px 6px;
+        padding: 8px 0;
+        border-radius: 8px;
+        background: #332e36;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
     }
 
     button {
         gap: 8px;
-        margin: 4px;
-        padding: 6px;
+        margin: 0;
+        padding: 4px 12px;
         border: none;
         display: flex;
-        font-size: 1em;
+        font-size: 0.9em;
         cursor: pointer;
         align-items: center;
         flex-direction: row;
         font-family: inherit;
         background: transparent;
         color: var(--foreground);
-        width: calc(100% - 12px);
-        border-radius: var(--border-radius);
+        width: 100%;
+        border-radius: 0;
 
         span {
             display: grid;
             place-items: center;
         }
 
+        /* Selected row: quiet on-surface wash, not an accent bar. */
         &.active {
-            background: var(--primary-background);
+            background: rgba(var(--foreground-rgb), 0.08);
         }
     }
 
@@ -421,6 +443,12 @@ export default function AutoComplete({
     onClick,
 }: Pick<AutoCompleteProps, "detached" | "state" | "setState" | "onClick">) {
     const client = useClient();
+
+    // No matches -> no popup; an empty card must never float around.
+    if (state.type === "none" || state.matches.length === 0) {
+        return null;
+    }
+
     return (
         <Base detached={detached}>
             <div>
@@ -477,10 +505,11 @@ export default function AutoComplete({
                                         size={20}
                                     />
                                 )}
-                                <span style={{ paddingLeft: "4px" }}>{`:${match instanceof CustomEmoji
+                                <span style={{ paddingLeft: "4px" }}>{`:${
+                                    match instanceof CustomEmoji
                                         ? match.name
                                         : match
-                                    }:`}</span>
+                                }:`}</span>
                             </div>
                             {match instanceof CustomEmoji &&
                                 match.parent.type == "Server" && (
@@ -527,24 +556,41 @@ export default function AutoComplete({
                             }
                             onClick={onClick}>
                             {match._id === "@everyone" ? (
-                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <span style={{ 
-                                        width: "24px", 
-                                        height: "24px", 
-                                        display: "flex", 
-                                        alignItems: "center", 
-                                        justifyContent: "center",
-                                        fontSize: "14px",
-                                        background: "var(--accent)",
-                                        color: "var(--accent-contrast)",
-                                        borderRadius: "50%",
-                                        fontWeight: "600"
-                                    }}>@</span>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                    }}>
+                                    <span
+                                        style={{
+                                            width: "24px",
+                                            height: "24px",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontSize: "14px",
+                                            background: "var(--accent)",
+                                            color: "var(--accent-contrast)",
+                                            borderRadius: "50%",
+                                            fontWeight: "600",
+                                        }}>
+                                        @
+                                    </span>
                                     <span>everyone</span>
                                 </div>
                             ) : (
-                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <UserIcon size={24} target={match} status={true} />
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                    }}>
+                                    <UserIcon
+                                        size={24}
+                                        target={match}
+                                        status={true}
+                                    />
                                     <span>{match.username}</span>
                                 </div>
                             )}

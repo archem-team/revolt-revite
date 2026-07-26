@@ -207,8 +207,11 @@ export const UserProfile = observer(
                                 </Button>
                             </Link>
                         )}
-						{(user.relationship === "Friend" || user.relationship === "None" || user.relationship === "Outgoing" || user.relationship === "Incoming" || user.bot ) && (
-
+                        {(user.relationship === "Friend" ||
+                            user.relationship === "None" ||
+                            user.relationship === "Outgoing" ||
+                            user.relationship === "Incoming" ||
+                            user.bot) && (
                             <Localizer>
                                 <Tooltip
                                     content={

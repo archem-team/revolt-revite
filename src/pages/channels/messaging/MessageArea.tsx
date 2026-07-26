@@ -1,7 +1,7 @@
-import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useHistory, useParams } from "react-router-dom";
 import { Channel } from "revolt.js";
+import { Message } from "revolt.js/esm";
 import styled from "styled-components/macro";
 import useResizeObserver from "use-resize-observer";
 
@@ -17,17 +17,19 @@ import {
 
 import { Preloader } from "@revoltchat/ui";
 
-import { defer } from "../../../lib/defer";
+import MessageSkeleton from "../../../components/common/messaging/MessageSkeleton";
 import { internalEmit, internalSubscribe } from "../../../lib/eventEmitter";
 import { getRenderer } from "../../../lib/renderer/Singleton";
 import { ScrollState } from "../../../lib/renderer/types";
 
-import { useClient, useSession } from "../../../controllers/client/ClientController";
+import {
+    useClient,
+    useSession,
+} from "../../../controllers/client/ClientController";
 import RequiresOnline from "../../../controllers/client/jsx/RequiresOnline";
 import { modalController } from "../../../controllers/modals/ModalController";
 import ConversationStart from "./ConversationStart";
 import MessageRenderer from "./MessageRenderer";
-import { Message } from "revolt.js/esm";
 
 const Area = styled.div.attrs({ "data-scroll-offset": "with-padding" })`
     height: 100%;
@@ -44,10 +46,9 @@ const Area = styled.div.attrs({ "data-scroll-offset": "with-padding" })`
        upward without moving the viewport. scrollTop runs [-max, 0]. */
     display: flex;
     flex-direction: column-reverse;
-    /* Scroll position is managed manually (restore, stay-at-bottom,
-       load-more offset math) — the browser's automatic scroll anchoring
-       double-corrects against it and causes small up/down jumps. */
-    overflow-anchor: none;
+    /* Native scroll anchoring stays on (matches upstream); it absorbs
+       late layout shifts between fetches and the fetch-time correction
+       composes with it. */
 
     &::-webkit-scrollbar-thumb {
         min-height: 150px;
@@ -106,49 +107,53 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
                 scrollState.current = v;
             }
 
-            defer(() => {
-                // Column-reverse scroller: the bottom is scrollTop 0 and
-                // positions are negative offsets from it.
-                if (scrollState.current.type === "ScrollToBottom") {
-                    setScrollState({
-                        type: "Bottom",
-                        scrollingUntil: +new Date() + 150,
-                    });
+            // Applied synchronously: every position-type state arrives via
+            // the renderer.scrollState layout effect (DOM committed, not
+            // yet painted), so correcting scrollTop here means no frame is
+            // ever painted at the wrong position. The old setTimeout-based
+            // defer showed one mispositioned frame per history fetch.
+            //
+            // Column-reverse scroller: the bottom is scrollTop 0 and
+            // positions are negative offsets from it.
+            if (scrollState.current.type === "ScrollToBottom") {
+                setScrollState({
+                    type: "Bottom",
+                    scrollingUntil: +new Date() + 150,
+                });
 
-                    ref.current?.scrollTo({
-                        top: 0,
-                        behavior: scrollState.current.smooth
-                            ? "smooth"
-                            : "auto",
-                    });
-                } else if (scrollState.current.type === "ScrollToView") {
-                    document
-                        .getElementById(scrollState.current.id)
-                        ?.scrollIntoView({ block: "center" });
+                ref.current?.scrollTo({
+                    top: 0,
+                    behavior: scrollState.current.smooth ? "smooth" : "auto",
+                });
+            } else if (scrollState.current.type === "ScrollToView") {
+                document
+                    .getElementById(scrollState.current.id)
+                    ?.scrollIntoView({ block: "center" });
 
-                    setScrollState({ type: "Free" });
-                } else if (scrollState.current.type === "OffsetTop") {
-                    // Content was appended at the bottom (scroll origin)
-                    // side: keep the viewport on the same messages by
-                    // backing off by the added height.
-                    if (ref.current) {
-                        ref.current.scrollTop =
-                            ref.current.scrollTop -
-                            (ref.current.scrollHeight -
-                                scrollState.current.previousHeight);
-                    }
-
-                    setScrollState({ type: "Free" });
-                } else if (scrollState.current.type === "ScrollTop") {
-                    if (ref.current) {
-                        ref.current.scrollTop = scrollState.current.y;
-                    }
-
-                    setScrollState({ type: "Free" });
+                setScrollState({ type: "Free" });
+            } else if (scrollState.current.type === "OffsetTop") {
+                // Content was appended at the bottom (scroll origin) side:
+                // keep the viewport on the same messages by backing off by
+                // the added height.
+                if (ref.current) {
+                    ref.current.scrollTop =
+                        ref.current.scrollTop -
+                        (ref.current.scrollHeight -
+                            scrollState.current.previousHeight);
                 }
 
-                defer(() => renderer.complete());
-            });
+                setScrollState({ type: "Free" });
+            } else if (scrollState.current.type === "ScrollTop") {
+                if (ref.current) {
+                    ref.current.scrollTop = scrollState.current.y;
+                }
+
+                setScrollState({ type: "Free" });
+            } else if (scrollState.current.type === "Anchor") {
+                // Applied by MessageRenderer, whose commit carries the
+                // message DOM — here we just reset the local state.
+                setScrollState({ type: "Free" });
+            }
         },
         // eslint-disable-next-line
         [scrollState],
@@ -166,27 +171,28 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
             ? ref.current.scrollTop <=
               ref.current.clientHeight - ref.current.scrollHeight + offset
             : false;
-    const client = useClient()
+    const client = useClient();
     function pin(message: Message) {
-        client.api.post(`/channels/${message.channel_id}/messages/${message._id}/pin` as any)
-        message.is_pinned = true
+        client.api.post(
+            `/channels/${message.channel_id}/messages/${message._id}/pin` as any,
+        );
+        message.is_pinned = true;
     }
 
     function unpin(message: Message) {
-        client.api.delete(`/channels/${message.channel_id}/messages/${message._id}/pin` as any)
-        message.is_pinned = false
+        client.api.delete(
+            `/channels/${message.channel_id}/messages/${message._id}/pin` as any,
+        );
+        message.is_pinned = false;
     }
     // ? Handle global jump to bottom, e.g. when editing last message in chat.
     useEffect(() => {
-
         return internalSubscribe("MessageArea", "jump_to_bottom", () =>
             setScrollState({ type: "ScrollToBottom" }),
         );
     }, [setScrollState]);
 
     useEffect(() => {
-
-
         return internalSubscribe(
             "MessageBox",
             "pin",
@@ -194,30 +200,23 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
         );
     }, []);
     useEffect(() => {
-
-
         return internalSubscribe(
             "MessageBox",
             "unpin",
             unpin as (...args: unknown[]) => void,
         );
     }, []);
-    // ? Handle events from renderer.
-    useLayoutEffect(
-        () => setScrollState(renderer.scrollState),
-        // eslint-disable-next-line
-        [renderer.scrollState],
-    );
-
     // ? Load channel initially.
     // Layout effect + direct scrollTop: cached channels must be positioned
     // BEFORE first paint — the deferred scroll (setTimeout) lands a frame
     // late and shows the list at the top before snapping to the bottom.
+    // Runs before the renderer-events effect below so preempt() clears
+    // stale fetch/scroll state from a previous visit first.
     useLayoutEffect(() => {
+        renderer.preempt();
+
         if (message) return;
         if (renderer.state === "RENDER") {
-            runInAction(() => (renderer.fetching = true));
-
             if (renderer.scrollAnchored) {
                 // Reverse scroller paints at the bottom (0) natively.
                 if (ref.current) ref.current.scrollTop = 0;
@@ -236,6 +235,13 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // ? Handle events from renderer.
+    useLayoutEffect(
+        () => setScrollState(renderer.scrollState),
+        // eslint-disable-next-line
+        [renderer.scrollState],
+    );
 
     // ? If message present or changes, load it as well.
     useEffect(() => {
@@ -311,14 +317,6 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
         async function onScroll() {
             renderer.scrollPosition = current!.scrollTop;
 
-            if (atTop(100)) {
-                renderer.loadTop(current!);
-            }
-
-            if (atBottom(100)) {
-                renderer.loadBottom(current!);
-            }
-
             if (atBottom()) {
                 renderer.scrollAnchored = true;
             } else {
@@ -373,7 +371,7 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
             value={width ? width - MESSAGE_AREA_PADDING : 504}>
             <Area ref={ref}>
                 <div>
-                    {renderer.state === "LOADING" && <Preloader type="ring" />}
+                    {renderer.state === "LOADING" && <MessageSkeleton />}
                     {renderer.state === "WAITING_FOR_NETWORK" && (
                         <RequiresOnline>
                             <Preloader type="ring" />

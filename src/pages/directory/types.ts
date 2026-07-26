@@ -294,4 +294,5 @@ export const API_BASE =
 //   - POST /promos/submit
 // This is an absolute URL, so it bypasses the dev `/api` proxy entirely.
 export const BACKEND_API_BASE =
-    import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "https://peptide.chat/api";
+    import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
+    "https://peptide.chat/api";
