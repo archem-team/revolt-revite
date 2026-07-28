@@ -22,7 +22,12 @@ export class ChannelRenderer {
     stale = false;
     fetching = false;
     scrollPosition = 0;
-    scrollAnchored = false;
+
+    /** Reader is parked at the newest message. Observable: it is what tells
+     *  the "jump to present" bar to appear, now that scrolling up no longer
+     *  trims the list and so no longer flips `atBottom`. Starts true — a
+     *  channel opens pinned to the bottom. */
+    scrollAnchored = true;
 
     /** Bumped per fetch and per preempt; commits from an older flight are dropped. */
     flightId = 0;
@@ -34,7 +39,6 @@ export class ChannelRenderer {
             channel: false,
             currentRenderer: false,
             scrollPosition: false,
-            scrollAnchored: false,
             flightId: false,
         });
 
@@ -111,6 +115,10 @@ export class ChannelRenderer {
 
     @action markStale() {
         this.stale = true;
+    }
+
+    @action setScrollAnchored(anchored: boolean) {
+        this.scrollAnchored = anchored;
     }
 
     /** Clear a pending Anchor once applied so StayAtBottom flows again. */
