@@ -132,6 +132,7 @@ export default function EmbedMedia({ embed, width, height }: Props) {
                         className={styles.image}
                         src={client.proxyFile(url)}
                         loading="lazy"
+                        decoding="async"
                         style={
                             sized
                                 ? {
