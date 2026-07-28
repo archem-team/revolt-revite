@@ -250,21 +250,47 @@ function sanitise(content: string) {
 /**
  * Remark renderer component
  */
+/** The pipeline has no async plugin, so it can run synchronously — a
+ *  message then paints WITH its text on the first commit, instead of
+ *  mounting empty and re-committing a microtask later (which cascaded
+ *  into dozens of commits per history fetch). If a plugin ever turns
+ *  async, processSync throws once and we fall back to the deferred
+ *  path for the rest of the session. */
+let pipelineIsSync = true;
+
 export default memo(({ content, disallowBigEmoji }: MarkdownProps) => {
     const sanitisedContent = useMemo(() => sanitise(content), [content]);
 
-    const [Content, setContent] = useState<React.ReactElement>(null!);
+    const syncContent = useMemo(() => {
+        if (!pipelineIsSync) return null;
+        try {
+            return render.processSync(sanitisedContent)
+                .result as React.ReactElement;
+        } catch (err) {
+            pipelineIsSync = false;
+            return null;
+        }
+    }, [sanitisedContent]);
+
+    const [asyncContent, setAsyncContent] = useState<React.ReactElement>(
+        null!,
+    );
 
     useLayoutEffect(() => {
+        if (syncContent) return;
         render
             .process(sanitisedContent)
-            .then((file) => setContent(file.result));
-    }, [sanitisedContent]);
+            .then((file) => setAsyncContent(file.result));
+    }, [sanitisedContent, syncContent]);
 
     const largeEmoji = useMemo(
         () => !disallowBigEmoji && isOnlyEmoji(content!),
         [content, disallowBigEmoji],
     );
 
-    return <Container largeEmoji={largeEmoji}>{Content}</Container>;
+    return (
+        <Container largeEmoji={largeEmoji}>
+            {syncContent ?? asyncContent}
+        </Container>
+    );
 });

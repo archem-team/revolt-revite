@@ -30,6 +30,7 @@ import RequiresOnline from "../../../controllers/client/jsx/RequiresOnline";
 import { modalController } from "../../../controllers/modals/ModalController";
 import ConversationStart from "./ConversationStart";
 import MessageRenderer from "./MessageRenderer";
+import { useScrollLock } from "./useScrollLock";
 
 const Area = styled.div.attrs({ "data-scroll-offset": "with-padding" })`
     height: 100%;
@@ -46,9 +47,12 @@ const Area = styled.div.attrs({ "data-scroll-offset": "with-padding" })`
        upward without moving the viewport. scrollTop runs [-max, 0]. */
     display: flex;
     flex-direction: column-reverse;
-    /* Native scroll anchoring stays on (matches upstream); it absorbs
-       late layout shifts between fetches and the fetch-time correction
-       composes with it. */
+    /* Native scroll anchoring OFF: it demonstrably does not absorb
+       bottom-side layout changes in this reverse scroller (removals and
+       appends at the origin shoved the view), so corrections are owned
+       exclusively by the fetch-time Anchor + useScrollLock — one
+       deterministic corrector instead of hoping two compose. */
+    overflow-anchor: none;
 
     &::-webkit-scrollbar-thumb {
         min-height: 150px;
@@ -171,6 +175,18 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
             ? ref.current.scrollTop <=
               ref.current.clientHeight - ref.current.scrollHeight + offset
             : false;
+
+    // ? Hold the reading position against bottom-side layout changes
+    // (live messages, late embeds, reactions) while scrolled up.
+    useScrollLock(ref, renderer, () => {
+        const s = scrollState.current;
+        return (
+            s.type === "Bottom" &&
+            !!s.scrollingUntil &&
+            s.scrollingUntil > +new Date()
+        );
+    });
+
     const client = useClient();
     function pin(message: Message) {
         client.api.post(
@@ -317,10 +333,11 @@ export const MessageArea = observer(({ last_id, channel }: Props) => {
         async function onScroll() {
             renderer.scrollPosition = current!.scrollTop;
 
-            if (atBottom()) {
-                renderer.scrollAnchored = true;
-            } else {
-                renderer.scrollAnchored = false;
+            // Observable now, so only touch it on an actual transition —
+            // this runs on every scroll event.
+            const anchored = atBottom();
+            if (renderer.scrollAnchored !== anchored) {
+                renderer.setScrollAnchored(anchored);
             }
         }
 

@@ -95,7 +95,23 @@
     width: 100%;
     height: 100%;
 
+    /* Held invisible until fully decoded, then a short fade — this also
+       hides the partial top-to-bottom paint of images still arriving
+       over the network. The placeholder below shows through meanwhile. */
+    opacity: 1;
+    transition: opacity 0.2s ease;
+
     &.loading {
-        background: var(--background);
+        opacity: 0;
     }
+}
+
+.imagePlaceholder {
+    /* Same grid cell as the image (see Grid.tsx) — the reserved box
+       reads as a quiet surface instead of a void while bytes arrive. */
+    grid-area: 1 / 1;
+    width: 100%;
+    height: 100%;
+    background: var(--background);
+    border-radius: var(--border-radius);
 }

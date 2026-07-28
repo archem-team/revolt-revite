@@ -147,7 +147,16 @@ export const Bar = styled.div<{ position: "top" | "bottom"; accent?: boolean }>`
 
 export default observer(({ channel }: { channel: Channel }) => {
     const renderer = getRenderer(channel);
-    if (renderer.state !== "RENDER" || renderer.atBottom) return null;
+
+    // Two distinct reasons to offer "jump to present": the newest message
+    // isn't loaded at all (jumped to a link/reply), or it is loaded but the
+    // reader has scrolled away from it. Before, only the former could
+    // happen, because scrolling up trimmed the list and cleared atBottom.
+    if (
+        renderer.state !== "RENDER" ||
+        (renderer.atBottom && renderer.scrollAnchored)
+    )
+        return null;
 
     return (
         <Bar position="bottom">

@@ -8,7 +8,12 @@ import styled from "styled-components/macro";
 import { decodeTime } from "ulid";
 
 import { Text } from "preact-i18n";
-import { useEffect, useLayoutEffect, useState } from "preact/hooks";
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useState,
+} from "preact/hooks";
 
 import { MessageDivider } from "@revoltchat/ui";
 
@@ -26,6 +31,7 @@ import { useClient } from "../../../controllers/client/ClientController";
 import RequiresOnline from "../../../controllers/client/jsx/RequiresOnline";
 import ConversationStart from "./ConversationStart";
 import MessageEditor from "./MessageEditor";
+import { recaptureScrollLock } from "./useScrollLock";
 
 interface Props {
     last_id?: string;
@@ -63,7 +69,14 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
 
         if (el && area) {
             const delta = el.getBoundingClientRect().top - state.previousTop;
-            area.scrollTo({ top: area.scrollTop + delta });
+            // A pure prepend needs no correction in the reverse scroller —
+            // skip the write rather than poke an actively-scrolling area.
+            if (Math.abs(delta) >= 1) {
+                area.scrollTo({ top: area.scrollTop + delta });
+            }
+            // Re-baseline the scroll lock so it doesn't read this commit's
+            // correction as drift and apply it a second time.
+            recaptureScrollLock();
         }
 
         renderer.consumeAnchor();
@@ -75,6 +88,12 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
         setEditing(undefined);
         internalEmit("TextArea", "focus", "message");
     };
+
+    // Stable identities: fresh closures here sat in MessageSkeleton's
+    // effect deps, so every render tore down and re-created both wall
+    // IntersectionObservers.
+    const loadTop = useCallback(() => renderer.loadTop(), [renderer]);
+    const loadBottom = useCallback(() => renderer.loadBottom(), [renderer]);
 
     useEffect(() => {
         function editLast() {
@@ -114,7 +133,7 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
                 <MessageSkeleton
                     wall
                     align="end"
-                    onVisible={() => renderer.loadTop()}
+                    onVisible={loadTop}
                     permitFetching={!renderer.fetching}
                 />
             </RequiresOnline>,
@@ -291,7 +310,7 @@ export default observer(({ last_id, renderer, highlight }: Props) => {
                 <MessageSkeleton
                     wall
                     align="start"
-                    onVisible={() => renderer.loadBottom()}
+                    onVisible={loadBottom}
                     permitFetching={!renderer.fetching}
                 />
             </RequiresOnline>,

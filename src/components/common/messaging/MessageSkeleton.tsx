@@ -1,5 +1,6 @@
 import styled, { css, keyframes } from "styled-components/macro";
 
+import { memo } from "preact/compat";
 import { useEffect, useMemo, useRef } from "preact/hooks";
 
 /**
@@ -7,6 +8,9 @@ import { useEffect, useMemo, useRef } from "preact/hooks";
  * a name bar and one to three content bars per fake message, swept by a
  * single coherent shimmer (background-attachment: fixed keeps the
  * gradient aligned across every bar).
+ *
+ * The shimmer is for the LOADING state only. Edge walls (`wall`) render
+ * the same rows flat and static — see the override in `Base`.
  */
 
 const shimmer = keyframes`
@@ -34,6 +38,23 @@ const Base = styled.div<{ align?: "start" | "end"; wall?: boolean }>`
             height: 100rem;
             flex-grow: 0;
             flex-shrink: 0;
+
+            /* Walls are permanent furniture, not a load indicator — the
+               top one stays mounted for the whole visit in any channel
+               with history, so its ghosts must not animate.
+               background-position is not compositable (a paint
+               invalidation per frame across ~120 elements) and the
+               viewport-anchored gradient makes each one repaint again on
+               every scroll tick, taxing the message list continuously.
+               Flat bars match the shimmer's resting colour; the sweep
+               stays on the LOADING skeleton, where it means something.
+               The shorthand also resets background-attachment/-size, so
+               no fixed-attachment background is left inside the
+               scroller. */
+            [data-component="skeleton-shape"] {
+                background: var(--tertiary-background);
+                animation: none;
+            }
         `}
 `;
 
@@ -59,7 +80,7 @@ const Lines = styled.div`
     gap: 4px;
 `;
 
-const Frame = styled.div`
+const Frame = styled.div.attrs({ "data-component": "skeleton-shape" })`
     /* The two stops need a visible step for the sweep to read (the
        reference uses its two lightest surfaces ~10 tones apart) — lift
        the highlight from the base surface instead of pairing two
@@ -74,6 +95,11 @@ const Frame = styled.div`
     background-size: 200% 100%;
     background-attachment: fixed;
     animation: ${shimmer} 1.5s infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        background: var(--tertiary-background);
+        animation: none;
+    }
 `;
 
 const AvatarShape = styled(Frame)`
@@ -103,7 +129,9 @@ interface Props {
     permitFetching?: boolean;
 }
 
-export default function MessageSkeleton({
+// Memoised: with stable callbacks from the renderer this re-renders
+// only when the fetch gate cycles, not on every message-list tick.
+export default memo(function MessageSkeleton({
     count = 30,
     align,
     wall,
@@ -162,4 +190,4 @@ export default function MessageSkeleton({
             ))}
         </Base>
     );
-}
+});

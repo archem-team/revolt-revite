@@ -7,7 +7,7 @@ import { useApplicationState } from "../../../mobx/State";
 import fallback from "../assets/user.png";
 
 import { useClient } from "../../../controllers/client/ClientController";
-import IconBase, { IconBaseProps } from "../IconBase";
+import IconBase, { IconBaseProps, ImageIconBase } from "../IconBase";
 
 interface Props extends IconBaseProps<User> {
     status?: boolean;
@@ -82,6 +82,28 @@ export default observer(
                     { max_side: 256 },
                     animate,
                 ) ?? (target ? target.defaultAvatarURL : fallback);
+        }
+
+        // Plain avatars (no status dot, no mask cutout) skip the
+        // svg/foreignObject wrapper — foreignObject is disproportionately
+        // expensive to paint and the message list renders dozens of
+        // avatars; the wrapper only exists to composite the mask.
+        // (Same pattern as ServerIcon/ChannelIcon.)
+        if (!status && !mask) {
+            return (
+                <ImageIconBase
+                    {...(svgProps as JSX.HTMLAttributes<HTMLImageElement>)}
+                    ref={innerRef}
+                    src={url}
+                    width={size}
+                    height={size}
+                    hover={hover}
+                    draggable={false}
+                    loading="lazy"
+                    aria-hidden="true"
+                    borderRadius="--border-radius-user-icon"
+                />
+            );
         }
 
         return (

@@ -58,7 +58,14 @@ export const SimpleRenderer: RendererRoutines = {
 
         let messages = [...renderer.messages, message];
         let atTop = renderer.atTop;
-        if (messages.length > 150) {
+
+        // This trim drops the OLDEST messages. Geometrically that is the free
+        // side of a column-reverse scroller, but it is only safe when the
+        // reader is parked at the bottom — if they are up in history, those
+        // are the messages under their viewport. Since loadTop no longer
+        // trims, the window can exceed 150 while reading back; let it, and
+        // trim on the first message that arrives after they return.
+        if (messages.length > 150 && renderer.scrollAnchored) {
             messages = messages.slice(messages.length - 150);
             atTop = false;
         }
@@ -134,11 +141,15 @@ export const SimpleRenderer: RendererRoutines = {
                 renderer.atTop = true;
             }
 
-            if (renderer.messages.length > 150) {
-                renderer.messages = renderer.messages.slice(0, 150);
-                renderer.atBottom = false;
-            }
-
+            // No trim here, deliberately. The scroller is column-reverse, so
+            // its origin is the BOTTOM: content added or removed above the
+            // viewport costs nothing, but anything that changes the bottom of
+            // the list moves everything the reader is looking at, by the full
+            // height of what changed. Dropping the newest 50 while the reader
+            // scrolls up did exactly that, and the shove scaled with how tall
+            // those messages were — worst on images and long messages.
+            // loadBottom's trim is the mirror image and stays: it drops the
+            // OLDEST messages, which is the free side.
             renderer.emitScroll(
                 generateScroll(
                     renderer.messages[renderer.messages.length - 1]._id,
