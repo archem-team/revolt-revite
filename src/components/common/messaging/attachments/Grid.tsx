@@ -10,7 +10,20 @@ const Grid = styled.div<{ width: number; height: number }>`
     overflow: hidden;
     aspect-ratio: ${(props) => props.width} / ${(props) => props.height};
 
-    max-width: min(var(--width), var(--attachment-max-width));
+    /* Block layout resolves width BEFORE max-height clamps the ratio'd
+       height, and never revisits it — so without transferring the height
+       cap through the aspect ratio ourselves, portrait images get a
+       full-width box letterboxing the contained image to the left, and
+       the loading placeholder is visibly wider than the picture it
+       stands in for. */
+    max-width: min(
+        var(--width),
+        var(--attachment-max-width),
+        calc(
+            var(--attachment-max-height) *
+                ${(props) => props.width / Math.max(props.height, 1)}
+        )
+    );
     max-height: min(var(--height), var(--attachment-max-height));
 
     // This is a hack for browsers not supporting aspect-ratio.
