@@ -938,11 +938,12 @@ const Promos: React.FC = () => {
     const [submitting, setSubmitting] = useState(false);
     const [lightbox, setLightbox] = useState<string | null>(null);
 
-    // Servers the current user owns can have a promo submitted for them.
+    // Owners and server admins can submit promos. Keep this aligned with the
+    // backend's ManageServer permission check.
     // Computed inline (not memoised) so MobX observer re-renders pick up
     // servers that finish loading after mount.
-    const ownedServers = [...client.servers.values()].filter(
-        (s) => s.owner === client.user?._id,
+    const manageableServers = [...client.servers.values()].filter(
+        (s) => s.owner === client.user?._id || s.havePermission("ManageServer"),
     );
 
     useEffect(() => {
@@ -1029,7 +1030,7 @@ const Promos: React.FC = () => {
         return (
             <Wrapper>
                 <PromoSubmit
-                    servers={ownedServers}
+                    servers={manageableServers}
                     onClose={() => setSubmitting(false)}
                 />
             </Wrapper>
@@ -1061,7 +1062,7 @@ const Promos: React.FC = () => {
                     <option value="newest">Newest</option>
                     <option value="endingSoon">Ending soon</option>
                 </SortSelect>
-                {ownedServers.length > 0 && (
+                {manageableServers.length > 0 && (
                     <Button
                         compact
                         palette="accent"
@@ -1107,11 +1108,11 @@ const Promos: React.FC = () => {
                         </Glyph>
                         <h3>No live promos right now</h3>
                         <p>
-                            {ownedServers.length > 0
+                            {manageableServers.length > 0
                                 ? "Be the first to post one. Submit a promo for your community and it’ll show up here once an admin approves it."
                                 : "Vendors haven’t posted any deals yet. Check back soon. Fresh promos land here as communities publish them."}
                         </p>
-                        {ownedServers.length > 0 && (
+                        {manageableServers.length > 0 && (
                             <div className="cta">
                                 <Button
                                     palette="accent"
