@@ -228,6 +228,29 @@ export const Roles = observer(({ server }: Props) => {
                                             }
                                         />
                                     </p>
+                                    <p>
+                                        <Checkbox
+                                            value={
+                                                (
+                                                    currentRoleValue as {
+                                                        mentionable?: boolean;
+                                                    }
+                                                ).mentionable ?? false
+                                            }
+                                            onChange={(mentionable) =>
+                                                setValue({
+                                                    ...value,
+                                                    mentionable,
+                                                } as typeof value)
+                                            }
+                                            title={
+                                                <Text id="app.settings.permissions.mentionable_role" />
+                                            }
+                                            description={
+                                                <Text id="app.settings.permissions.mentionable_desc" />
+                                            }
+                                        />
+                                    </p>
                                 </section>
                                 <section>
                                     <Category>

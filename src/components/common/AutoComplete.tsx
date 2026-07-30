@@ -154,14 +154,21 @@ export function useAutoComplete(
                                 break;
                             case "TextChannel":
                                 {
+                                    // Walk the member objects, not the map
+                                    // keys: the keys are composite JSON
+                                    // strings, and this runs per keystroke.
                                     const server = channel.server_id;
-                                    users = [...client.members.keys()]
-                                        .map((x) => JSON.parse(x))
-                                        .filter((x) => x.server === server)
-                                        .map((x) => client.users.get(x.user))
-                                        .filter(
-                                            (x) => typeof x !== "undefined",
-                                        ) as User[];
+                                    users = [];
+
+                                    for (const member of client.members.values()) {
+                                        if (member._id.server !== server)
+                                            continue;
+
+                                        const user = client.users.get(
+                                            member._id.user,
+                                        );
+                                        if (user) users.push(user);
+                                    }
                                 }
                                 break;
                             default:
@@ -189,6 +196,44 @@ export function useAutoComplete(
                     (search.length === 0 || "everyone".match(regex))) {
                     // Add a special "everyone" entry at the beginning
                     matches = [{ _id: "@everyone", username: "everyone" } as any, ...matches].slice(0, 5);
+                }
+
+                // Suggest roles the author may ping (mentionable ones, or all
+                // of them when they hold MentionRoles in this channel). Role
+                // entries ride the user list as marked pseudo-entries, like
+                // @everyone above; selecting one inserts <%ROLE_ID>.
+                if (searchClues.users.type === "channel") {
+                    const channel = client.channels.get(searchClues.users.id);
+                    if (channel?.channel_type === "TextChannel") {
+                        const server = channel.server;
+                        if (server) {
+                            const canMentionAll =
+                                channel.havePermission(
+                                    "MentionRoles" as never,
+                                );
+                            const roles = server.orderedRoles
+                                .filter(
+                                    (role) =>
+                                        ((role as any).mentionable ||
+                                            canMentionAll) &&
+                                        (search.length === 0 ||
+                                            role.name
+                                                ?.toLowerCase()
+                                                .match(regex)),
+                                )
+                                .splice(0, 3)
+                                .map(
+                                    (role) =>
+                                        ({
+                                            _id: role.id,
+                                            username: role.name,
+                                            __role: role,
+                                        } as any),
+                                );
+
+                            matches = [...matches, ...roles];
+                        }
+                    }
                 }
 
                 if (matches.length > 0) {
@@ -263,12 +308,15 @@ export function useAutoComplete(
                     ];
                     content.splice(index, search.length, ...inserted);
                 } else if (state.type === "user") {
-                    const selectedUser = state.matches[state.selected];
-                    // Handle @everyone special case
-                    inserted =
-                        selectedUser._id === "@everyone"
-                            ? ["@everyone "]
-                            : ["@", selectedUser.username, " "];
+                    const selectedUser = state.matches[state.selected] as any;
+                    // Roles insert their ID form directly (like channels);
+                    // @everyone stays literal; users insert @username which is
+                    // converted to <@id> at send time.
+                    inserted = selectedUser.__role
+                        ? ["<%", selectedUser._id, "> "]
+                        : selectedUser._id === "@everyone"
+                        ? ["@everyone "]
+                        : ["@", selectedUser.username, " "];
                     content.splice(index, search.length + 1, ...inserted);
                 } else {
                     inserted = [
@@ -549,7 +597,31 @@ export default function AutoComplete({
                                 })
                             }
                             onClick={onClick}>
-                            {match._id === "@everyone" ? (
+                            {(match as any).__role ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <span style={{ 
+                                        width: "24px", 
+                                        height: "24px", 
+                                        display: "flex", 
+                                        alignItems: "center", 
+                                        justifyContent: "center",
+                                        fontSize: "14px",
+                                        background: "var(--tertiary-background)",
+                                        color: ((match as any).__role.colour &&
+                                            !(match as any).__role.colour.includes("gradient"))
+                                            ? (match as any).__role.colour
+                                            : "var(--foreground)",
+                                        borderRadius: "50%",
+                                        fontWeight: "600"
+                                    }}>@</span>
+                                    <span style={{
+                                        color: ((match as any).__role.colour &&
+                                            !(match as any).__role.colour.includes("gradient"))
+                                            ? (match as any).__role.colour
+                                            : undefined,
+                                    }}>{match.username}</span>
+                                </div>
+                            ) : match._id === "@everyone" ? (
                                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                     <span style={{ 
                                         width: "24px", 
