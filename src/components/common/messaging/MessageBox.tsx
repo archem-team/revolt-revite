@@ -390,6 +390,41 @@ export default observer(({ channel }: Props) => {
             // kept for potential future logic, but currently does nothing
         }
 
+        // Convert @RoleName mentions to <%ROLE_ID> for roles of this server
+        // the author may ping (mirrors the autocomplete suggestions). Runs
+        // before usernames so an account named after a role cannot capture
+        // its pings; matched literally (role names may contain spaces),
+        // longest name first so overlapping names resolve deterministically.
+        if (channel.channel_type === "TextChannel" && content.includes("@")) {
+            const server = channel.server;
+            if (server) {
+                const canMentionAll = channel.havePermission(
+                    "MentionRoles" as never,
+                );
+
+                const roles = server.orderedRoles
+                    .filter(
+                        (role) =>
+                            ((role as { mentionable?: boolean }).mentionable ||
+                                canMentionAll) &&
+                            role.name &&
+                            role.name.toLowerCase() !== "everyone",
+                    )
+                    .sort((a, b) => b.name!.length - a.name!.length);
+
+                for (const role of roles) {
+                    const escaped = role.name!.replace(
+                        /[.*+?^${}()|[\]\\]/g,
+                        "\\$&",
+                    );
+                    content = content.replace(
+                        new RegExp(`@${escaped}(?![\\w-])`, "gi"),
+                        `<%${role.id}>`,
+                    );
+                }
+            }
+        }
+
         // Convert @username mentions to <@USER_ID> format.
         // Hyphens are part of a username: without them "@john-doe" matched
         // only "@john", the lookup for that name failed, and the mention was

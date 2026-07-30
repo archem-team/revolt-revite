@@ -308,15 +308,13 @@ export function useAutoComplete(
                     ];
                     content.splice(index, search.length, ...inserted);
                 } else if (state.type === "user") {
-                    const selectedUser = state.matches[state.selected] as any;
-                    // Roles insert their ID form directly (like channels);
-                    // @everyone stays literal; users insert @username which is
-                    // converted to <@id> at send time.
-                    inserted = selectedUser.__role
-                        ? ["<%", selectedUser._id, "> "]
-                        : selectedUser._id === "@everyone"
-                        ? ["@everyone "]
-                        : ["@", selectedUser.username, " "];
+                    const selectedUser = state.matches[state.selected];
+                    // Users and roles both insert @Name text; conversion to
+                    // the id form happens at send time in MessageBox.
+                    inserted =
+                        selectedUser._id === "@everyone"
+                            ? ["@everyone "]
+                            : ["@", selectedUser.username, " "];
                     content.splice(index, search.length + 1, ...inserted);
                 } else {
                     inserted = [
