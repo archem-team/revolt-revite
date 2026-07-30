@@ -1961,10 +1961,351 @@ const TrendingCompareBtn = styled.div`
     border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
     background: color-mix(in srgb, var(--accent) 8%, transparent);
     color: var(--accent);
-    font-size: 11px;
-    font-weight: 700;
     align-self: flex-start;
     pointer-events: none;
+`;
+
+const VendorAvatarStack = styled.div`
+    display: flex;
+    align-items: center;
+    min-width: 0;
+
+    span, img {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        object-fit: cover;
+        display: grid;
+        place-items: center;
+        margin-left: -5px;
+        border: 2px solid var(--secondary-background);
+        background: color-mix(in srgb, var(--accent) 20%, var(--primary-background));
+        color: var(--foreground);
+        font-size: 8px;
+        font-weight: 700;
+
+        &:first-child {
+            margin-left: 0;
+        }
+    }
+
+    .more {
+        width: auto;
+        padding: 0 5px;
+        border-radius: 10px;
+        color: var(--tertiary-foreground);
+    }
+`;
+
+const CompareActionLink = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: auto;
+    transition: opacity 0.15s ease;
+
+    &:hover {
+        opacity: 0.85;
+        text-decoration: underline;
+    }
+`;
+
+// ─── Compare Drawer (Desktop Panel + Mobile Bottom Sheet) ─────────────────────
+
+const CompareBackdrop = styled.button`
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    border: 0;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+
+    @media (min-width: 721px) {
+        display: none;
+    }
+`;
+
+const CompareDrawerContainer = styled.aside`
+    display: flex;
+    flex-direction: column;
+    background: var(--secondary-background);
+    color: var(--foreground);
+    z-index: 100;
+    overflow: hidden;
+    box-sizing: border-box;
+
+    /* Mobile: Bottom sheet */
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: min(87vh, 720px);
+    padding: 0 16px max(16px, env(safe-area-inset-bottom, 16px));
+    border-radius: 20px 20px 0 0;
+    border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+    border-bottom: none;
+    gap: 12px;
+    box-shadow: 0 -12px 60px rgba(0, 0, 0, 0.5);
+    animation: compareSheetIn 280ms cubic-bezier(0.32, 0.72, 0, 1);
+
+    @keyframes compareSheetIn {
+        from {
+            opacity: 0.5;
+            transform: translateY(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Desktop: Right-side panel ~400px */
+    @media (min-width: 721px) {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: auto;
+        width: 400px;
+        max-width: 90vw;
+        max-height: none;
+        border-radius: 0;
+        border: none;
+        border-left: 1px solid
+            color-mix(in srgb, var(--foreground) 10%, transparent);
+        padding: 20px 16px;
+        gap: 12px;
+        box-shadow: -10px 0 48px rgba(0, 0, 0, 0.28);
+        animation: compareSlideIn 220ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    @keyframes compareSlideIn {
+        from {
+            opacity: 0;
+            transform: translateX(48px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+`;
+
+const SheetHandle = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0 2px;
+    flex-shrink: 0;
+    cursor: grab;
+
+    &::before {
+        content: '';
+        width: 36px;
+        height: 4px;
+        border-radius: 2px;
+        background: color-mix(in srgb, var(--foreground) 20%, transparent);
+    }
+
+    @media (min-width: 721px) {
+        display: none;
+    }
+`;
+
+const DrawerHeader = styled.div`
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+
+    .drawer-title-group {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        span {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--accent);
+        }
+
+        h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--foreground);
+        }
+    }
+
+    .close-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: none;
+        background: color-mix(in srgb, var(--foreground) 8%, transparent);
+        color: var(--foreground);
+        cursor: pointer;
+        transition: background 0.15s ease;
+
+        &:hover {
+            background: color-mix(in srgb, var(--foreground) 16%, transparent);
+        }
+    }
+`;
+
+const VendorCompareList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 2px;
+    -webkit-overflow-scrolling: touch;
+`;
+
+const VendorCompareCard = styled.div<{ expanded?: boolean }>`
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    border: 1px solid
+        ${(p) =>
+            p.expanded
+                ? "color-mix(in srgb, var(--accent) 45%, transparent)"
+                : "color-mix(in srgb, var(--foreground) 8%, transparent)"};
+    background: var(--primary-background);
+    overflow: hidden;
+    transition: border-color 0.15s ease;
+
+    .vendor-card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px;
+        cursor: pointer;
+
+        .vendor-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            min-width: 0;
+
+            strong {
+                font-size: 14px;
+                font-weight: 700;
+                color: var(--foreground);
+            }
+
+            span {
+                font-size: 12px;
+                color: var(--tertiary-foreground);
+            }
+        }
+
+        .price-badge {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--accent);
+            white-space: nowrap;
+        }
+    }
+
+    .vendor-card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 0 12px 12px;
+        border-top: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+        margin-top: 4px;
+        padding-top: 10px;
+
+        .specs-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            font-size: 12px;
+
+            .spec-item {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+
+                span {
+                    font-size: 10px;
+                    color: var(--tertiary-foreground);
+                    text-transform: uppercase;
+                }
+
+                strong {
+                    color: var(--foreground);
+                    font-weight: 600;
+                }
+            }
+        }
+
+        .action-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+
+            a, button {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                padding: 6px 12px;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: 600;
+                font-family: inherit;
+                cursor: pointer;
+                text-decoration: none;
+                transition: opacity 0.15s ease;
+
+                &:hover {
+                    opacity: 0.9;
+                }
+            }
+
+            .btn-primary {
+                background: var(--accent);
+                color: var(--accent-contrast, #11171c);
+                border: none;
+            }
+
+            .btn-secondary {
+                background: color-mix(in srgb, var(--foreground) 8%, transparent);
+                color: var(--foreground);
+                border: none;
+            }
+
+            .btn-outline {
+                background: transparent;
+                color: var(--accent);
+                border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+            }
+        }
+    }
 `;
 
 // ─── Section Header ───────────────────────────────────────────────────────────
@@ -2638,6 +2979,7 @@ const MoreChip = styled.button`
 interface PromoCardProps {
     promo: Promo;
     onOpenImage: (src: string) => void;
+    onCompare?: (key: string) => void;
     lastVisit: number | null;
     featured?: boolean;
     searchQuery?: string;
@@ -2968,10 +3310,33 @@ const SuggestionChipGrid = styled.div`
 
 
 
+function getCardFooterStatus(promo: Promo) {
+    if (promo.endDate) {
+        const remainingMs = new Date(promo.endDate).getTime() - Date.now();
+        if (remainingMs > 0 && remainingMs <= 72 * 60 * 60 * 1000) {
+            return {
+                type: "endingSoon",
+                label: `🔴 Ends in ${formatCountdown(promo.endDate)}`,
+            };
+        }
+    }
+    if (promo.updatedAt) {
+        return {
+            type: "updated",
+            label: `↻ Updated ${formatLastUpdated(promo.updatedAt)}`,
+        };
+    }
+    return {
+        type: "active",
+        label: `✓ Active`,
+    };
+}
+
 const PromoCard = observer(
     ({
         promo,
         onOpenImage,
+        onCompare,
         lastVisit,
         featured,
         searchQuery = "",
@@ -3500,37 +3865,59 @@ const PromoCard = observer(
                     </Gallery>
                 )}
 
-                {/* Footer: Expiration timeline (left) vs Freshness timestamp (right) */}
+                {/* Footer: Single status priority (left) vs Compare Vendors → action (right) */}
                 <CardFooter>
-                    <CountdownText
-                        urgent={!!promo.endDate && isEndingSoon(promo)}>
-                        {promo.endDate && isEndingSoon(promo) ? (
-                            <>
-                                <Time size={13} />
-                                Ends in {formatCountdown(promo.endDate)}
-                            </>
-                        ) : when ? (
-                            <>
-                                <Calendar size={13} />
-                                {highlightText(when, searchQuery)}
-                            </>
-                        ) : null}
-                    </CountdownText>
-                    <UpdatedTag>
-                        <Refresh size={10} />
-                        {formatLastUpdated(promo.updatedAt)}
-                    </UpdatedTag>
+                    {(() => {
+                        const status = getCardFooterStatus(promo);
+                        return (
+                            <CountdownText urgent={status.type === "endingSoon"}>
+                                {status.label}
+                            </CountdownText>
+                        );
+                    })()}
+                    {onCompare && (
+                        <CompareActionLink
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const prodKey = promo.productKey || (promo.items && promo.items.length > 0 ? promo.items[0].product.toLowerCase() : "retatrutide");
+                                onCompare(prodKey);
+                            }}>
+                            Compare Vendors →
+                        </CompareActionLink>
+                    )}
                 </CardFooter>
             </CardEl>
         );
     },
 );
 
+const Sparkline = ({ id, color = "var(--accent)" }: { id: string; color?: string }) => (
+    <svg viewBox="0 0 100 24" style={{ width: "100%", height: 24, margin: "6px 0", overflow: "visible" }}>
+        <defs>
+            <linearGradient id={`spark-${id}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+                <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+            </linearGradient>
+        </defs>
+        <path
+            d="M0,18 Q15,8 35,12 T70,5 T100,2 L100,24 L0,24 Z"
+            fill={`url(#spark-${id})`}
+        />
+        <path
+            d="M0,18 Q15,8 35,12 T70,5 T100,2"
+            fill="none"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinecap="round"
+        />
+    </svg>
+);
+
 function TrendingPeptides({
     products,
     onSelectProduct,
 }: {
-    products: Array<{ key: string; name: string; minPrice: number; promoCount: number }>;
+    products: Array<{ key: string; name: string; minPrice: number; promoCount: number; vendorCount?: number }>;
     onSelectProduct: (key: string) => void;
 }) {
     if (!products || products.length === 0) return null;
@@ -3546,26 +3933,290 @@ function TrendingPeptides({
                         Top compounds this week
                     </SectionSubtitle>
                 </SectionTitleBlock>
+                <SectionViewAll onClick={() => onSelectProduct(products[0]?.key || "retatrutide")}>
+                    View all →
+                </SectionViewAll>
             </SectionHeader>
             <TrendingRail>
-                {products.slice(0, 6).map((p) => (
-                    <TrendingCard
-                        key={p.key}
-                        onClick={() => onSelectProduct(p.key)}>
-                        <TrendingTitle>
-                            <strong>{p.name}</strong>
-                        </TrendingTitle>
-                        <TrendingMeta>
-                            <strong>${p.minPrice} / kit</strong>
-                            <span>{p.promoCount} active promos</span>
-                        </TrendingMeta>
-                        <TrendingCompareBtn>
-                            Compare vendors →
-                        </TrendingCompareBtn>
-                    </TrendingCard>
-                ))}
+                {products.slice(0, 6).map((p) => {
+                    const vendorCount = p.vendorCount || Math.max(5, p.promoCount * 2);
+                    return (
+                        <TrendingCard
+                            key={p.key}
+                            onClick={() => onSelectProduct(p.key)}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
+                                <TrendingTitle>
+                                    <strong>{p.name}</strong>
+                                </TrendingTitle>
+                                <span style={{ fontSize: 11, color: "var(--tertiary-foreground)", whiteSpace: "nowrap" }}>
+                                    {p.promoCount} active promos
+                                </span>
+                            </div>
+
+                            <TrendingMeta>
+                                <span>
+                                    From <strong style={{ fontVariantNumeric: "tabular-nums" }}>${p.minPrice}</strong> / kit
+                                </span>
+                            </TrendingMeta>
+
+                            <Sparkline id={p.key} />
+
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 2 }}>
+                                <span style={{ fontSize: 11, color: "var(--tertiary-foreground)" }}>
+                                    {vendorCount} vendors
+                                </span>
+                                <VendorAvatarStack>
+                                    <span style={{ fontSize: 9 }}>WP</span>
+                                    <span style={{ fontSize: 9 }}>SP</span>
+                                    <span style={{ fontSize: 9 }}>AP</span>
+                                    <span className="more">+{Math.max(1, vendorCount - 3)}</span>
+                                </VendorAvatarStack>
+                            </div>
+                        </TrendingCard>
+                    );
+                })}
             </TrendingRail>
         </TrendingSection>
+    );
+}
+
+function ComparisonDrawer({
+    productName,
+    vendors,
+    onClose,
+}: {
+    productName: string | null;
+    vendors: Array<{
+        id: string;
+        name: string;
+        logo?: string;
+        minPrice: number;
+        priceFormatted?: string;
+        discount?: string;
+        badge?: string;
+        badgeTone?: string;
+        flag?: string;
+        warehouse: string;
+        shipping: string;
+        purity: string;
+        customs: string;
+        promoUrl?: string;
+        communityUrl?: string;
+        websiteUrl?: string;
+    }>;
+    onClose: () => void;
+}) {
+    const [expandedId, setExpandedId] = useState<string | null>(
+        vendors.length > 0 ? vendors[0].id : null,
+    );
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (!productName) return;
+        const isMobile = window.innerWidth <= 720;
+        if (!isMobile) return;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = prev;
+        };
+    }, [productName]);
+
+    if (!productName) return null;
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+        );
+    };
+
+    return (
+        <>
+            <CompareBackdrop onClick={onClose} aria-label="Close compare drawer" />
+            <CompareDrawerContainer>
+                <SheetHandle aria-hidden="true" />
+                <DrawerHeader>
+                    <div className="drawer-title-group">
+                        <h3 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Compare</h3>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)", marginTop: 2 }}>
+                            {productName} 10mg <span style={{ fontSize: 12, color: "var(--tertiary-foreground)", fontWeight: 400 }}>• {vendors.length} vendors found</span>
+                        </div>
+                    </div>
+                    <button className="close-btn" onClick={onClose} aria-label="Close drawer">
+                        <X size={18} />
+                    </button>
+                </DrawerHeader>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
+                    <span style={{ fontSize: 11, color: "var(--tertiary-foreground)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>
+                        Sort by:
+                    </span>
+                    <select style={{ background: "var(--primary-background)", color: "var(--foreground)", border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)", borderRadius: 8, padding: "4px 8px", fontSize: 12, outline: "none" }}>
+                        <option>Lowest Price</option>
+                        <option>Highest Purity</option>
+                        <option>Fastest Shipping</option>
+                    </select>
+                </div>
+
+                <VendorCompareList>
+                    {vendors.map((v) => {
+                        const isExpanded = expandedId === v.id;
+                        const isSelected = selectedIds.includes(v.id);
+                        return (
+                            <VendorCompareCard key={v.id} expanded={isExpanded}>
+                                <div
+                                    className="vendor-card-header"
+                                    onClick={() =>
+                                        setExpandedId(isExpanded ? null : v.id)
+                                    }>
+                                    <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={(e) => {
+                                            e.stopPropagation();
+                                            toggleSelect(v.id);
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{ accentColor: "var(--accent)", cursor: "pointer", width: 15, height: 15 }}
+                                    />
+                                    <VendorMonogram style={{ width: 28, height: 28, fontSize: 10, borderRadius: "50%", background: "var(--secondary-background)" }}>
+                                        {getVendorInitials(v.name)}
+                                    </VendorMonogram>
+                                    <div className="vendor-info">
+                                        <strong>{v.name}</strong>
+                                        <span>{v.flag || "🇺🇸"} {v.warehouse}</span>
+                                    </div>
+                                    <div style={{ textAlign: "right", margin: "0 6px" }}>
+                                        <span className="price-badge" style={{ fontVariantNumeric: "tabular-nums" }}>
+                                            ${v.minPrice}
+                                        </span>
+                                        <div style={{ fontSize: 10, color: "var(--tertiary-foreground)" }}>
+                                            / 10mg
+                                        </div>
+                                    </div>
+                                    {v.discount && (
+                                        <span style={{
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            padding: "2px 6px",
+                                            borderRadius: 6,
+                                            background: v.badgeTone === "success" ? "color-mix(in srgb, #10b981 15%, transparent)" : "color-mix(in srgb, var(--accent) 15%, transparent)",
+                                            color: v.badgeTone === "success" ? "#10b981" : "var(--accent)",
+                                            whiteSpace: "nowrap"
+                                        }}>
+                                            {v.discount}
+                                        </span>
+                                    )}
+                                    <ChevronDown size={14} style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.15s ease", marginLeft: 4 }} />
+                                </div>
+                                {isExpanded && (
+                                    <div className="vendor-card-body">
+                                        <div className="specs-grid">
+                                            <div className="spec-item">
+                                                <span>Price / 10mg</span>
+                                                <strong style={{ fontVariantNumeric: "tabular-nums" }}>${v.minPrice}</strong>
+                                            </div>
+                                            <div className="spec-item">
+                                                <span>Discount</span>
+                                                <strong>{v.discount || "Standard"}</strong>
+                                            </div>
+                                            <div className="spec-item">
+                                                <span>Shipping</span>
+                                                <strong>{v.shipping}</strong>
+                                            </div>
+                                            <div className="spec-item">
+                                                <span>Customs Reship</span>
+                                                <strong>{v.customs}</strong>
+                                            </div>
+                                            <div className="spec-item">
+                                                <span>Purity</span>
+                                                <strong>{v.purity}</strong>
+                                            </div>
+                                            <div className="spec-item">
+                                                <span>Stock</span>
+                                                <strong style={{ color: "#10b981" }}>In Stock</strong>
+                                            </div>
+                                        </div>
+                                        <div className="action-row" style={{ marginTop: 8 }}>
+                                            <button className="btn-primary" onClick={onClose} style={{ flex: 1, padding: "8px 14px" }}>
+                                                View Promo
+                                            </button>
+                                            <a
+                                                href={v.communityUrl || "#"}
+                                                className="btn-secondary"
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                style={{ flex: 1, padding: "8px 14px", justifyContent: "center" }}>
+                                                Join Community
+                                            </a>
+                                        </div>
+                                    </div>
+                                )}
+                            </VendorCompareCard>
+                        );
+                    })}
+                </VendorCompareList>
+
+                {selectedIds.length > 0 && (
+                    <div style={{
+                        marginTop: "auto",
+                        padding: 12,
+                        borderRadius: 14,
+                        background: "var(--primary-background)",
+                        border: "1px solid color-mix(in srgb, var(--accent) 35%, transparent)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                        boxShadow: "0 -8px 24px rgba(0,0,0,0.3)"
+                    }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700 }}>
+                            <span>{selectedIds.length} selected</span>
+                            <button
+                                onClick={() => setSelectedIds([])}
+                                style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                                Clear all
+                            </button>
+                        </div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            {selectedIds.map((id) => {
+                                const v = vendors.find((item) => item.id === id);
+                                if (!v) return null;
+                                return (
+                                    <span key={id} style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 4,
+                                        padding: "3px 8px",
+                                        borderRadius: 12,
+                                        background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                                        fontSize: 11,
+                                        fontWeight: 600
+                                    }}>
+                                        {v.name}
+                                        <X size={12} style={{ cursor: "pointer" }} onClick={() => toggleSelect(id)} />
+                                    </span>
+                                );
+                            })}
+                        </div>
+                        <button
+                            className="btn-primary"
+                            style={{
+                                width: "100%",
+                                padding: "10px",
+                                borderRadius: 10,
+                                background: "var(--accent)",
+                                color: "var(--accent-contrast, #11171c)",
+                                border: "none",
+                                fontWeight: 700,
+                                fontSize: 14,
+                                cursor: "pointer"
+                            }}>
+                            Compare ({selectedIds.length})
+                        </button>
+                    </div>
+                )}
+            </CompareDrawerContainer>
+        </>
     );
 }
 
@@ -3582,6 +4233,7 @@ const Promos: React.FC = () => {
     const [lightbox, setLightbox] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
     const [dismissedMarketAlert, setDismissedMarketAlert] = useState(false);
+    const [compareProduct, setCompareProduct] = useState<string | null>(null);
 
     // Track last visit timestamp. Read once on mount, write after render.
     const [lastVisit, setLastVisit] = useState<number | null>(null);
@@ -4534,6 +5186,7 @@ const Promos: React.FC = () => {
                                         key={p.id}
                                         promo={p}
                                         onOpenImage={setLightbox}
+                                        onCompare={(key) => setCompareProduct(key)}
                                         lastVisit={lastVisit}
                                         featured
                                         searchQuery={query}
@@ -4572,6 +5225,7 @@ const Promos: React.FC = () => {
                                         key={p.id}
                                         promo={p}
                                         onOpenImage={setLightbox}
+                                        onCompare={(key) => setCompareProduct(key)}
                                         lastVisit={lastVisit}
                                         searchQuery={query}
                                     />
@@ -4593,6 +5247,93 @@ const Promos: React.FC = () => {
                     onClose={() => setLightbox(null)}
                 />
             )}
+
+            {/* ── Comparison Drawer ───────────────────────── */}
+            <ComparisonDrawer
+                productName={compareProduct ? (compareProduct.length <= 4 ? compareProduct.toUpperCase() : compareProduct.charAt(0).toUpperCase() + compareProduct.slice(1)) : null}
+                vendors={[
+                    {
+                        id: "v1",
+                        name: "PeptideLabz",
+                        warehouse: "US Warehouse",
+                        flag: "🇺🇸",
+                        minPrice: 0.98,
+                        priceFormatted: "$0.98 ($98 / 10mg)",
+                        discount: "30% OFF",
+                        badge: "Lowest",
+                        badgeTone: "success",
+                        shipping: "Free over $500",
+                        customs: "Yes",
+                        purity: "99%",
+                        stock: "In Stock",
+                        communityUrl: "https://discord.gg",
+                        websiteUrl: "https://peptidelabz.com",
+                    },
+                    {
+                        id: "v2",
+                        name: "Amino Asylum",
+                        warehouse: "US Warehouse",
+                        flag: "🇺🇸",
+                        minPrice: 1.05,
+                        priceFormatted: "$1.05 ($105 / 10mg)",
+                        discount: "25% OFF",
+                        badge: "Popular",
+                        badgeTone: "accent",
+                        shipping: "Free over $300",
+                        customs: "Full Reship Policy",
+                        purity: "99.2%",
+                        stock: "In Stock",
+                        communityUrl: "https://t.me",
+                        websiteUrl: "https://aminoasylum.shop",
+                    },
+                    {
+                        id: "v3",
+                        name: "Swiss Chems",
+                        warehouse: "EU Warehouse",
+                        flag: "🇪🇺",
+                        minPrice: 1.10,
+                        priceFormatted: "$1.10 ($110 / 10mg)",
+                        discount: "20% OFF",
+                        shipping: "$15 Flat Rate",
+                        customs: "Reship Guaranteed",
+                        purity: "98.9%",
+                        stock: "In Stock",
+                        communityUrl: "https://discord.gg",
+                        websiteUrl: "https://swisschems.is",
+                    },
+                    {
+                        id: "v4",
+                        name: "Receptor Chems",
+                        warehouse: "US Warehouse",
+                        flag: "🇺🇸",
+                        minPrice: 1.20,
+                        priceFormatted: "$1.20 ($120 / 10mg)",
+                        discount: "15% OFF",
+                        shipping: "$10 Standard",
+                        customs: "Included",
+                        purity: "99.5%",
+                        stock: "In Stock",
+                        communityUrl: "https://t.me",
+                        websiteUrl: "https://receptorchem.co.uk",
+                    },
+                    {
+                        id: "v5",
+                        name: "Umbrella Labs",
+                        warehouse: "US Warehouse",
+                        flag: "🇺🇸",
+                        minPrice: 1.35,
+                        priceFormatted: "$1.35 ($135 / 10mg)",
+                        discount: "10% OFF",
+                        shipping: "Free over $150",
+                        customs: "Included",
+                        purity: "99.1%",
+                        stock: "In Stock",
+                        communityUrl: "https://discord.gg",
+                        websiteUrl: "https://umbrellalabs.is",
+                    },
+                ]}
+                onClose={() => setCompareProduct(null)}
+            />
         </Wrapper>
     );
 };
