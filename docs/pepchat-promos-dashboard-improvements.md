@@ -145,7 +145,43 @@ When a query or filter returns zero results:
 ## Verification & Status
 
 - **Dev Server**: Running cleanly on local Vite dev server.
-- **Production Build**: Verified production build (`yarn build`) and static preview server (`npx vite preview`).
+- **Production Build**: Verified production build (`NODE_OPTIONS="--max-old-space-size=8192" yarn build`) and static preview server (`npx vite preview --host --port 4173`).
 - **TypeScript**: Verified compilation status via `npx tsc --noEmit`.
 - **Backend Schema Compatibility**: Fully compatible with existing `Promo` interface fields.
+- **PR Status**: ✅ [PR #105](https://github.com/archem-team/revolt-revite/pull/105) pushed and ready to merge.
 
+---
+
+## Merge Resolution Log (2026-07-26)
+
+### Context
+During the merge of `origin/stage` into `feat/promos-improve-ui/ux`, multiple contiguous blocks of `styled-component` definitions in `Promos.tsx` were accidentally deleted while resolving conflict markers. Vite/TypeScript do not catch missing styled components at build time — they only crash at runtime when the specific JSX branch is first rendered, causing a wave of `ReferenceError: X is not defined` client crash reports.
+
+### Root Cause
+The merge conflict resolution script collapsed overlapping `<<<<<<< / ======= / >>>>>>>` blocks and, in doing so, removed the `const X = styled.div\`...\`` declarations while keeping the JSX usages intact.
+
+### Components Restored
+
+| Wave | Components | Trigger |
+|---|---|---|
+| 1 | `Centered`, `PromoTitle`, `ItemTable`, `ItemRow`, `ItemNote`, `Chip`, `MoreChip` | App crash on promo card render |
+| 2 | `NoteBlock`, `NoteBulletList`, `ReadMoreLink` | App crash on note section render |
+| 3 | `CardFooter`, `Empty`, `Glyph`, `ActiveFilterSummaryRow`, `SummaryTag`, `SuggestionChipGrid` | App crash on empty/filter state render |
+| 4 | `CountdownText`, `SuggestionChipBtn` | App crash on card footer render |
+
+**Total restored: 18 styled components.**
+
+### How to Prevent in Future
+Before every production build, run this audit to catch any missing styled components:
+```bash
+# Find closing tags with no matching styled-component definition
+grep -oE '</[A-Z][A-Za-z]+>' src/pages/home/Promos.tsx | sed 's|</||;s|>||' | sort -u > /tmp/used.txt
+grep -E '^const [A-Z][A-Za-z]+ = styled' src/pages/home/Promos.tsx | sed 's/const //;s/ =.*//' | sort -u > /tmp/defined.txt
+comm -23 /tmp/used.txt /tmp/defined.txt
+# Any output (excluding known external components) = missing definition = runtime crash
+```
+
+### Final Commit
+- **Commit**: `eb403dbf` — `fix(promos): restore missing styled components lost during merge conflict resolution`
+- **Pushed**: `origin/feat/promos-improve-ui/ux`
+- **Build**: Compiled cleanly, no crashes on `http://localhost:4173`

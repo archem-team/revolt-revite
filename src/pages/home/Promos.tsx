@@ -1826,6 +1826,147 @@ const MarketActivityAlert = styled.div`
     }
 `;
 
+// ─── Categorized Filters ──────────────────────────────────────────────────────
+
+const CategorizedFilterWrapper = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    margin-top: 16px;
+    margin-bottom: 20px;
+`;
+
+const FilterGroupRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+`;
+
+const FilterGroupLabel = styled.span`
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--tertiary-foreground);
+    min-width: max-content;
+    flex-shrink: 0;
+`;
+
+// ─── Trending Peptides ────────────────────────────────────────────────────────
+
+const TrendingSection = styled.div`
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    margin-bottom: 24px;
+`;
+
+const TrendingRail = styled.div`
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding-bottom: 6px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+`;
+
+const TrendingCard = styled.button`
+    flex: 0 0 200px;
+    width: 200px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    background: var(--secondary-background);
+    color: var(--foreground);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    scroll-snap-align: start;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+
+    &:hover {
+        border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+        background: color-mix(in srgb, var(--accent) 5%, var(--secondary-background));
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 720px) {
+        flex-basis: 160px;
+        width: 160px;
+        padding: 10px;
+        gap: 6px;
+    }
+`;
+
+const TrendingTitle = styled.div`
+    min-width: 0;
+
+    strong {
+        display: block;
+        font-size: 14px;
+        font-weight: 700;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+`;
+
+const TrendingMeta = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 11px;
+    color: var(--secondary-foreground);
+
+    strong {
+        color: var(--foreground);
+        font-size: 13px;
+        font-weight: 700;
+    }
+`;
+
+const TrendingCompareBtn = styled.div`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 4px;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    align-self: flex-start;
+    pointer-events: none;
+`;
+
 // ─── Section Header ───────────────────────────────────────────────────────────
 
 // Thin divider between filter chips and featured section — signals a curated zone
@@ -2082,8 +2223,8 @@ const HotPromosGrid = styled.div`
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
-        gap: 10px;
-        padding-bottom: 8px;
+        gap: 14px;
+        padding-bottom: 12px;
         width: 100%;
         max-width: 100%;
         min-width: 0;
@@ -2096,19 +2237,19 @@ const HotPromosGrid = styled.div`
         }
 
         > * {
-            flex: 0 0 84%;
-            max-width: 84%;
+            flex: 0 0 200px;
+            max-width: 200px;
+            min-width: 0;
             scroll-snap-align: start;
-            height: auto !important;
             margin-bottom: 0;
         }
 
         @media (max-width: 360px) {
-            gap: 8px;
+            gap: 10px;
 
             > * {
-                flex-basis: 86%;
-                max-width: 86%;
+                flex-basis: 168px;
+                max-width: 168px;
             }
         }
     }
@@ -3385,6 +3526,49 @@ const PromoCard = observer(
     },
 );
 
+function TrendingPeptides({
+    products,
+    onSelectProduct,
+}: {
+    products: Array<{ key: string; name: string; minPrice: number; promoCount: number }>;
+    onSelectProduct: (key: string) => void;
+}) {
+    if (!products || products.length === 0) return null;
+
+    return (
+        <TrendingSection>
+            <SectionHeader>
+                <SectionTitleBlock>
+                    <SectionTitle>
+                        🔥 Trending Peptides
+                    </SectionTitle>
+                    <SectionSubtitle>
+                        Top compounds this week
+                    </SectionSubtitle>
+                </SectionTitleBlock>
+            </SectionHeader>
+            <TrendingRail>
+                {products.slice(0, 6).map((p) => (
+                    <TrendingCard
+                        key={p.key}
+                        onClick={() => onSelectProduct(p.key)}>
+                        <TrendingTitle>
+                            <strong>{p.name}</strong>
+                        </TrendingTitle>
+                        <TrendingMeta>
+                            <strong>${p.minPrice} / kit</strong>
+                            <span>{p.promoCount} active promos</span>
+                        </TrendingMeta>
+                        <TrendingCompareBtn>
+                            Compare vendors →
+                        </TrendingCompareBtn>
+                    </TrendingCard>
+                ))}
+            </TrendingRail>
+        </TrendingSection>
+    );
+}
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 const Promos: React.FC = () => {
@@ -4308,6 +4492,20 @@ const Promos: React.FC = () => {
                                 Reset Filters
                             </button>
                         </ActiveFilterNoticeBar>
+                    )}
+
+                    {/* ── Trending Peptides ─────────────────────── */}
+                    {!query && activeFilter === "all" && (
+                        <TrendingPeptides
+                            products={[
+                                { key: "reta", name: "Reta", minPrice: 66, promoCount: 7 },
+                                { key: "tirz", name: "Tirz", minPrice: 52, promoCount: 5 },
+                                { key: "semax", name: "Semax", minPrice: 50, promoCount: 3 },
+                            ]}
+                            onSelectProduct={(key) => {
+                                /* Trending card click handler */
+                            }}
+                        />
                     )}
 
                     {/* ── Hot Promos Today ─────────────────────── */}
