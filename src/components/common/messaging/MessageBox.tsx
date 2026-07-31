@@ -45,6 +45,7 @@ import { modalController } from "../../../controllers/modals/ModalController";
 import { RenderEmoji } from "../../markdown/plugins/emoji";
 import AutoComplete, { useAutoComplete } from "../AutoComplete";
 import { PermissionTooltip } from "../Tooltip";
+import ComposerOverlay from "./ComposerOverlay";
 import FilePreview from "./bars/FilePreview";
 import ReplyBar from "./bars/ReplyBar";
 import { User } from "@styled-icons/boxicons-regular";
@@ -748,6 +749,9 @@ export default observer(({ channel }: Props) => {
                     onKeyUp={onKeyUp}
                     value={state.draft.get(channel._id)?.content ?? ""}
                     padding="var(--message-box-padding)"
+                    overlay={(value) => (
+                        <ComposerOverlay value={value} channel={channel} />
+                    )}
                     onKeyDown={(e) => {
                         if (e.ctrlKey && e.key === "Enter") {
                             e.preventDefault();
