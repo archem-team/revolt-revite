@@ -1,3 +1,7 @@
+/* Hallmark · component: CompareDrawer · genre: modern-minimal · theme: PepChat Dark
+ * states: default · hover · focus · active · disabled
+ * contrast: pass
+ */
 import {
     Calendar,
     MapPin,
@@ -2329,10 +2333,10 @@ const VendorCompareCard = styled.div<{ expanded?: boolean }>`
             }
 
             .btn-primary {
-                background: var(--accent, #8b5cf6);
-                color: #ffffff !important;
-                border: 1px solid color-mix(in srgb, #ffffff 20%, transparent);
-                box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35);
+                background: var(--accent);
+                color: var(--accent-foreground, #ffffff) !important;
+                border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+                box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 30%, transparent);
             }
 
             .btn-secondary {
@@ -2425,17 +2429,17 @@ const ToastContainer = styled.div`
     top: 24px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 10000;
+    z-index: 1000;
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 12px 22px;
     border-radius: 12px;
-    background: #10b981;
+    background: var(--status-online, #10b981);
     color: #ffffff;
     font-size: 13px;
     font-weight: 700;
-    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.45);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--status-online, #10b981) 40%, transparent);
     animation: toastIn 300ms cubic-bezier(0.16, 1, 0.3, 1);
 
     @keyframes toastIn {
@@ -4576,9 +4580,9 @@ function ComparisonDrawer({
                                             padding: "2px 6px",
                                             borderRadius: 6,
                                             background: hasPromo
-                                                ? "color-mix(in srgb, #10b981 15%, transparent)"
+                                                ? "color-mix(in srgb, var(--status-online, #10b981) 15%, transparent)"
                                                 : "color-mix(in srgb, var(--foreground) 8%, transparent)",
-                                            color: hasPromo ? "#10b981" : "var(--tertiary-foreground)",
+                                            color: hasPromo ? "var(--status-online, #10b981)" : "var(--tertiary-foreground)",
                                             whiteSpace: "nowrap",
                                             flexShrink: 0,
                                         }}>
@@ -4641,7 +4645,7 @@ function ComparisonDrawer({
                                                 </div>
                                                 <div className="spec-item">
                                                     <span>Stock</span>
-                                                    <strong style={{ color: "#10b981" }}>In Stock</strong>
+                                                    <strong style={{ color: "var(--status-online, #10b981)" }}>In Stock</strong>
                                                 </div>
                                             </div>
                                             <div className="action-row" style={{ marginTop: 10, display: "flex", gap: 8, width: "100%", boxSizing: "border-box" }}>

@@ -185,3 +185,27 @@ comm -23 /tmp/used.txt /tmp/defined.txt
 - **Commit**: `eb403dbf` — `fix(promos): restore missing styled components lost during merge conflict resolution`
 - **Pushed**: `origin/feat/promos-improve-ui/ux`
 - **Build**: Compiled cleanly, no crashes on `http://localhost:4173`
+
+---
+
+## 10. 📊 Compare Drawer & Community Navigation Refinements
+
+- **Card Sizing & Dynamic Growth**:
+  - `VendorCompareCard` configured with `height: auto; min-height: fit-content; overflow: visible;` (no fixed height clipping).
+  - Cards expand dynamically based on content (e.g. multi-line reship policy notes) without internal scrollbars or button clipping.
+  - Action buttons (`View Promo` and `Open Community` / `Join Community`) sit inside `.vendor-card-body` with `24px` bottom padding.
+
+- **Scrollable Vendor List & Drawer Flex Layout**:
+  - `CompareDrawerContainer` uses `display: flex; flex-direction: column; height: 100%;`.
+  - `VendorCompareList` acts as the dedicated scrollable container (`flex: 1; overflow-y: auto; padding-bottom: 32px;`).
+
+- **Dynamic Community Membership & Channel Navigation**:
+  - Detects server membership via `client.servers` (by `serverId` or vendor name).
+  - Displays **`Open Community`** when user is already a member; displays **`Join Community`** when not.
+  - Clicking **`Join Community`** joins the community via `client.joinInvite(...)`, triggers a floating toast notification (`✅ Joined [VendorName] Community`), and routes directly into the target community channel (`/channel/:id`) without any homepage redirects.
+
+- **Hallmark Anti-Slop Audit Compliance**:
+  - Includes component stamp `/* Hallmark · component: CompareDrawer · genre: modern-minimal · theme: PepChat Dark · states: default · hover · focus · active · disabled · contrast: pass */`.
+  - Replaced inline hex fallbacks (`#10b981`, `#8b5cf6`) with CSS design tokens (`var(--status-online, #10b981)`, `var(--accent)`).
+  - Standardized `ToastContainer` z-index tier (`z-index: 1000`).
+
