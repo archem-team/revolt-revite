@@ -2010,11 +2010,25 @@ const CompareActionLink = styled.button`
     font-weight: 600;
     cursor: pointer;
     margin-left: auto;
-    transition: opacity 0.15s ease;
+    transition: opacity 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    /* Arrow nudge on hover */
+    &::after {
+        content: '→';
+        display: inline-block;
+        margin-left: 2px;
+        transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
 
     &:hover {
-        opacity: 0.85;
-        text-decoration: underline;
+        opacity: 1;
+        color: var(--accent);
+    }
+
+    &:hover::after {
+        transform: translateX(3px);
     }
 `;
 
@@ -2621,7 +2635,6 @@ const Card = styled.div`
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 14px;
     padding: 20px;
     border-radius: 16px;
     background: var(--secondary-background);
@@ -2637,11 +2650,19 @@ const Card = styled.div`
     box-sizing: border-box;
     overflow: hidden;
 
+    /* children stack with small gaps; footer gets margin-top: auto via CardFooter */
+    > * + * {
+        margin-top: 10px;
+    }
+
     @media (max-width: 720px) {
         padding: 12px;
-        gap: 8px;
         border-radius: 12px;
         margin-bottom: 12px;
+
+        > * + * {
+            margin-top: 7px;
+        }
     }
 
     &:hover {
@@ -2663,7 +2684,10 @@ const FeaturedCard = styled(Card)`
         height: auto;
         min-width: unset;
         padding: 12px;
-        gap: 7px;
+
+        > * + * {
+            margin-top: 6px;
+        }
     }
 `;
 
@@ -3169,9 +3193,11 @@ const CardFooter = styled.div`
     align-items: center;
     justify-content: space-between;
     padding: 8px 0 0;
-    border-top: 1px solid var(--promo-chip);
-    margin-top: 10px;
+    border-top: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    /* Always pushed to the bottom of the flex card */
+    margin-top: auto;
     gap: 6px;
+    flex-shrink: 0;
 `;
 
 const CountdownText = styled.span<{ urgent?: boolean }>`
@@ -3310,7 +3336,8 @@ const SuggestionChipGrid = styled.div`
 
 
 
-function getCardFooterStatus(promo: Promo) {
+function getCardFooterStatus(promo: Promo): { type: string; label: string } {
+    // Priority 1: Ending Soon (most urgent)
     if (promo.endDate) {
         const remainingMs = new Date(promo.endDate).getTime() - Date.now();
         if (remainingMs > 0 && remainingMs <= 72 * 60 * 60 * 1000) {
@@ -3320,12 +3347,21 @@ function getCardFooterStatus(promo: Promo) {
             };
         }
     }
+    // Priority 2: Recently updated (signal of freshness)
     if (promo.updatedAt) {
-        return {
-            type: "updated",
-            label: `↻ Updated ${formatLastUpdated(promo.updatedAt)}`,
-        };
+        const updatedMs = new Date(promo.updatedAt).getTime();
+        const createdMs = new Date(promo.createdAt).getTime();
+        const isFreshUpdate =
+            updatedMs - createdMs > 60_000 &&
+            Date.now() - updatedMs < 7 * 24 * 60 * 60 * 1000;
+        if (isFreshUpdate) {
+            return {
+                type: "updated",
+                label: `↻ ${formatLastUpdated(promo.updatedAt)}`,
+            };
+        }
     }
+    // Priority 3: Default active
     return {
         type: "active",
         label: `✓ Active`,
@@ -3879,10 +3915,14 @@ const PromoCard = observer(
                         <CompareActionLink
                             onClick={(e) => {
                                 e.stopPropagation();
-                                const prodKey = promo.productKey || (promo.items && promo.items.length > 0 ? promo.items[0].product.toLowerCase() : "retatrutide");
+                                // Derive product key from items
+                                const prodKey = (promo as any).productKey ||
+                                    (promo.items && promo.items.length > 0
+                                        ? promo.items[0].product.toLowerCase()
+                                        : "retatrutide");
                                 onCompare(prodKey);
                             }}>
-                            Compare Vendors →
+                            Compare Vendors
                         </CompareActionLink>
                     )}
                 </CardFooter>
@@ -3891,34 +3931,25 @@ const PromoCard = observer(
     },
 );
 
-const Sparkline = ({ id, color = "var(--accent)" }: { id: string; color?: string }) => (
-    <svg viewBox="0 0 100 24" style={{ width: "100%", height: 24, margin: "6px 0", overflow: "visible" }}>
-        <defs>
-            <linearGradient id={`spark-${id}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity="0.35" />
-                <stop offset="100%" stopColor={color} stopOpacity="0.0" />
-            </linearGradient>
-        </defs>
-        <path
-            d="M0,18 Q15,8 35,12 T70,5 T100,2 L100,24 L0,24 Z"
-            fill={`url(#spark-${id})`}
-        />
-        <path
-            d="M0,18 Q15,8 35,12 T70,5 T100,2"
-            fill="none"
-            stroke={color}
-            strokeWidth="2"
-            strokeLinecap="round"
-        />
-    </svg>
-);
+// Sparkline removed per spec #6 — replaced by vendor avatar stack and community metrics
+
+// Static initials for the vendor avatar stack in trending cards
+const TRENDING_AVATAR_SETS: Record<string, string[]> = {
+    reta:  ["PL", "AA", "KBR", "SC"],
+    tirz:  ["RC", "AMS", "SC"],
+    sema:  ["AMS", "AA", "RC"],
+    ghkcu: ["SC", "UL"],
+    default: ["WP", "SP", "AP"],
+};
 
 function TrendingPeptides({
     products,
     onSelectProduct,
+    onOpenCompare,
 }: {
     products: Array<{ key: string; name: string; minPrice: number; promoCount: number; vendorCount?: number }>;
     onSelectProduct: (key: string) => void;
+    onOpenCompare: (key: string) => void;
 }) {
     if (!products || products.length === 0) return null;
 
@@ -3926,52 +3957,72 @@ function TrendingPeptides({
         <TrendingSection>
             <SectionHeader>
                 <SectionTitleBlock>
-                    <SectionTitle>
-                        🔥 Trending Peptides
-                    </SectionTitle>
-                    <SectionSubtitle>
-                        Top compounds this week
-                    </SectionSubtitle>
+                    <SectionTitle>🔥 Trending Peptides</SectionTitle>
+                    <SectionSubtitle>Top compounds this week</SectionSubtitle>
                 </SectionTitleBlock>
-                <SectionViewAll onClick={() => onSelectProduct(products[0]?.key || "retatrutide")}>
+                <SectionViewAll
+                    onClick={() => {
+                        onSelectProduct(products[0]?.key || "retatrutide");
+                        onOpenCompare(products[0]?.key || "retatrutide");
+                    }}>
                     View all →
                 </SectionViewAll>
             </SectionHeader>
             <TrendingRail>
                 {products.slice(0, 6).map((p) => {
-                    const vendorCount = p.vendorCount || Math.max(5, p.promoCount * 2);
+                    const vendorCount = p.vendorCount || Math.max(4, p.promoCount + 2);
+                    const avatars = TRENDING_AVATAR_SETS[p.key] || TRENDING_AVATAR_SETS.default;
+                    const overflowCount = Math.max(0, vendorCount - avatars.length);
                     return (
                         <TrendingCard
                             key={p.key}
-                            onClick={() => onSelectProduct(p.key)}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
+                            onClick={() => {
+                                onSelectProduct(p.key);
+                                onOpenCompare(p.key);
+                            }}>
+
+                            {/* Title row */}
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
                                 <TrendingTitle>
                                     <strong>{p.name}</strong>
                                 </TrendingTitle>
-                                <span style={{ fontSize: 11, color: "var(--tertiary-foreground)", whiteSpace: "nowrap" }}>
+                                <span style={{ fontSize: 10, color: "var(--tertiary-foreground)", whiteSpace: "nowrap", flexShrink: 0, marginTop: 1 }}>
                                     {p.promoCount} active promos
                                 </span>
                             </div>
 
+                            {/* Pricing */}
                             <TrendingMeta>
-                                <span>
-                                    From <strong style={{ fontVariantNumeric: "tabular-nums" }}>${p.minPrice}</strong> / kit
+                                <span style={{ fontSize: 12, fontWeight: 500 }}>
+                                    Starting at{" "}
+                                    <strong style={{ fontVariantNumeric: "tabular-nums", fontSize: 14, color: "var(--foreground)" }}>
+                                        ${p.minPrice}
+                                    </strong>
+                                    {" "}/ kit
                                 </span>
                             </TrendingMeta>
 
-                            <Sparkline id={p.key} />
-
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 2 }}>
+                            {/* Avatar stack + vendor count */}
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                                <VendorAvatarStack>
+                                    {avatars.map((initials) => (
+                                        <span key={initials} style={{ fontSize: 8 }}>{initials}</span>
+                                    ))}
+                                    {overflowCount > 0 && (
+                                        <span className="more">+{overflowCount}</span>
+                                    )}
+                                </VendorAvatarStack>
                                 <span style={{ fontSize: 11, color: "var(--tertiary-foreground)" }}>
                                     {vendorCount} vendors
                                 </span>
-                                <VendorAvatarStack>
-                                    <span style={{ fontSize: 9 }}>WP</span>
-                                    <span style={{ fontSize: 9 }}>SP</span>
-                                    <span style={{ fontSize: 9 }}>AP</span>
-                                    <span className="more">+{Math.max(1, vendorCount - 3)}</span>
-                                </VendorAvatarStack>
                             </div>
+
+                            {/* Compare CTA */}
+                            <TrendingCompareBtn
+                                as="div"
+                                style={{ fontSize: 11, fontWeight: 700, marginTop: 6 }}>
+                                Compare Vendors →
+                            </TrendingCompareBtn>
                         </TrendingCard>
                     );
                 })}
@@ -5147,18 +5198,58 @@ const Promos: React.FC = () => {
                     )}
 
                     {/* ── Trending Peptides ─────────────────────── */}
-                    {!query && activeFilter === "all" && (
-                        <TrendingPeptides
-                            products={[
-                                { key: "reta", name: "Reta", minPrice: 66, promoCount: 7 },
-                                { key: "tirz", name: "Tirz", minPrice: 52, promoCount: 5 },
-                                { key: "semax", name: "Semax", minPrice: 50, promoCount: 3 },
-                            ]}
-                            onSelectProduct={(key) => {
-                                /* Trending card click handler */
-                            }}
-                        />
-                    )}
+                    {!query && activeFilter === "all" && (() => {
+                        // Derive trending products from actual promo data
+                        type TrendProduct = { key: string; name: string; minPrice: number; promoCount: number; vendorCount: number };
+                        const productMap = new Map<string, TrendProduct>();
+                        const TRACKED = [
+                            { key: "retatrutide", name: "Retatrutide" },
+                            { key: "tirzepatide", name: "Tirzepatide" },
+                            { key: "semaglutide", name: "Semaglutide" },
+                            { key: "ghk-cu",      name: "GHK-Cu" },
+                            { key: "hgh",         name: "HGH" },
+                        ];
+                        for (const { key, name } of TRACKED) {
+                            const matching = promos.filter((p) =>
+                                p.items.some((it) => it.product.toLowerCase().includes(key.replace("-", "")))
+                            );
+                            if (matching.length === 0) continue;
+                            const prices = matching.flatMap((p) => p.items.map((it) => it.price)).filter((pr): pr is number => typeof pr === "number" && isFinite(pr));
+                            const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+                            const vendorCount = new Set(matching.map((p) => p.vendor.name)).size;
+                            productMap.set(key, { key, name, minPrice: Math.round(minPrice * 100) / 100, promoCount: matching.length, vendorCount });
+                        }
+                        const trendingProducts = [...productMap.values()]
+                            .sort((a, b) => b.promoCount - a.promoCount)
+                            .slice(0, 5);
+
+                        // Fallback to static data if no real promos available
+                        const displayProducts = trendingProducts.length > 0 ? trendingProducts : [
+                            { key: "retatrutide", name: "Retatrutide", minPrice: 66, promoCount: 7, vendorCount: 14 },
+                            { key: "tirzepatide", name: "Tirzepatide", minPrice: 52, promoCount: 5, vendorCount: 10 },
+                            { key: "semaglutide", name: "Semaglutide", minPrice: 50, promoCount: 3, vendorCount: 6 },
+                        ];
+
+                        return (
+                            <TrendingPeptides
+                                products={displayProducts}
+                                onSelectProduct={(key) => {
+                                    // Apply product filter and scroll to All Promos
+                                    const filterKey = key.replace("-", "") as FilterKey;
+                                    const validKeys: FilterKey[] = ["tirzepatide", "retatrutide", "semaglutide", "hgh"];
+                                    if (validKeys.includes(filterKey)) {
+                                        setActiveFilter(filterKey);
+                                        setTimeout(() => allPromosRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+                                    }
+                                }}
+                                onOpenCompare={(key) => {
+                                    // Open compare drawer for the selected product
+                                    const displayName = key.charAt(0).toUpperCase() + key.slice(1).replace("-", " ");
+                                    setCompareProduct(displayName);
+                                }}
+                            />
+                        );
+                    })()}
 
                     {/* ── Hot Promos Today ─────────────────────── */}
                     {hotPromos.length > 0 && activeFilter === "all" && !query && (
