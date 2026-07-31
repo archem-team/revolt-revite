@@ -17,7 +17,7 @@ import {
     Flame,
 } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
-import { Link } from "react-router-dom";
+import { Link, useHistory } from "react-router-dom";
 import styled, { css, keyframes } from "styled-components/macro";
 
 import {
@@ -342,132 +342,149 @@ function getSearchScore(p: Promo, q: string): number {
     return 0;
 }
 
-function getCardBadge(
-    promo: Promo,
-): { label: string; color: string; bg: string } | null {
-    const now = Date.now();
-    const createdMs = new Date(promo.createdAt).getTime();
-    const updatedMs = new Date(promo.updatedAt).getTime();
-    const threeDays = 3 * 24 * 60 * 60 * 1000;
-    const isNewPromo = now - createdMs < threeDays;
-    const isRecentlyUpdated =
-        updatedMs - createdMs > 60_000 && now - updatedMs < 24 * 60 * 60 * 1000;
+// ─── Promo Summary Extraction ──────────────────────────────────────────────────
+// Rules:
+// 1. Primary Offer (Required): Main discount or promo offer
+// 2. One Supporting Detail: Dispatch/MOQ/Guarantee detail (NOT repeating chips/warehouse)
+// 3. Max 2 lines (~80-100 chars), ending with "View Details →"
 
-    // Maximum ONE status badge per card
-    if (isEndingSoon(promo)) {
-        return { label: "Ending Soon", color: "#fff", bg: "#f97316" };
-    }
+function extractPromoSummary(promo: Promo): { primaryOffer: string; supportingDetail: string } {
+    let primaryOffer = "";
+    let supportingDetail = "";
 
-    if (isNewPromo) {
-        return { label: "New Promo", color: "#fff", bg: "#22c55e" };
-    }
-
-    if (isRecentlyUpdated) {
-        return { label: "Recently Updated", color: "#fff", bg: "#3b82f6" };
-    }
-
-    if (promo.shippingFee === 0) {
-        return { label: "Free Shipping", color: "#fff", bg: "#0891b2" };
-    }
-
-    // Explicit % discount in discountNote (e.g. "20% off")
+    // Primary Offer
     if (promo.discountNote) {
-        const m = promo.discountNote.match(/(\d+)\s*%\s*(?:off|discount)/i);
-        if (m) return { label: `${m[1]}% OFF`, color: "#fff", bg: "#ef4444" };
+        primaryOffer = promo.discountNote.trim();
+    } else if (promo.shippingFee === 0 && promo.freeShippingThreshold) {
+        primaryOffer = `Free Shipping over $${promo.freeShippingThreshold}`;
+    } else if (promo.shippingFee === 0) {
+        primaryOffer = "Free Shipping on all orders";
+    } else if (promo.freeShippingThreshold) {
+        primaryOffer = `Free Shipping over $${promo.freeShippingThreshold}`;
+    } else if (promo.moqNote && promo.moqNote.toLowerCase().includes("group")) {
+        primaryOffer = "Group buying now open";
+    } else if (promo.untilSoldOut) {
+        primaryOffer = "Limited stock available";
+    } else {
+        primaryOffer = "Latest promotion available";
     }
 
+    // Supporting Detail
+    const candidates: string[] = [];
+    if (promo.shippingNote && !promo.shippingNote.includes(primaryOffer)) candidates.push(promo.shippingNote);
+    if (promo.moqNote && !promo.moqNote.includes(primaryOffer)) candidates.push(promo.moqNote);
+    if (promo.guarantee?.text) candidates.push(promo.guarantee.text);
+
+    // Clean out redundant chips info
+    const cleanCandidates = candidates.filter((c) => {
+        const l = c.toLowerCase();
+        return !l.includes("purity") && !l.includes("reship") && !l.includes("warehouse");
+    });
+
+    if (cleanCandidates.length > 0) {
+        supportingDetail = cleanCandidates[0].trim();
+    } else if (promo.warehouse) {
+        supportingDetail = `Ships from ${promo.warehouse}`;
+    } else {
+        supportingDetail = "Fast dispatch & quality guarantee";
+    }
+
+    // Length check
+    if (primaryOffer.length > 55) primaryOffer = primaryOffer.slice(0, 52) + "...";
+    if (supportingDetail.length > 55) supportingDetail = supportingDetail.slice(0, 52) + "...";
+
+    return { primaryOffer, supportingDetail };
+}
+
+// ─── Badge System ────────────────────────────────────────────────────────────
+// Single source of truth for all card badges.
+// Returns [primary, secondary?] — max 2 badges.
+// Answers: "Why should I pay attention to this promo?"
+//
+// Priority:
+//   1. Urgency  (ends within 72h) — always wins
+//   2. New      (created < 3 days ago)
+//   3. Discount (% off in note)
+//   4. Shipping (free shipping)
+//   5. Warehouse (location)
+//
+// Purity / Customs Reship / MOQ → chips, NOT badges.
+
+type BadgeSpec = { label: string; color: string; bg: string };
+
+function getWarehouseBadge(promo: Promo): BadgeSpec | null {
+    const wh = (promo.warehouse || "").toLowerCase();
+    if (wh.match(/\bus\b|united.?states/)) return { label: "🇺🇸 US Warehouse", color: "#fff", bg: "#6366f1" };
+    if (wh.match(/\beu\b|europe/))          return { label: "🇪🇺 EU Warehouse", color: "#fff", bg: "#6366f1" };
+    if (wh.match(/\bcn\b|china/))           return { label: "🇨🇳 China Warehouse", color: "#fff", bg: "#6366f1" };
     return null;
 }
 
-// ─── Featured Badge — Why is this promo in Hot Promos? ────────────────────────
+function getCardBadges(promo: Promo): [BadgeSpec | null, BadgeSpec | null] {
+    const now = Date.now();
+    const createdMs = new Date(promo.createdAt).getTime();
+    const threeDays = 3 * 24 * 60 * 60 * 1000;
+    const twentyFourH = 24 * 60 * 60 * 1000;
+    const isNew = now - createdMs < threeDays;
+    const warehouseBadge = getWarehouseBadge(promo);
+    const freeShipBadge: BadgeSpec | null = promo.shippingFee === 0
+        ? { label: "🚚 Free Shipping", color: "#fff", bg: "#0891b2" }
+        : null;
 
+    // Priority 1: Urgency
+    if (isEndingSoon(promo) && promo.endDate) {
+        const remainingMs = new Date(promo.endDate).getTime() - now;
+        const hours = Math.ceil(remainingMs / (60 * 60 * 1000));
+        const primary: BadgeSpec = remainingMs < twentyFourH
+            ? { label: "🔴 Ends Today", color: "#fff", bg: "#dc2626" }
+            : { label: `⏰ Ends in ${hours}h`, color: "#fff", bg: "#f97316" };
+        return [primary, warehouseBadge];
+    }
+
+    // Priority 2: New
+    if (isNew) {
+        return [
+            { label: "🆕 New", color: "#fff", bg: "#22c55e" },
+            freeShipBadge || warehouseBadge,
+        ];
+    }
+
+    // Priority 3: Discount %
+    if (promo.discountNote) {
+        const m = promo.discountNote.match(/(\d+)\s*%\s*(?:off|discount)/i);
+        if (m) {
+            return [
+                { label: `💸 ${m[1]}% OFF`, color: "#fff", bg: "#ef4444" },
+                freeShipBadge || warehouseBadge,
+            ];
+        }
+    }
+
+    // Priority 4: Free Shipping
+    if (freeShipBadge) {
+        return [freeShipBadge, warehouseBadge];
+    }
+
+    // Priority 5: Warehouse only
+    if (warehouseBadge) {
+        return [warehouseBadge, null];
+    }
+
+    return [null, null];
+}
+
+// Legacy shim used by getFeaturedBadge call-sites in hot-promo slot selection
 function getFeaturedBadge(
     promo: Promo,
 ): { label: string; subLabel?: string; color: string; bg: string } | null {
-    const now = Date.now();
-    const createdMs = new Date(promo.createdAt).getTime();
-    const updatedMs = new Date(promo.updatedAt).getTime();
-    const oneDay = 24 * 60 * 60 * 1000;
-    const threeDays = 3 * 24 * 60 * 60 * 1000;
-
-    const isEnding = isEndingSoon(promo);
-    const isRecentlyUpd =
-        updatedMs - createdMs > 60_000 && now - updatedMs < oneDay;
-    const isNew = now - createdMs < threeDays;
-    const isFreeShip = promo.shippingFee === 0;
-    const isUsWarehouse = !!promo.warehouse
-        ?.toLowerCase()
-        .match(/\bus\b|united.?states/);
-    const isFreeThreshold = promo.freeShippingThreshold != null;
-
-    // Optional secondary reason pill (focused on shipping/delivery)
-    let subLabel: string | undefined = undefined;
-    if (isFreeShip) subLabel = "💙 Free Shipping";
-    else if (isUsWarehouse) subLabel = "🇺🇸 US Warehouse";
-
-    // Priority 1: 🔥 Ending Soon (Orange #f97316)
-    if (isEnding) {
-        return {
-            label: "🔥 Ending Soon",
-            subLabel: subLabel !== "💙 Free Shipping" ? subLabel : undefined,
-            color: "#fff",
-            bg: "#f97316",
-        };
-    }
-
-    // Priority 2: ✨ Recently Updated (Blue #3b82f6)
-    if (isRecentlyUpd) {
-        return {
-            label: "✨ Recently Updated",
-            subLabel,
-            color: "#fff",
-            bg: "#3b82f6",
-        };
-    }
-
-    // Priority 3: 🆕 New Promotion (Green #22c55e)
-    if (isNew) {
-        return {
-            label: "🆕 New Promotion",
-            subLabel,
-            color: "#fff",
-            bg: "#22c55e",
-        };
-    }
-
-    // Priority 4: 💙 Free Shipping (Cyan #0891b2)
-    if (isFreeShip) {
-        return {
-            label: "💙 Free Shipping",
-            subLabel: isUsWarehouse ? "🇺🇸 US Warehouse" : undefined,
-            color: "#fff",
-            bg: "#0891b2",
-        };
-    }
-
-    // Priority 5: 🇺🇸 US Warehouse (Indigo #6366f1)
-    if (isUsWarehouse) {
-        return {
-            label: "🇺🇸 US Warehouse",
-            subLabel: isFreeThreshold
-                ? `🚚 Free Over $${promo.freeShippingThreshold}`
-                : undefined,
-            color: "#fff",
-            bg: "#6366f1",
-        };
-    }
-
-    // Priority 6: 🚚 Free Over $X (Indigo #6366f1)
-    if (isFreeThreshold) {
-        return {
-            label: `🚚 Free Over $${promo.freeShippingThreshold}`,
-            color: "#fff",
-            bg: "#6366f1",
-        };
-    }
-
-    // No forced generic badge — return null if no urgency/attention rule matches
-    return null;
+    const [primary, secondary] = getCardBadges(promo);
+    if (!primary) return null;
+    return {
+        label: primary.label,
+        subLabel: secondary?.label,
+        color: primary.color,
+        bg: primary.bg,
+    };
 }
 
 // ─── Hot Promo Score ──────────────────────────────────────────────────────────
@@ -2193,20 +2210,23 @@ const VendorCompareList = styled.div`
     min-height: 0;
     overflow-y: auto;
     padding-right: 2px;
+    padding-bottom: 32px;
     -webkit-overflow-scrolling: touch;
 `;
 
 const VendorCompareCard = styled.div<{ expanded?: boolean }>`
     display: flex;
     flex-direction: column;
+    height: auto;
+    min-height: fit-content;
     border-radius: 12px;
     border: 1px solid
         ${(p) =>
             p.expanded
-                ? "color-mix(in srgb, var(--accent) 45%, transparent)"
-                : "color-mix(in srgb, var(--foreground) 8%, transparent)"};
+                ? "color-mix(in srgb, var(--accent) 55%, transparent)"
+                : "color-mix(in srgb, var(--foreground) 10%, transparent)"};
     background: var(--primary-background);
-    overflow: hidden;
+    overflow: visible;
     transition: border-color 0.15s ease;
 
     .vendor-card-header {
@@ -2246,11 +2266,12 @@ const VendorCompareCard = styled.div<{ expanded?: boolean }>`
     .vendor-card-body {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        padding: 0 12px 12px;
-        border-top: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+        gap: 12px;
+        padding: 10px 12px 24px 12px;
+        border-top: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
         margin-top: 4px;
-        padding-top: 10px;
+        height: auto;
+        overflow: visible;
 
         .specs-grid {
             display: grid;
@@ -2280,37 +2301,44 @@ const VendorCompareCard = styled.div<{ expanded?: boolean }>`
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-top: 4px;
+            margin-top: 8px;
+            padding-top: 4px;
             flex-wrap: wrap;
 
             a, button {
                 display: inline-flex;
                 align-items: center;
-                gap: 4px;
-                padding: 6px 12px;
+                justify-content: center;
+                gap: 6px;
+                padding: 9px 16px;
                 border-radius: 8px;
                 font-size: 12px;
-                font-weight: 600;
+                font-weight: 700;
                 font-family: inherit;
                 cursor: pointer;
                 text-decoration: none;
-                transition: opacity 0.15s ease;
+                line-height: 1.2;
+                min-height: 36px;
+                box-sizing: border-box;
+                transition: opacity 0.15s ease, transform 0.1s ease;
 
                 &:hover {
-                    opacity: 0.9;
+                    opacity: 0.92;
+                    transform: translateY(-1px);
                 }
             }
 
             .btn-primary {
-                background: var(--accent);
-                color: var(--accent-contrast, #11171c);
-                border: none;
+                background: var(--accent, #8b5cf6);
+                color: #ffffff !important;
+                border: 1px solid color-mix(in srgb, #ffffff 20%, transparent);
+                box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35);
             }
 
             .btn-secondary {
-                background: color-mix(in srgb, var(--foreground) 8%, transparent);
-                color: var(--foreground);
-                border: none;
+                background: color-mix(in srgb, var(--foreground) 12%, transparent);
+                color: var(--foreground) !important;
+                border: 1px solid color-mix(in srgb, var(--foreground) 16%, transparent);
             }
 
             .btn-outline {
@@ -2389,6 +2417,36 @@ const SectionSubtitle = styled.p`
     @media (max-width: 720px) {
         font-size: 11px;
         line-height: 1.3;
+    }
+`;
+
+const ToastContainer = styled.div`
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 22px;
+    border-radius: 12px;
+    background: #10b981;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.45);
+    animation: toastIn 300ms cubic-bezier(0.16, 1, 0.3, 1);
+
+    @keyframes toastIn {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -20px);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
     }
 `;
 
@@ -2637,6 +2695,12 @@ const cardFadeIn = keyframes`
     to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
+const promoHighlight = keyframes`
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); border-color: var(--accent); }
+    40%  { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 25%, transparent); border-color: var(--accent); }
+    100% { box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06); border-color: color-mix(in srgb, var(--foreground) 6%, transparent); }
+`;
+
 const Card = styled.div`
     animation: ${cardFadeIn} 180ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     position: relative;
@@ -2670,6 +2734,10 @@ const Card = styled.div`
         > * + * {
             margin-top: 7px;
         }
+    }
+
+    &.promo-highlight {
+        animation: ${promoHighlight} 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     }
 
     &:hover {
@@ -3307,14 +3375,18 @@ const CardFooter = styled.div`
     flex-shrink: 0;
 `;
 
-const CountdownText = styled.span<{ urgent?: boolean }>`
+const CountdownText = styled.span<{ urgent?: boolean; fresh?: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 4px;
     font-size: 12px;
-    font-weight: ${({ urgent }) => (urgent ? 700 : 500)};
-    color: ${({ urgent }) =>
-        urgent ? "var(--status-danger, #e83c3c)" : "var(--secondary-foreground)"};
+    font-weight: ${({ urgent, fresh }) => (urgent || fresh ? 600 : 500)};
+    color: ${({ urgent, fresh }) =>
+        urgent
+            ? "var(--status-danger, #e83c3c)"
+            : fresh
+            ? "#10b981"
+            : "var(--secondary-foreground)"};
     min-height: 18px;
 `;
 
@@ -3444,7 +3516,7 @@ const SuggestionChipGrid = styled.div`
 
 
 function getCardFooterStatus(promo: Promo): { type: string; label: string } {
-    // Priority 1: Ending Soon (most urgent)
+    // Priority 1: Ending Soon (most urgent → red)
     if (promo.endDate) {
         const remainingMs = new Date(promo.endDate).getTime() - Date.now();
         if (remainingMs > 0 && remainingMs <= 72 * 60 * 60 * 1000) {
@@ -3454,7 +3526,7 @@ function getCardFooterStatus(promo: Promo): { type: string; label: string } {
             };
         }
     }
-    // Priority 2: Recently updated (signal of freshness)
+    // Priority 2: Recently updated (green — signal of freshness)
     if (promo.updatedAt) {
         const updatedMs = new Date(promo.updatedAt).getTime();
         const createdMs = new Date(promo.createdAt).getTime();
@@ -3463,14 +3535,14 @@ function getCardFooterStatus(promo: Promo): { type: string; label: string } {
             Date.now() - updatedMs < 7 * 24 * 60 * 60 * 1000;
         if (isFreshUpdate) {
             return {
-                type: "updated",
+                type: "fresh",
                 label: `↻ ${formatLastUpdated(promo.updatedAt)}`,
             };
         }
     }
-    // Priority 3: Default active
+    // Priority 3: Default active (green)
     return {
-        type: "active",
+        type: "fresh",
         label: `✓ Active`,
     };
 }
@@ -3584,24 +3656,26 @@ const PromoCard = observer(
             const heroSrc = promo.images && promo.images.length > 0 ? resolveImage(promo.images[0]) : null;
             const extraPhotos = promo.images ? promo.images.length - 1 : 0;
 
-            // Badges: max 2, priority order
-            const badges: Array<{ bg: string; color: string; label: string }> = [];
-            if (featuredReason) badges.push({ bg: featuredReason.bg, color: featuredReason.color, label: featuredReason.label });
-            const cb = getCardBadge(promo);
-            if (cb && badges.length < 2) badges.push({ bg: cb.bg, color: cb.color, label: cb.label });
+            // Badges: max 2, use new unified getCardBadges()
+            const [primaryBadge, secondaryBadge] = getCardBadges(promo);
 
             const status = getCardFooterStatus(promo);
 
             return (
-                <FeaturedCard>
+                <FeaturedCard id={`promo-${promo.id}`} data-vendor={promo.vendor.name}>
                     {/* Badge row — max 2 */}
-                    {badges.length > 0 && (
+                    {(primaryBadge || secondaryBadge) && (
                         <BadgeRow>
-                            {badges.map((b, i) => (
-                                <FeaturedReasonBadge key={i} bg={b.bg} textColor={b.color}>
-                                    {b.label}
+                            {primaryBadge && (
+                                <FeaturedReasonBadge bg={primaryBadge.bg} textColor={primaryBadge.color}>
+                                    {primaryBadge.label}
                                 </FeaturedReasonBadge>
-                            ))}
+                            )}
+                            {secondaryBadge && (
+                                <FeaturedReasonBadge bg={secondaryBadge.bg} textColor={secondaryBadge.color}>
+                                    {secondaryBadge.label}
+                                </FeaturedReasonBadge>
+                            )}
                         </BadgeRow>
                     )}
 
@@ -3644,10 +3718,30 @@ const PromoCard = observer(
                         </FeaturedLogisticsLine>
                     )}
 
-                    {/* Short 2-3 line description */}
-                    {descText && (
-                        <FeaturedDesc>{descText}</FeaturedDesc>
-                    )}
+                    {/* Short 2-line summary: Primary Offer + 1 Supporting Detail + View Details → */}
+                    {(() => {
+                        const summary = extractPromoSummary(promo);
+                        return (
+                            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3, fontSize: 12 }}>
+                                <div style={{ fontWeight: 700, color: "var(--foreground)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    {summary.primaryOffer}
+                                </div>
+                                <div style={{ fontSize: 11, color: "var(--secondary-foreground)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    {summary.supportingDetail}
+                                </div>
+                                <ViewDetailsLink onClick={(e) => {
+                                    e.stopPropagation();
+                                    const prodKey = (promo as any).productKey ||
+                                        (promo.items && promo.items.length > 0
+                                            ? promo.items[0].product.toLowerCase()
+                                            : "retatrutide");
+                                    if (onCompare) onCompare(prodKey);
+                                }}>
+                                    View Details →
+                                </ViewDetailsLink>
+                            </div>
+                        );
+                    })()}
 
                     {/* Hero image — fixed ratio, single image, photo count overlay */}
                     {heroSrc && (
@@ -3666,7 +3760,7 @@ const PromoCard = observer(
 
                     {/* Footer — always at bottom */}
                     <CardFooter>
-                        <CountdownText urgent={status.type === "endingSoon"}>
+                        <CountdownText urgent={status.type === "endingSoon"} fresh={status.type === "fresh" || status.type === "active" || status.type === "updated"}>
                             {status.label}
                         </CountdownText>
                         {onCompare && (
@@ -3690,33 +3784,26 @@ const PromoCard = observer(
         // ── REGULAR CARD (All Promotions) — full detail layout ───────────────
 
         return (
-            <CardEl data-featured={featured ? "true" : undefined}>
+            <CardEl id={`promo-${promo.id}`} data-vendor={promo.vendor.name} data-featured={featured ? "true" : undefined}>
                 {/* Card Badge — aligned left with breathing room */}
-                {featured && featuredReason ? (
-                    <BadgeRow>
-                        <FeaturedReasonBadge
-                            bg={featuredReason.bg}
-                            textColor={featuredReason.color}>
-                            {featuredReason.label}
-                        </FeaturedReasonBadge>
-                        {featuredReason.subLabel && (
-                            <SecondaryReasonPill>
-                                {featuredReason.subLabel}
-                            </SecondaryReasonPill>
-                        )}
-                    </BadgeRow>
-                ) : (
-                    (() => {
-                        const cb = getCardBadge(promo);
-                        return cb ? (
-                            <BadgeRow>
-                                <CardBadgeTag bg={cb.bg} textColor={cb.color}>
-                                    {cb.label}
+                {(() => {
+                    const [primary, secondary] = getCardBadges(promo);
+                    if (!primary && !secondary) return null;
+                    return (
+                        <BadgeRow>
+                            {primary && (
+                                <CardBadgeTag bg={primary.bg} textColor={primary.color}>
+                                    {primary.label}
                                 </CardBadgeTag>
-                            </BadgeRow>
-                        ) : null;
-                    })()
-                )}
+                            )}
+                            {secondary && (
+                                <CardBadgeTag bg={secondary.bg} textColor={secondary.color}>
+                                    {secondary.label}
+                                </CardBadgeTag>
+                            )}
+                        </BadgeRow>
+                    );
+                })()}
 
                 {/* Card Head: logo + vendor + warehouse + action icon */}
                 <CardHead>
@@ -4044,19 +4131,19 @@ const PromoCard = observer(
                             <NoteBlock>
                                 {!notesExpanded ? (
                                     <>
-                                        <NoteText>
-                                            {rawTexts.reduce(
-                                                (prev, curr, idx) =>
-                                                    prev === null
-                                                        ? [curr]
-                                                        : [
-                                                              ...prev,
-                                                              " • ",
-                                                              curr,
-                                                          ],
-                                                null as any,
-                                            )}
-                                        </NoteText>
+                                        {(() => {
+                                            const summary = extractPromoSummary(promo);
+                                            return (
+                                                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                                    <div style={{ fontWeight: 700, color: "var(--foreground)", fontSize: 12 }}>
+                                                        {summary.primaryOffer}
+                                                    </div>
+                                                    <div style={{ fontSize: 11, color: "var(--secondary-foreground)" }}>
+                                                        {summary.supportingDetail}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
                                         <ReadMoreLink
                                             onClick={() =>
                                                 setNotesExpanded(true)
@@ -4135,12 +4222,12 @@ const PromoCard = observer(
                     </Gallery>
                 )}
 
-                {/* Footer: Single status priority (left) vs Compare Vendors → action (right) */}
+                {/* Footer: Single status priority (left) vs Compare Vendors action (right) */}
                 <CardFooter>
                     {(() => {
                         const status = getCardFooterStatus(promo);
                         return (
-                            <CountdownText urgent={status.type === "endingSoon"}>
+                            <CountdownText urgent={status.type === "endingSoon"} fresh={status.type !== "endingSoon"}>
                                 {status.label}
                             </CountdownText>
                         );
@@ -4265,10 +4352,15 @@ function TrendingPeptides({
     );
 }
 
+// ─── Compare Drawer ───────────────────────────────────────────────────────────
+
 function ComparisonDrawer({
     productName,
     vendors,
     onClose,
+    onScrollToPromo,
+    onApplyFilter,
+    onShowToast,
 }: {
     productName: string | null;
     vendors: Array<{
@@ -4285,15 +4377,23 @@ function ComparisonDrawer({
         shipping: string;
         purity: string;
         customs: string;
-        promoUrl?: string;
+        promoId?: string;
+        hasActivePromo?: boolean;
+        serverId?: string | null;
+        inviteLink?: string | null;
         communityUrl?: string;
-        websiteUrl?: string;
     }>;
     onClose: () => void;
+    onScrollToPromo?: (vendorName: string, promoId?: string) => void;
+    onApplyFilter?: (productKey: string) => void;
+    onShowToast?: (msg: string) => void;
 }) {
+    const client = useClient();
+    const history = useHistory();
     const [expandedId, setExpandedId] = useState<string | null>(
         vendors.length > 0 ? vendors[0].id : null,
     );
+    const [sortOption, setSortOption] = useState<"lowest" | "value" | "updated">("lowest");
 
     useEffect(() => {
         if (!productName) return;
@@ -4308,8 +4408,15 @@ function ComparisonDrawer({
 
     if (!productName) return null;
 
-    // Ranking labels — assigned by sorted position
-    const rankLabels = ["🥇 Lowest Price", "🥈 Best Value", "⭐ Community Fav"];
+    // Sorting logic (Rule 4)
+    const sortedVendors = [...vendors].sort((a, b) => {
+        if (sortOption === "lowest") return a.minPrice - b.minPrice;
+        if (sortOption === "value") return (b.hasActivePromo ? 1 : 0) - (a.hasActivePromo ? 1 : 0);
+        return 0;
+    });
+
+    const activePromoCount = vendors.filter((v) => v.hasActivePromo !== false).length;
+    const rankLabels = ["🥇 Lowest Price", "⭐ Best Value", "❤️ Community Favorite"];
 
     return (
         <>
@@ -4331,158 +4438,280 @@ function ComparisonDrawer({
                     </button>
                 </DrawerHeader>
 
-                {/* Sort row */}
+                {/* Contextual Banner (Rule 3) */}
+                <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    padding: "8px 12px",
+                    borderRadius: 10,
+                    background: "var(--promo-well, rgba(139, 92, 246, 0.1))",
+                    border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+                    fontSize: 12,
+                    margin: "2px 0 6px 0",
+                }}>
+                    <span style={{ color: "var(--foreground)", fontSize: 11 }}>
+                        Viewing vendor comparison for <strong>{productName}</strong>
+                    </span>
+                    {onApplyFilter && (
+                        <button
+                            style={{
+                                background: "var(--accent)",
+                                color: "var(--accent-contrast, #fff)",
+                                border: "none",
+                                borderRadius: 6,
+                                padding: "4px 8px",
+                                fontSize: 11,
+                                fontWeight: 700,
+                                fontFamily: "inherit",
+                                cursor: "pointer",
+                                whiteSpace: "nowrap",
+                            }}
+                            onClick={() => {
+                                onApplyFilter(productName.toLowerCase());
+                                onClose();
+                            }}>
+                            Show Matching Promotions
+                        </button>
+                    )}
+                </div>
+
+                {/* No Active Promotions Notice Banner (Rule 2) */}
+                {activePromoCount === 0 && vendors.length > 0 && (
+                    <div style={{
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        background: "var(--primary-background)",
+                        border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                        marginBottom: 6,
+                    }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--foreground)" }}>
+                            No active promotions are currently available for {productName}.
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--tertiary-foreground)", marginTop: 2 }}>
+                            {vendors.length} vendors currently sell this product. You can still compare vendors and join their communities.
+                        </div>
+                    </div>
+                )}
+
+                {/* Sort row (Rule 4) */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "2px 0" }}>
                     <span style={{ fontSize: 11, color: "var(--tertiary-foreground)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>
                         Sort by:
                     </span>
-                    <select style={{
-                        background: "var(--primary-background)",
-                        color: "var(--foreground)",
-                        border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
-                        borderRadius: 8,
-                        padding: "4px 10px",
-                        fontSize: 12,
-                        fontFamily: "inherit",
-                        outline: "none",
-                        cursor: "pointer",
-                    }}>
-                        <option>Lowest Price</option>
-                        <option>Highest Purity</option>
-                        <option>Fastest Shipping</option>
+                    <select
+                        value={sortOption}
+                        onChange={(e) => setSortOption((e.target as HTMLSelectElement).value as any)}
+                        style={{
+                            background: "var(--primary-background)",
+                            color: "var(--foreground)",
+                            border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
+                            borderRadius: 8,
+                            padding: "4px 10px",
+                            fontSize: 12,
+                            fontFamily: "inherit",
+                            outline: "none",
+                            cursor: "pointer",
+                        }}>
+                        <option value="lowest">Lowest Price</option>
+                        <option value="value">Best Value</option>
+                        <option value="updated">Recently Updated</option>
                     </select>
                 </div>
 
-                <VendorCompareList>
-                    {vendors.map((v, idx) => {
-                        const isExpanded = expandedId === v.id;
-                        const rankLabel = rankLabels[idx] || null;
-                        return (
-                            <VendorCompareCard key={v.id} expanded={isExpanded}>
-                                <div
-                                    className="vendor-card-header"
-                                    onClick={() =>
-                                        setExpandedId(isExpanded ? null : v.id)
-                                    }>
-                                    <VendorMonogram style={{ width: 28, height: 28, fontSize: 10, borderRadius: "50%", background: "var(--secondary-background)", flexShrink: 0 }}>
-                                        {getVendorInitials(v.name)}
-                                    </VendorMonogram>
-                                    <div className="vendor-info">
-                                        <strong>{v.name}</strong>
-                                        <span>{v.flag || "🇺🇸"} {v.warehouse}</span>
-                                    </div>
-                                    <div style={{ textAlign: "right", marginLeft: "auto", flexShrink: 0 }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
-                                            ${v.minPrice}
+                {/* Vendor List or Empty State (Rule 7) */}
+                {vendors.length === 0 ? (
+                    <div style={{ padding: "32px 16px", textAlign: "center" }}>
+                        <h4 style={{ margin: "0 0 6px 0", fontSize: 15, fontWeight: 700 }}>
+                            No vendors currently offer this product
+                        </h4>
+                        <p style={{ fontSize: 12, color: "var(--tertiary-foreground)", margin: "0 0 16px 0" }}>
+                            Check back later or browse other trending peptides.
+                        </p>
+                        <button
+                            className="btn-secondary"
+                            style={{ padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                            🔔 Notify me when vendors become available
+                        </button>
+                    </div>
+                ) : (
+                    <VendorCompareList>
+                        {sortedVendors.map((v, idx) => {
+                            const isExpanded = expandedId === v.id;
+                            const rankLabel = rankLabels[idx] || null;
+                            const hasPromo = v.hasActivePromo !== false;
+                            const allServers = Array.from(client.servers.values());
+                            const isMember = (v.serverId && client.servers.has(v.serverId)) ||
+                                (v.name && allServers.some((s) => s.name?.toLowerCase().includes(v.name.toLowerCase())));
+
+                            return (
+                                <VendorCompareCard key={v.id} expanded={isExpanded}>
+                                    <div
+                                        className="vendor-card-header"
+                                        onClick={() =>
+                                            setExpandedId(isExpanded ? null : v.id)
+                                        }>
+                                        <VendorMonogram style={{ width: 28, height: 28, fontSize: 10, borderRadius: "50%", background: "var(--secondary-background)", flexShrink: 0 }}>
+                                            {getVendorInitials(v.name)}
+                                        </VendorMonogram>
+                                        <div className="vendor-info">
+                                            <strong>{v.name}</strong>
+                                            <span>{v.flag || "🇺🇸"} {v.warehouse}</span>
                                         </div>
-                                        <div style={{ fontSize: 10, color: "var(--tertiary-foreground)" }}>
-                                            / 10mg
+
+                                        <div style={{ textAlign: "right", marginLeft: "auto", flexShrink: 0 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
+                                                ${v.minPrice}
+                                            </div>
+                                            <div style={{ fontSize: 10, color: "var(--tertiary-foreground)" }}>
+                                                / 10mg
+                                            </div>
                                         </div>
-                                    </div>
-                                    {v.discount && (
+
+                                        {/* Status Badge (Rule 1) */}
                                         <span style={{
                                             fontSize: 10,
                                             fontWeight: 700,
                                             padding: "2px 6px",
                                             borderRadius: 6,
-                                            background: v.badgeTone === "success"
+                                            background: hasPromo
                                                 ? "color-mix(in srgb, #10b981 15%, transparent)"
-                                                : "color-mix(in srgb, var(--accent) 15%, transparent)",
-                                            color: v.badgeTone === "success" ? "#10b981" : "var(--accent)",
+                                                : "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                                            color: hasPromo ? "#10b981" : "var(--tertiary-foreground)",
                                             whiteSpace: "nowrap",
                                             flexShrink: 0,
                                         }}>
-                                            {v.discount}
+                                            {hasPromo ? (v.discount || "✓ Active Promo") : "No Active Promo"}
                                         </span>
+
+                                        <ChevronDown size={13} style={{
+                                            transform: isExpanded ? "rotate(180deg)" : "none",
+                                            transition: "transform 0.15s ease",
+                                            flexShrink: 0,
+                                            color: "var(--tertiary-foreground)",
+                                        }} />
+                                    </div>
+
+                                    {/* Recommendation Label (Rule 5) */}
+                                    {rankLabel && !isExpanded && (
+                                        <div style={{
+                                            padding: "0 12px 8px",
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            color: "var(--tertiary-foreground)",
+                                            letterSpacing: 0.3,
+                                        }}>
+                                            {rankLabel}
+                                        </div>
                                     )}
-                                    <ChevronDown size={13} style={{
-                                        transform: isExpanded ? "rotate(180deg)" : "none",
-                                        transition: "transform 0.15s ease",
-                                        flexShrink: 0,
-                                        color: "var(--tertiary-foreground)",
-                                    }} />
-                                </div>
 
-                                {/* Ranking label */}
-                                {rankLabel && !isExpanded && (
-                                    <div style={{
-                                        padding: "0 12px 8px",
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                        color: "var(--tertiary-foreground)",
-                                        letterSpacing: 0.3,
-                                    }}>
-                                        {rankLabel}
-                                    </div>
-                                )}
-
-                                {isExpanded && (
-                                    <div className="vendor-card-body">
-                                        {rankLabel && (
-                                            <div style={{
-                                                fontSize: 11,
-                                                fontWeight: 700,
-                                                color: "var(--accent)",
-                                                marginBottom: 4,
-                                            }}>
-                                                {rankLabel}
-                                            </div>
-                                        )}
-                                        <div className="specs-grid">
-                                            <div className="spec-item">
-                                                <span>Price / 10mg</span>
-                                                <strong style={{ fontVariantNumeric: "tabular-nums" }}>${v.minPrice}</strong>
-                                            </div>
-                                            <div className="spec-item">
-                                                <span>Discount</span>
-                                                <strong>{v.discount || "Standard"}</strong>
-                                            </div>
-                                            <div className="spec-item">
-                                                <span>Shipping</span>
-                                                <strong>{v.shipping}</strong>
-                                            </div>
-                                            <div className="spec-item">
-                                                <span>Customs Reship</span>
-                                                <strong>{v.customs}</strong>
-                                            </div>
-                                            <div className="spec-item">
-                                                <span>Purity</span>
-                                                <strong>{v.purity}</strong>
-                                            </div>
-                                            <div className="spec-item">
-                                                <span>Stock</span>
-                                                <strong style={{ color: "#10b981" }}>In Stock</strong>
-                                            </div>
-                                        </div>
-                                        <div className="action-row" style={{ marginTop: 8, flexWrap: "wrap", gap: 6 }}>
-                                            <button className="btn-primary" onClick={onClose} style={{ flex: "1 1 auto", padding: "7px 12px", minWidth: 90 }}>
-                                                View Promo
-                                            </button>
-                                            <a
-                                                href={v.communityUrl || "#"}
-                                                className="btn-secondary"
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                style={{ flex: "1 1 auto", padding: "7px 12px", justifyContent: "center", minWidth: 90 }}>
-                                                Join Community
-                                            </a>
-                                            {v.websiteUrl && (
-                                                <a
-                                                    href={v.websiteUrl}
-                                                    className="btn-outline"
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    style={{ flex: "1 1 auto", padding: "7px 12px", justifyContent: "center", minWidth: 90 }}>
-                                                    Visit Website ↗
-                                                </a>
+                                    {isExpanded && (
+                                        <div className="vendor-card-body">
+                                            {rankLabel && (
+                                                <div style={{
+                                                    fontSize: 11,
+                                                    fontWeight: 700,
+                                                    color: "var(--accent)",
+                                                    marginBottom: 4,
+                                                }}>
+                                                    {rankLabel}
+                                                </div>
                                             )}
+                                            <div className="specs-grid">
+                                                <div className="spec-item">
+                                                    <span>Price / 10mg</span>
+                                                    <strong style={{ fontVariantNumeric: "tabular-nums" }}>${v.minPrice}</strong>
+                                                </div>
+                                                <div className="spec-item">
+                                                    <span>Discount</span>
+                                                    <strong>{v.discount || "Standard"}</strong>
+                                                </div>
+                                                <div className="spec-item">
+                                                    <span>Shipping</span>
+                                                    <strong>{v.shipping}</strong>
+                                                </div>
+                                                <div className="spec-item">
+                                                    <span>Customs Reship</span>
+                                                    <strong>{v.customs}</strong>
+                                                </div>
+                                                <div className="spec-item">
+                                                    <span>Purity</span>
+                                                    <strong>{v.purity}</strong>
+                                                </div>
+                                                <div className="spec-item">
+                                                    <span>Stock</span>
+                                                    <strong style={{ color: "#10b981" }}>In Stock</strong>
+                                                </div>
+                                            </div>
+                                            <div className="action-row" style={{ marginTop: 10, display: "flex", gap: 8, width: "100%", boxSizing: "border-box" }}>
+                                                {hasPromo && (
+                                                    <button
+                                                        className="btn-primary"
+                                                        style={{ flex: 1, minHeight: 38, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                                                        onClick={() => {
+                                                            onScrollToPromo?.(v.name, v.promoId);
+                                                            onClose();
+                                                        }}>
+                                                        View Promo
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className="btn-secondary"
+                                                    style={{ flex: 1, minHeight: 38, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                                                    onClick={async () => {
+                                                        const allChannels = Array.from(client.channels.values());
+                                                        const allServers = Array.from(client.servers.values());
+                                                        const vLower = (v.name || "").toLowerCase();
+
+                                                        // 1. Try finding a channel directly matching the vendor name
+                                                        let targetChannel = allChannels.find((c) => c.name?.toLowerCase().includes(vLower));
+
+                                                        // 2. Try finding a server matching vendor name or serverId and picking its channel
+                                                        if (!targetChannel) {
+                                                            const matchedServer = allServers.find(
+                                                                (s) => (v.serverId && s._id === v.serverId) || (s.name && s.name.toLowerCase().includes(vLower))
+                                                            );
+                                                            if (matchedServer && matchedServer.channel_ids && matchedServer.channel_ids.length > 0) {
+                                                                targetChannel = allChannels.find((c) => matchedServer.channel_ids.includes(c._id)) || null;
+                                                            }
+                                                        }
+
+                                                        // 3. Fallback: pick any active text channel in client.channels
+                                                        if (!targetChannel && allChannels.length > 0) {
+                                                            targetChannel = allChannels.find((c) => c.channel_type === "TextChannel") || allChannels[0];
+                                                        }
+
+                                                        // Try joining invite if linked
+                                                        const inviteCode = v.inviteLink ? inviteCodeFromLink(v.inviteLink) : null;
+                                                        if (inviteCode) {
+                                                            try {
+                                                                await client.joinInvite(inviteCode);
+                                                            } catch {
+                                                                /* proceed */
+                                                            }
+                                                        }
+
+                                                        onShowToast?.(`✅ ${isMember ? "Opened" : "Joined"} ${v.name} Community`);
+
+                                                        if (targetChannel) {
+                                                            history.push(`/channel/${targetChannel._id}`);
+                                                        } else {
+                                                            const slug = inviteCode || (v.name ? v.name.toLowerCase().replace(/[^a-z0-9]/g, "") : "pepchat");
+                                                            history.push(`/invite/${slug}`);
+                                                        }
+                                                        onClose();
+                                                    }}>
+                                                    {isMember ? "Open Community" : "Join Community"}
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </VendorCompareCard>
-                        );
-                    })}
-                </VendorCompareList>
+                                    )}
+                                </VendorCompareCard>
+                            );
+                        })}
+                    </VendorCompareList>
+                )}
             </CompareDrawerContainer>
         </>
     );
@@ -4500,12 +4729,42 @@ const Promos: React.FC = () => {
     const [submitting, setSubmitting] = useState(false);
     const [lightbox, setLightbox] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
-    const [dismissedMarketAlert, setDismissedMarketAlert] = useState(false);
     const [compareProduct, setCompareProduct] = useState<string | null>(null);
+    const [dismissedMarketAlert, setDismissedMarketAlert] = useState(false);
+    const [toast, setToast] = useState<string | null>(null);
+
+    const showToast = useCallback((msg: string) => {
+        setToast(msg);
+        setTimeout(() => setToast(null), 3500);
+    }, []);
 
     // Track last visit timestamp. Read once on mount, write after render.
     const [lastVisit, setLastVisit] = useState<number | null>(null);
     const allPromosRef = useRef<HTMLDivElement>(null);
+
+    // Scroll to a specific promo card and briefly highlight it
+    const scrollToPromo = useCallback((vendorName: string, promoId?: string) => {
+        let target = promoId ? document.getElementById(`promo-${promoId}`) : null;
+        if (!target && vendorName) {
+            try {
+                target = document.querySelector<HTMLElement>(`[data-vendor="${CSS.escape(vendorName)}"]`);
+            } catch {
+                /* ignore invalid selector */
+            }
+        }
+        if (!target && vendorName) {
+            const vLower = vendorName.toLowerCase();
+            const allCards = Array.from(document.querySelectorAll<HTMLElement>("[data-vendor]"));
+            target = allCards.find((c) => (c.getAttribute("data-vendor") || "").toLowerCase().includes(vLower)) || null;
+        }
+        if (!target) return;
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Wait for scroll to settle then flash the highlight
+        setTimeout(() => {
+            target.classList.add("promo-highlight");
+            setTimeout(() => target.classList.remove("promo-highlight"), 2000);
+        }, 350);
+    }, []);
 
     // Hot Promos carousel — tracks current visible slide for pagination dots
     const hotCarouselRef = useRef<HTMLDivElement>(null);
@@ -5013,6 +5272,7 @@ const Promos: React.FC = () => {
 
     return (
         <Wrapper>
+            {toast && <ToastContainer>{toast}</ToastContainer>}
             {/* ── Page Header ─────────────────────────────── */}
             <PageTitleRow>
                 <PageTitleBlock>
@@ -5415,71 +5675,68 @@ const Promos: React.FC = () => {
                     )}
 
                     {/* ── Trending Peptides ─────────────────────── */}
-                    {!query && activeFilter === "all" && (() => {
-                        // Merge real data with static fallbacks for all tracked compounds
-                        type TrendProduct = { key: string; name: string; minPrice: number; promoCount: number; vendorCount: number };
-                        const productMap = new Map<string, TrendProduct>();
-                        const TRACKED = [
-                            { key: "retatrutide", name: "Retatrutide", fallbackPrice: 66, fallbackPromos: 7, fallbackVendors: 14 },
-                            { key: "tirzepatide", name: "Tirzepatide", fallbackPrice: 52, fallbackPromos: 5, fallbackVendors: 10 },
-                            { key: "semaglutide", name: "Semaglutide", fallbackPrice: 50, fallbackPromos: 3, fallbackVendors: 6 },
-                            { key: "ghkcu",        name: "GHK-Cu",     fallbackPrice: 18, fallbackPromos: 4, fallbackVendors: 8 },
-                            { key: "hgh",          name: "HGH",        fallbackPrice: 85, fallbackPromos: 2, fallbackVendors: 5 },
-                        ];
-                        for (const tracked of TRACKED) {
-                            const matching = promos.filter((p) =>
-                                p.items.some((it) =>
-                                    it.product.toLowerCase().includes(tracked.key)
-                                )
-                            );
-                            if (matching.length > 0) {
-                                const prices = matching
-                                    .flatMap((p) => p.items.map((it) => it.price))
-                                    .filter((pr): pr is number => typeof pr === "number" && isFinite(pr));
-                                const minPrice = prices.length > 0 ? Math.min(...prices) : tracked.fallbackPrice;
-                                const vendorCount = new Set(matching.map((p) => p.vendor.name)).size;
-                                productMap.set(tracked.key, {
-                                    key: tracked.key,
-                                    name: tracked.name,
-                                    minPrice: Math.round(minPrice * 100) / 100,
-                                    promoCount: matching.length,
-                                    vendorCount,
-                                });
-                            } else {
-                                // Always include with fallback data so all 5 compounds show
-                                productMap.set(tracked.key, {
-                                    key: tracked.key,
-                                    name: tracked.name,
-                                    minPrice: tracked.fallbackPrice,
-                                    promoCount: tracked.fallbackPromos,
-                                    vendorCount: tracked.fallbackVendors,
-                                });
+                    {!query && activeFilter === "all" && (
+                        (() => {
+                            // Merge real data with static fallbacks for all tracked compounds
+                            type TrendProduct = { key: string; name: string; minPrice: number; promoCount: number; vendorCount: number };
+                            const productMap = new Map<string, TrendProduct>();
+                            const TRACKED = [
+                                { key: "retatrutide", name: "Retatrutide", fallbackPrice: 66, fallbackPromos: 7, fallbackVendors: 14 },
+                                { key: "tirzepatide", name: "Tirzepatide", fallbackPrice: 52, fallbackPromos: 5, fallbackVendors: 10 },
+                                { key: "semaglutide", name: "Semaglutide", fallbackPrice: 50, fallbackPromos: 3, fallbackVendors: 6 },
+                                { key: "ghkcu",        name: "GHK-Cu",     fallbackPrice: 18, fallbackPromos: 4, fallbackVendors: 8 },
+                                { key: "hgh",          name: "HGH",        fallbackPrice: 85, fallbackPromos: 2, fallbackVendors: 5 },
+                            ];
+                            for (const tracked of TRACKED) {
+                                const matching = promos.filter((p) =>
+                                    p.items.some((it) =>
+                                        it.product.toLowerCase().includes(tracked.key)
+                                    )
+                                );
+                                if (matching.length > 0) {
+                                    const prices = matching
+                                        .flatMap((p) => p.items.map((it) => it.price))
+                                        .filter((pr): pr is number => typeof pr === "number" && isFinite(pr));
+                                    const minPrice = prices.length > 0 ? Math.min(...prices) : tracked.fallbackPrice;
+                                    const vendorCount = new Set(matching.map((p) => p.vendor.name)).size;
+                                    productMap.set(tracked.key, {
+                                        key: tracked.key,
+                                        name: tracked.name,
+                                        minPrice: Math.round(minPrice * 100) / 100,
+                                        promoCount: matching.length,
+                                        vendorCount,
+                                    });
+                                } else {
+                                    // Always include with fallback data so all 5 compounds show
+                                    productMap.set(tracked.key, {
+                                        key: tracked.key,
+                                        name: tracked.name,
+                                        minPrice: tracked.fallbackPrice,
+                                        promoCount: tracked.fallbackPromos,
+                                        vendorCount: tracked.fallbackVendors,
+                                    });
+                                }
                             }
-                        }
-                        const displayProducts = [...productMap.values()]
-                            .sort((a, b) => b.promoCount - a.promoCount)
-                            .slice(0, 5);
+                            const displayProducts = [...productMap.values()]
+                                .sort((a, b) => b.promoCount - a.promoCount)
+                                .slice(0, 5);
 
-                        return (
-                            <TrendingPeptides
-                                products={displayProducts}
-                                onSelectProduct={(key) => {
-                                    // Apply product filter and scroll to All Promos
-                                    const filterKey = key.replace("-", "") as FilterKey;
-                                    const validKeys: FilterKey[] = ["tirzepatide", "retatrutide", "semaglutide", "hgh"];
-                                    if (validKeys.includes(filterKey)) {
-                                        setActiveFilter(filterKey);
-                                        setTimeout(() => allPromosRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-                                    }
-                                }}
-                                onOpenCompare={(key) => {
-                                    // Open compare drawer for the selected product
-                                    const displayName = key.charAt(0).toUpperCase() + key.slice(1).replace("-", " ");
-                                    setCompareProduct(displayName);
-                                }}
-                            />
-                        );
-                    })()}
+                            return (
+                                <TrendingPeptides
+                                    products={displayProducts}
+                                    onSelectProduct={(key) => {
+                                        // Rule 3: Selecting product opens Compare drawer, does NOT auto-filter main grid
+                                        const displayName = key.charAt(0).toUpperCase() + key.slice(1).replace("-", " ");
+                                        setCompareProduct(displayName);
+                                    }}
+                                    onOpenCompare={(key) => {
+                                        const displayName = key.charAt(0).toUpperCase() + key.slice(1).replace("-", " ");
+                                        setCompareProduct(displayName);
+                                    }}
+                                />
+                            );
+                        })()
+                    )}
 
                     {/* ── Hot Promos Today ─────────────────────── */}
                     {hotPromos.length > 0 && activeFilter === "all" && !query && (
@@ -5553,9 +5810,41 @@ const Promos: React.FC = () => {
                                 ))}
                             </Grid>
                         ) : activeFilter !== "all" || query ? (
-                            <Centered style={{ marginTop: 16 }}>
-                                All matching promos are featured above.
-                            </Centered>
+                            <div style={{
+                                padding: "36px 20px",
+                                textAlign: "center",
+                                background: "var(--secondary-background)",
+                                borderRadius: 16,
+                                border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                                margin: "16px 0",
+                            }}>
+                                <h3 style={{ margin: "0 0 6px 0", fontSize: 16, fontWeight: 700 }}>
+                                    No active promotions found for {activeFilter !== "all" ? activeFilter : `"${query}"`}
+                                </h3>
+                                <p style={{ fontSize: 12, color: "var(--tertiary-foreground)", margin: "0 0 16px 0" }}>
+                                    Try another product or browse all promotions across all vendors.
+                                </p>
+                                <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+                                    <button
+                                        className="btn-secondary"
+                                        style={{ padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                                        onClick={() => {
+                                            setActiveFilter("all");
+                                            setQuery("");
+                                        }}>
+                                        Clear Filters
+                                    </button>
+                                    <button
+                                        className="btn-primary"
+                                        style={{ padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                                        onClick={() => {
+                                            setActiveFilter("all");
+                                            setQuery("");
+                                        }}>
+                                        Browse All Promotions
+                                    </button>
+                                </div>
+                            </div>
                         ) : null}
                     </div>
                 </>
@@ -5570,91 +5859,138 @@ const Promos: React.FC = () => {
             )}
 
             {/* ── Comparison Drawer ───────────────────────── */}
-            <ComparisonDrawer
-                productName={compareProduct ? (compareProduct.length <= 4 ? compareProduct.toUpperCase() : compareProduct.charAt(0).toUpperCase() + compareProduct.slice(1)) : null}
-                vendors={[
-                    {
-                        id: "v1",
-                        name: "PeptideLabz",
-                        warehouse: "US Warehouse",
-                        flag: "🇺🇸",
-                        minPrice: 0.98,
-                        priceFormatted: "$0.98 ($98 / 10mg)",
-                        discount: "30% OFF",
-                        badge: "Lowest",
-                        badgeTone: "success",
-                        shipping: "Free over $500",
-                        customs: "Yes",
-                        purity: "99%",
-                        stock: "In Stock",
-                        communityUrl: "https://discord.gg",
-                        websiteUrl: "https://peptidelabz.com",
-                    },
-                    {
-                        id: "v2",
-                        name: "Amino Asylum",
-                        warehouse: "US Warehouse",
-                        flag: "🇺🇸",
-                        minPrice: 1.05,
-                        priceFormatted: "$1.05 ($105 / 10mg)",
-                        discount: "25% OFF",
-                        badge: "Popular",
-                        badgeTone: "accent",
-                        shipping: "Free over $300",
-                        customs: "Full Reship Policy",
-                        purity: "99.2%",
-                        stock: "In Stock",
-                        communityUrl: "https://t.me",
-                        websiteUrl: "https://aminoasylum.shop",
-                    },
-                    {
-                        id: "v3",
-                        name: "Swiss Chems",
-                        warehouse: "EU Warehouse",
-                        flag: "🇪🇺",
-                        minPrice: 1.10,
-                        priceFormatted: "$1.10 ($110 / 10mg)",
-                        discount: "20% OFF",
-                        shipping: "$15 Flat Rate",
-                        customs: "Reship Guaranteed",
-                        purity: "98.9%",
-                        stock: "In Stock",
-                        communityUrl: "https://discord.gg",
-                        websiteUrl: "https://swisschems.is",
-                    },
-                    {
-                        id: "v4",
-                        name: "Receptor Chems",
-                        warehouse: "US Warehouse",
-                        flag: "🇺🇸",
-                        minPrice: 1.20,
-                        priceFormatted: "$1.20 ($120 / 10mg)",
-                        discount: "15% OFF",
-                        shipping: "$10 Standard",
-                        customs: "Included",
-                        purity: "99.5%",
-                        stock: "In Stock",
-                        communityUrl: "https://t.me",
-                        websiteUrl: "https://receptorchem.co.uk",
-                    },
-                    {
-                        id: "v5",
-                        name: "Umbrella Labs",
-                        warehouse: "US Warehouse",
-                        flag: "🇺🇸",
-                        minPrice: 1.35,
-                        priceFormatted: "$1.35 ($135 / 10mg)",
-                        discount: "10% OFF",
-                        shipping: "Free over $150",
-                        customs: "Included",
-                        purity: "99.1%",
-                        stock: "In Stock",
-                        communityUrl: "https://discord.gg",
-                        websiteUrl: "https://umbrellalabs.is",
-                    },
-                ]}
-                onClose={() => setCompareProduct(null)}
-            />
+            {(() => {
+                const searchKey = (compareProduct || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+                const matchingPromos = compareProduct
+                    ? promos.filter((p) =>
+                          p.items.some((it) =>
+                              it.product.toLowerCase().replace(/[^a-z0-9]/g, "").includes(searchKey),
+                          ),
+                      )
+                    : [];
+
+                const vendors = matchingPromos.length > 0
+                    ? matchingPromos.map((p) => {
+                          const prices = p.items
+                              .filter((it) =>
+                                  it.product.toLowerCase().replace(/[^a-z0-9]/g, "").includes(searchKey),
+                              )
+                              .map((it) => it.price)
+                              .filter((pr): pr is number => typeof pr === "number" && isFinite(pr));
+                          const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+                          const wh = (p.warehouse || "").toLowerCase();
+                          const flag = wh.includes("eu") ? "🇪🇺" : wh.includes("cn") ? "🇨🇳" : "🇺🇸";
+                          return {
+                              id: p.id,
+                              promoId: p.id,
+                              hasActivePromo: true,
+                              name: p.vendor.name,
+                              logo: p.vendor.logo || undefined,
+                              warehouse: p.warehouse || "US Warehouse",
+                              flag,
+                              minPrice: Math.round(minPrice * 100) / 100,
+                              discount: p.discountNote,
+                              shipping:
+                                  p.shippingFee === 0
+                                      ? "Free Shipping"
+                                      : p.freeShippingThreshold
+                                      ? `Free over $${p.freeShippingThreshold}`
+                                      : p.shippingNote || "Standard",
+                              customs: p.guarantee?.customsReship ? "Yes" : "Standard",
+                              purity: p.guarantee?.purityPct ? `${p.guarantee.purityPct}%` : "99%",
+                              serverId: p.vendor.serverId,
+                              inviteLink: p.vendor.inviteLink,
+                              communityUrl: p.vendor.inviteLink || undefined,
+                          };
+                      }).sort((a, b) => a.minPrice - b.minPrice)
+                    : [
+                          {
+                              id: "v1",
+                              hasActivePromo: true,
+                              name: "PeptideLabz",
+                              warehouse: "US Warehouse",
+                              flag: "🇺🇸",
+                              minPrice: 0.98,
+                              discount: "30% OFF",
+                              shipping: "Free over $500",
+                              customs: "Yes",
+                              purity: "99%",
+                              communityUrl: "https://discord.gg",
+                          },
+                          {
+                              id: "v2",
+                              hasActivePromo: true,
+                              name: "Amino Asylum",
+                              warehouse: "US Warehouse",
+                              flag: "🇺🇸",
+                              minPrice: 1.05,
+                              discount: "25% OFF",
+                              shipping: "Free over $300",
+                              customs: "Full Reship Policy",
+                              purity: "99.2%",
+                              communityUrl: "https://t.me",
+                          },
+                          {
+                              id: "v3",
+                              hasActivePromo: true,
+                              name: "Swiss Chems",
+                              warehouse: "EU Warehouse",
+                              flag: "🇪🇺",
+                              minPrice: 1.10,
+                              discount: "20% OFF",
+                              shipping: "$15 Flat Rate",
+                              customs: "Reship Guaranteed",
+                              purity: "98.9%",
+                              communityUrl: "https://discord.gg",
+                          },
+                          {
+                              id: "v4",
+                              hasActivePromo: false,
+                              name: "Receptor Chems",
+                              warehouse: "US Warehouse",
+                              flag: "🇺🇸",
+                              minPrice: 1.20,
+                              discount: "No Active Promo",
+                              shipping: "$10 Standard",
+                              customs: "Included",
+                              purity: "99.5%",
+                              communityUrl: "https://t.me",
+                          },
+                          {
+                              id: "v5",
+                              hasActivePromo: false,
+                              name: "Umbrella Labs",
+                              warehouse: "US Warehouse",
+                              flag: "🇺🇸",
+                              minPrice: 1.35,
+                              discount: "No Active Promo",
+                              shipping: "Free over $150",
+                              customs: "Included",
+                              purity: "99.1%",
+                              communityUrl: "https://discord.gg",
+                          },
+                      ];
+
+                return (
+                    <ComparisonDrawer
+                        productName={compareProduct ? (compareProduct.length <= 4 ? compareProduct.toUpperCase() : compareProduct.charAt(0).toUpperCase() + compareProduct.slice(1)) : null}
+                        vendors={vendors}
+                        onClose={() => setCompareProduct(null)}
+                        onScrollToPromo={scrollToPromo}
+                        onShowToast={showToast}
+                        onApplyFilter={(productKey) => {
+                            const validKeys: FilterKey[] = ["tirzepatide", "retatrutide", "semaglutide", "hgh"];
+                            const matched = validKeys.find((k) => productKey.includes(k));
+                            if (matched) {
+                                setActiveFilter(matched);
+                            } else {
+                                setActiveFilter("all");
+                            }
+                            setTimeout(() => allPromosRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+                        }}
+                    />
+                );
+            })()}
         </Wrapper>
     );
 };
