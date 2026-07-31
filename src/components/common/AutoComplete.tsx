@@ -297,16 +297,30 @@ export function useAutoComplete(
 
                 const content = el.value.split("");
                 let inserted: string[];
+                let spliceStart = index;
 
                 if (state.type === "emoji") {
                     const selected = state.matches[state.selected];
-                    inserted = [
-                        selected instanceof CustomEmoji
-                            ? selected._id
-                            : selected,
-                        ": ",
-                    ];
-                    content.splice(index, search.length, ...inserted);
+                    if (selected instanceof CustomEmoji) {
+                        inserted = [selected._id, ": "];
+                        content.splice(index, search.length, ...inserted);
+                    } else {
+                        // Standard emoji complete to the unicode character
+                        // itself (replacing the ':' trigger too); composer
+                        // and message render it as the same Twemoji image.
+                        inserted = [
+                            emojiDictionary[
+                                selected as keyof typeof emojiDictionary
+                            ],
+                            " ",
+                        ];
+                        spliceStart = index - 1;
+                        content.splice(
+                            spliceStart,
+                            search.length + 1,
+                            ...inserted,
+                        );
+                    }
                 } else if (state.type === "user") {
                     const selectedUser = state.matches[state.selected];
                     // Users and roles both insert @Name text; conversion to
@@ -338,7 +352,7 @@ export function useAutoComplete(
                 // the value updates the caret would otherwise jump to the end
                 // of the draft — either way you had to click back in to carry
                 // on typing. Deferred so it runs after the re-render.
-                const caret = index + inserted.join("").length;
+                const caret = spliceStart + inserted.join("").length;
                 setTimeout(() => {
                     el.focus();
                     el.setSelectionRange(caret, caret);

@@ -688,10 +688,20 @@ export default observer(({ channel }: Props) => {
                     <HackAlertThisFileWillBeReplaced
                         onSelect={(emoji) => {
                             const v = state.draft.get(channel._id);
+                            // Standard emoji go in as the unicode character
+                            // (rendered as the same Twemoji image in composer
+                            // and message); custom emoji have no unicode
+                            // form and stay :ULID:.
+                            const inserted =
+                                emoji in emojiDictionary
+                                    ? emojiDictionary[
+                                          emoji as keyof typeof emojiDictionary
+                                      ]
+                                    : `:${emoji}:`;
                             const cnt: DraftObject = {
                                 content:
                                     (v?.content ? `${v.content} ` : "") +
-                                    `:${emoji}:`,
+                                    inserted,
                             };
                             state.draft.set(channel._id, cnt);
                         }}

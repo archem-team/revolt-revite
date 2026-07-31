@@ -7,6 +7,7 @@ import {
     composerPingableRoles,
     escapeRegex,
 } from "../../../lib/convertMentions";
+import { RE_UNICODE_EMOJI } from "../../../lib/unicodeEmoji";
 
 import { parseEmoji } from "../Emoji";
 
@@ -35,12 +36,15 @@ const Pill = styled.span<{ colour?: string | null }>`
 /**
  * The token text keeps its width (transparent) and the emoji picture is
  * painted over it, so the caret maths of the textarea are untouched.
+ * Sized to the message renderer's --emoji-size (1.25em, RemarkRenderer)
+ * so the preview and the sent message look identical; anchored left so
+ * a :long_name: token reads as emoji-then-gap, not a floating image.
  */
 const EmojiToken = styled.span`
     color: transparent;
-    background-position: center;
+    background-position: left center;
     background-repeat: no-repeat;
-    background-size: contain;
+    background-size: auto 1.25em;
 `;
 
 /** Case-folded username set, rebuilt only when the user store grows. */
@@ -156,6 +160,20 @@ function tokenize(value: string, channel: Channel): Segment[] {
                     url: emojiUrl(client, match[1]),
                 });
             }
+        }
+    }
+
+    // Raw unicode emoji (the picker and autocomplete insert these) get
+    // the same Twemoji image messages render them with.
+    {
+        const unicode = new RegExp(RE_UNICODE_EMOJI.source, "gu");
+        let match;
+        while ((match = unicode.exec(value))) {
+            claim(match.index, match.index + match[0].length, {
+                type: "emoji",
+                text: match[0],
+                url: parseEmoji(match[0]),
+            });
         }
     }
 
