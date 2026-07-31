@@ -39,12 +39,15 @@ const Pill = styled.span<{ colour?: string | null }>`
  * Sized to the message renderer's --emoji-size (1.25em, RemarkRenderer)
  * so the preview and the sent message look identical; anchored left so
  * a :long_name: token reads as emoji-then-gap, not a floating image.
+ * The size is capped at the span's own width: an emoji glyph's advance
+ * can round to just under 1.25em on some display scales, and a
+ * background is clipped to its box — uncapped, the image lost an edge.
  */
 const EmojiToken = styled.span`
     color: transparent;
     background-position: left center;
     background-repeat: no-repeat;
-    background-size: auto 1.25em;
+    background-size: min(1.25em, 100%);
 `;
 
 /** Case-folded username set, rebuilt only when the user store grows. */
