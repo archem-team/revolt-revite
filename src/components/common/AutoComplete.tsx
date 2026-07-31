@@ -154,14 +154,21 @@ export function useAutoComplete(
                                 break;
                             case "TextChannel":
                                 {
+                                    // Walk the member objects, not the map
+                                    // keys: the keys are composite JSON
+                                    // strings, and this runs per keystroke.
                                     const server = channel.server_id;
-                                    users = [...client.members.keys()]
-                                        .map((x) => JSON.parse(x))
-                                        .filter((x) => x.server === server)
-                                        .map((x) => client.users.get(x.user))
-                                        .filter(
-                                            (x) => typeof x !== "undefined",
-                                        ) as User[];
+                                    users = [];
+
+                                    for (const member of client.members.values()) {
+                                        if (member._id.server !== server)
+                                            continue;
+
+                                        const user = client.users.get(
+                                            member._id.user,
+                                        );
+                                        if (user) users.push(user);
+                                    }
                                 }
                                 break;
                             default:
@@ -194,6 +201,44 @@ export function useAutoComplete(
                         { _id: "@everyone", username: "everyone" } as any,
                         ...matches,
                     ].slice(0, 5);
+                }
+
+                // Suggest roles the author may ping (mentionable ones, or all
+                // of them when they hold MentionRoles in this channel). Role
+                // entries ride the user list as marked pseudo-entries, like
+                // @everyone above; selecting one inserts <%ROLE_ID>.
+                if (searchClues.users.type === "channel") {
+                    const channel = client.channels.get(searchClues.users.id);
+                    if (channel?.channel_type === "TextChannel") {
+                        const server = channel.server;
+                        if (server) {
+                            const canMentionAll =
+                                channel.havePermission(
+                                    "MentionRoles" as never,
+                                );
+                            const roles = server.orderedRoles
+                                .filter(
+                                    (role) =>
+                                        ((role as any).mentionable ||
+                                            canMentionAll) &&
+                                        (search.length === 0 ||
+                                            role.name
+                                                ?.toLowerCase()
+                                                .match(regex)),
+                                )
+                                .splice(0, 3)
+                                .map(
+                                    (role) =>
+                                        ({
+                                            _id: role.id,
+                                            username: role.name,
+                                            __role: role,
+                                        } as any),
+                                );
+
+                            matches = [...matches, ...roles];
+                        }
+                    }
                 }
 
                 if (matches.length > 0) {
@@ -257,19 +302,34 @@ export function useAutoComplete(
 
                 const content = el.value.split("");
                 let inserted: string[];
+                let spliceStart = index;
 
                 if (state.type === "emoji") {
                     const selected = state.matches[state.selected];
-                    inserted = [
-                        selected instanceof CustomEmoji
-                            ? selected._id
-                            : selected,
-                        ": ",
-                    ];
-                    content.splice(index, search.length, ...inserted);
+                    if (selected instanceof CustomEmoji) {
+                        inserted = [selected._id, ": "];
+                        content.splice(index, search.length, ...inserted);
+                    } else {
+                        // Standard emoji complete to the unicode character
+                        // itself (replacing the ':' trigger too); composer
+                        // and message render it as the same Twemoji image.
+                        inserted = [
+                            emojiDictionary[
+                                selected as keyof typeof emojiDictionary
+                            ],
+                            " ",
+                        ];
+                        spliceStart = index - 1;
+                        content.splice(
+                            spliceStart,
+                            search.length + 1,
+                            ...inserted,
+                        );
+                    }
                 } else if (state.type === "user") {
                     const selectedUser = state.matches[state.selected];
-                    // Handle @everyone special case
+                    // Users and roles both insert @Name text; conversion to
+                    // the id form happens at send time in MessageBox.
                     inserted =
                         selectedUser._id === "@everyone"
                             ? ["@everyone "]
@@ -297,7 +357,7 @@ export function useAutoComplete(
                 // the value updates the caret would otherwise jump to the end
                 // of the draft — either way you had to click back in to carry
                 // on typing. Deferred so it runs after the re-render.
-                const caret = index + inserted.join("").length;
+                const caret = spliceStart + inserted.join("").length;
                 setTimeout(() => {
                     el.focus();
                     el.setSelectionRange(caret, caret);
@@ -555,7 +615,55 @@ export default function AutoComplete({
                                 })
                             }
                             onClick={onClick}>
-                            {match._id === "@everyone" ? (
+                            {(match as any).__role ? (
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                    }}>
+                                    <span
+                                        style={{
+                                            width: "24px",
+                                            height: "24px",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontSize: "14px",
+                                            background:
+                                                "var(--tertiary-background)",
+                                            color:
+                                                (match as any).__role.colour &&
+                                                !(
+                                                    match as any
+                                                ).__role.colour.includes(
+                                                    "gradient",
+                                                )
+                                                    ? (match as any).__role
+                                                          .colour
+                                                    : "var(--foreground)",
+                                            borderRadius: "50%",
+                                            fontWeight: "600",
+                                        }}>
+                                        @
+                                    </span>
+                                    <span
+                                        style={{
+                                            color:
+                                                (match as any).__role.colour &&
+                                                !(
+                                                    match as any
+                                                ).__role.colour.includes(
+                                                    "gradient",
+                                                )
+                                                    ? (match as any).__role
+                                                          .colour
+                                                    : undefined,
+                                        }}>
+                                        {match.username}
+                                    </span>
+                                </div>
+                            ) : match._id === "@everyone" ? (
                                 <div
                                     style={{
                                         display: "flex",

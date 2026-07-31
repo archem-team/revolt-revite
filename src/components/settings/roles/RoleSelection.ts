@@ -8,5 +8,6 @@ export type RoleOrDefault = (
           colour?: string;
           hoist?: boolean;
           rank?: number;
+          mentionable?: boolean;
       }
 ) & { id: string };

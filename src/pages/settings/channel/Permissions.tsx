@@ -106,7 +106,11 @@ export default observer(({ channel }: Props) => {
                                 [
                                     ...(channel.channel_type === "Group"
                                         ? []
-                                        : ["ViewChannel", "MentionEveryone"]),
+                                        : [
+                                              "ViewChannel",
+                                              "MentionEveryone",
+                                              "MentionRoles",
+                                          ]),
                                     "ReadMessageHistory",
                                     "SendMessage",
                                     "ManageMessages",

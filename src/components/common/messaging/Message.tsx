@@ -122,7 +122,8 @@ const Message = observer(
                     mention={
                         (client.user &&
                             (message.mention_ids?.includes(client.user._id) ||
-                                (message as any).mentionsEveryone)) ||
+                                (message as any).mentionsEveryone ||
+                                (message as any).mentionsSelfRoles)) ||
                         undefined
                     }
                     failed={typeof queued?.error !== "undefined"}

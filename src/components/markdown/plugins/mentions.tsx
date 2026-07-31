@@ -7,6 +7,9 @@ import { createComponent, CustomComponentProps } from "./remarkRegexComponent";
 
 // RE_EVERYONE is not exported in the ESM build, define it locally
 const RE_EVERYONE = /@everyone/g;
+// Defined locally for the same reason (typecheck resolves the stale npm
+// revolt.js vendored under external/components, which lacks the export)
+const RE_ROLE_MENTIONS = /<%([A-z0-9]{26})>/g;
 
 const Mention = styled.a`
     gap: 4px;
@@ -94,4 +97,52 @@ export const remarkEveryone = createComponent(
     "everyone",
     RE_EVERYONE,
     () => true,
+);
+
+/** Find a role by id across all known servers (role ids are unique ULIDs). */
+function findRole(id: string) {
+    for (const server of clientController
+        .getAvailableClient()
+        .servers.values()) {
+        const role = server.roles?.[id];
+        if (role) return role;
+    }
+}
+
+const RoleMention = styled.span<{ colour?: string | null }>`
+    padding: 0 6px;
+    flex-shrink: 0;
+
+    align-items: center;
+    display: inline-flex;
+    vertical-align: middle;
+
+    font-weight: 600;
+    cursor: pointer;
+    /* Mention pill: role colour (fallback gold) on a dark olive pill. */
+    color: ${(props) =>
+        props.colour && !props.colour.includes("gradient")
+            ? props.colour
+            : "#d6a939"};
+    background: #312d1d;
+    border-radius: calc(var(--border-radius) * 2);
+
+    transition: 0.1s ease filter;
+
+    &:hover {
+        filter: brightness(0.75);
+    }
+`;
+
+export function RenderRoleMention({ match }: CustomComponentProps) {
+    const role = findRole(match);
+    if (!role) return null;
+
+    return <RoleMention colour={role.colour}>{`@${role.name}`}</RoleMention>;
+}
+
+export const remarkRoleMention = createComponent(
+    "rolemention",
+    RE_ROLE_MENTIONS,
+    (match) => findRole(match) !== undefined,
 );

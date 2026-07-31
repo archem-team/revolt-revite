@@ -46,10 +46,19 @@ function formatAlertCount(count?: number) {
 // Helper function to convert mentions to usernames
 function convertMentionsToUsernames(content: string, client: any): string {
     const mentionRegex = /<@([A-z0-9]{26})>/g;
-    return content.replace(mentionRegex, (match, userId) => {
-        const user = client.users.get(userId);
-        return user ? `@${user.username}` : match;
-    });
+    const roleMentionRegex = /<%([A-z0-9]{26})>/g;
+    return content
+        .replace(mentionRegex, (match, userId) => {
+            const user = client.users.get(userId);
+            return user ? `@${user.username}` : match;
+        })
+        .replace(roleMentionRegex, (match, roleId) => {
+            for (const server of client.servers.values()) {
+                const role = server.roles?.[roleId];
+                if (role) return `@${role.name}`;
+            }
+            return match;
+        });
 }
 
 // TODO: Gray out blocked names.
