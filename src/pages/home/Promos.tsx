@@ -2563,8 +2563,14 @@ const Grid = styled.div`
 const HotPromosGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 20px;
+    gap: 16px;
     animation: promoGridSwap 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* Uniform row height — all cards same height */
+    align-items: stretch;
+
+    > * {
+        height: 100%;
+    }
 
     @media (max-width: 1000px) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2578,7 +2584,7 @@ const HotPromosGrid = styled.div`
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
-        gap: 14px;
+        gap: 12px;
         padding-bottom: 12px;
         width: 100%;
         max-width: 100%;
@@ -2597,6 +2603,7 @@ const HotPromosGrid = styled.div`
             min-width: 0;
             scroll-snap-align: start;
             margin-bottom: 0;
+            height: auto;
         }
 
         @media (max-width: 360px) {
@@ -2673,21 +2680,121 @@ const Card = styled.div`
     }
 `;
 
-// Featured card variant (used in Hot Promos Today) — rich featured card
+// Featured card variant (used in Hot Promos Today) — compact, uniform-height card
 const FeaturedCard = styled(Card)`
     margin-bottom: 0;
     break-inside: unset;
-    min-width: 0; /* prevent grid cell from expanding beyond minmax(0, 1fr) */
+    min-width: 0;
+    /* Flex column so footer always pins to bottom */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
 
-    /* In carousel mode cards are in a flex row, auto height is correct */
+    /* Override the child-gap to be tighter */
+    > * + * {
+        margin-top: 6px;
+    }
+
     @media (max-width: 720px) {
         height: auto;
         min-width: unset;
-        padding: 12px;
+        padding: 10px;
 
         > * + * {
-            margin-top: 6px;
+            margin-top: 5px;
         }
+    }
+`;
+
+// ── Featured card sub-components ─────────────────────────────────────────────
+
+// Compressed logistics info — one line, tight inline chips
+const FeaturedLogisticsLine = styled.div`
+    font-size: 11px;
+    color: var(--secondary-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+
+    span.sep {
+        color: var(--tertiary-foreground);
+        opacity: 0.5;
+    }
+`;
+
+// Short 2-3 line clamped description
+const FeaturedDesc = styled.div`
+    font-size: 12px;
+    color: var(--secondary-foreground);
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex: 1;
+    min-width: 0;
+
+    @media (max-width: 720px) {
+        -webkit-line-clamp: 2;
+    }
+`;
+
+// Fixed-ratio hero image wrapper with photo-count overlay
+const FeaturedImageWrap = styled.div`
+    position: relative;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--primary-background);
+    flex-shrink: 0;
+    /* 16:10 ratio */
+    aspect-ratio: 16 / 10;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .photo-count {
+        position: absolute;
+        bottom: 6px;
+        right: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 7px;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.55);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 600;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+    }
+
+    @media (max-width: 720px) {
+        aspect-ratio: 4 / 3;
+    }
+`;
+
+// "View Details →" link for featured cards
+const ViewDetailsLink = styled.span`
+    display: inline-block;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 2px;
+
+    &:hover {
+        text-decoration: underline;
     }
 `;
 
@@ -3455,6 +3562,133 @@ const PromoCard = observer(
 
         const CardEl = (featured ? FeaturedCard : Card) as any;
 
+        // ── FEATURED (Hot Promos Today) — compact fixed-height card ─────────
+        if (featured) {
+            // Logistics: one compressed line of at most 3 tokens
+            const logisticsTokens: string[] = [];
+            if (typeof promo.shippingFee === "number" && promo.shippingFee === 0) {
+                logisticsTokens.push("🚚 Free Shipping");
+            } else if (typeof promo.freeShippingThreshold === "number") {
+                logisticsTokens.push(`🚚 Free over ${money(promo.freeShippingThreshold)}`);
+            } else if (typeof promo.shippingFee === "number") {
+                logisticsTokens.push(`🚚 ${money(promo.shippingFee)}`);
+            }
+            if (g?.customsReship) logisticsTokens.push("🛡 Customs Reship");
+            if (g?.purityPct != null && g.purityPct >= 98) logisticsTokens.push(`${g.purityPct}% Purity`);
+
+            // Short description from notes — 2-3 line clamp
+            const descParts = [promo.discountNote, promo.shippingNote, promo.moqNote].filter(Boolean) as string[];
+            const descText = descParts.join(" • ");
+
+            // Hero image + extra count
+            const heroSrc = promo.images && promo.images.length > 0 ? resolveImage(promo.images[0]) : null;
+            const extraPhotos = promo.images ? promo.images.length - 1 : 0;
+
+            // Badges: max 2, priority order
+            const badges: Array<{ bg: string; color: string; label: string }> = [];
+            if (featuredReason) badges.push({ bg: featuredReason.bg, color: featuredReason.color, label: featuredReason.label });
+            const cb = getCardBadge(promo);
+            if (cb && badges.length < 2) badges.push({ bg: cb.bg, color: cb.color, label: cb.label });
+
+            const status = getCardFooterStatus(promo);
+
+            return (
+                <FeaturedCard>
+                    {/* Badge row — max 2 */}
+                    {badges.length > 0 && (
+                        <BadgeRow>
+                            {badges.map((b, i) => (
+                                <FeaturedReasonBadge key={i} bg={b.bg} textColor={b.color}>
+                                    {b.label}
+                                </FeaturedReasonBadge>
+                            ))}
+                        </BadgeRow>
+                    )}
+
+                    {/* Card Head: logo + vendor + warehouse */}
+                    <CardHead>
+                        {logoUrl && !logoFailed ? (
+                            <Logo src={logoUrl} loading="lazy" onError={handleLogoError} />
+                        ) : (
+                            <VendorMonogram aria-label={`${promo.vendor.name} logo`}>
+                                {promo.vendor.name ? getVendorInitials(promo.vendor.name) : <Store size={18} />}
+                            </VendorMonogram>
+                        )}
+                        <VendorMeta>
+                            <span className="vendor-name">{promo.vendor.name}</span>
+                            {promo.warehouse && (
+                                <span className="warehouse-row">
+                                    <MapPin size={10} />
+                                    {promo.warehouse}
+                                </span>
+                            )}
+                        </VendorMeta>
+                    </CardHead>
+
+                    {/* Promotion Title */}
+                    {promo.title && (
+                        <PromoTitle style={{ fontSize: 13, lineHeight: 1.3, marginTop: 0 }}>
+                            {promo.title}
+                        </PromoTitle>
+                    )}
+
+                    {/* Logistics — one compressed line */}
+                    {logisticsTokens.length > 0 && (
+                        <FeaturedLogisticsLine>
+                            {logisticsTokens.map((tok, i) => (
+                                <span key={i}>
+                                    {i > 0 && <span className="sep"> • </span>}
+                                    {tok}
+                                </span>
+                            ))}
+                        </FeaturedLogisticsLine>
+                    )}
+
+                    {/* Short 2-3 line description */}
+                    {descText && (
+                        <FeaturedDesc>{descText}</FeaturedDesc>
+                    )}
+
+                    {/* Hero image — fixed ratio, single image, photo count overlay */}
+                    {heroSrc && (
+                        <FeaturedImageWrap>
+                            <img
+                                src={heroSrc}
+                                loading="lazy"
+                                onError={(e) => handleImageError(e as any, promo.images![0])}
+                                onClick={() => onOpenImage(heroSrc)}
+                            />
+                            {extraPhotos > 0 && (
+                                <span className="photo-count">📷 +{extraPhotos} Photos</span>
+                            )}
+                        </FeaturedImageWrap>
+                    )}
+
+                    {/* Footer — always at bottom */}
+                    <CardFooter>
+                        <CountdownText urgent={status.type === "endingSoon"}>
+                            {status.label}
+                        </CountdownText>
+                        {onCompare && (
+                            <CompareActionLink
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const prodKey = (promo as any).productKey ||
+                                        (promo.items && promo.items.length > 0
+                                            ? promo.items[0].product.toLowerCase()
+                                            : "retatrutide");
+                                    onCompare(prodKey);
+                                }}>
+                                Compare Vendors
+                            </CompareActionLink>
+                        )}
+                    </CardFooter>
+                </FeaturedCard>
+            );
+        }
+
+        // ── REGULAR CARD (All Promotions) — full detail layout ───────────────
+
         return (
             <CardEl data-featured={featured ? "true" : undefined}>
                 {/* Card Badge — aligned left with breathing room */}
@@ -4060,7 +4294,6 @@ function ComparisonDrawer({
     const [expandedId, setExpandedId] = useState<string | null>(
         vendors.length > 0 ? vendors[0].id : null,
     );
-    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     useEffect(() => {
         if (!productName) return;
@@ -4075,11 +4308,8 @@ function ComparisonDrawer({
 
     if (!productName) return null;
 
-    const toggleSelect = (id: string) => {
-        setSelectedIds((prev) =>
-            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-        );
-    };
+    // Ranking labels — assigned by sorted position
+    const rankLabels = ["🥇 Lowest Price", "🥈 Best Value", "⭐ Community Fav"];
 
     return (
         <>
@@ -4088,21 +4318,35 @@ function ComparisonDrawer({
                 <SheetHandle aria-hidden="true" />
                 <DrawerHeader>
                     <div className="drawer-title-group">
-                        <h3 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Compare</h3>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)", marginTop: 2 }}>
-                            {productName} 10mg <span style={{ fontSize: 12, color: "var(--tertiary-foreground)", fontWeight: 400 }}>• {vendors.length} vendors found</span>
+                        <h3 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Compare</h3>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)", marginTop: 2 }}>
+                            {productName} 10mg{" "}
+                            <span style={{ fontSize: 11, color: "var(--tertiary-foreground)", fontWeight: 400 }}>
+                                • {vendors.length} vendors found
+                            </span>
                         </div>
                     </div>
                     <button className="close-btn" onClick={onClose} aria-label="Close drawer">
-                        <X size={18} />
+                        <X size={16} />
                     </button>
                 </DrawerHeader>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
+                {/* Sort row */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "2px 0" }}>
                     <span style={{ fontSize: 11, color: "var(--tertiary-foreground)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>
                         Sort by:
                     </span>
-                    <select style={{ background: "var(--primary-background)", color: "var(--foreground)", border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)", borderRadius: 8, padding: "4px 8px", fontSize: 12, outline: "none" }}>
+                    <select style={{
+                        background: "var(--primary-background)",
+                        color: "var(--foreground)",
+                        border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
+                        borderRadius: 8,
+                        padding: "4px 10px",
+                        fontSize: 12,
+                        fontFamily: "inherit",
+                        outline: "none",
+                        cursor: "pointer",
+                    }}>
                         <option>Lowest Price</option>
                         <option>Highest Purity</option>
                         <option>Fastest Shipping</option>
@@ -4110,9 +4354,9 @@ function ComparisonDrawer({
                 </div>
 
                 <VendorCompareList>
-                    {vendors.map((v) => {
+                    {vendors.map((v, idx) => {
                         const isExpanded = expandedId === v.id;
-                        const isSelected = selectedIds.includes(v.id);
+                        const rankLabel = rankLabels[idx] || null;
                         return (
                             <VendorCompareCard key={v.id} expanded={isExpanded}>
                                 <div
@@ -4120,27 +4364,17 @@ function ComparisonDrawer({
                                     onClick={() =>
                                         setExpandedId(isExpanded ? null : v.id)
                                     }>
-                                    <input
-                                        type="checkbox"
-                                        checked={isSelected}
-                                        onChange={(e) => {
-                                            e.stopPropagation();
-                                            toggleSelect(v.id);
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                        style={{ accentColor: "var(--accent)", cursor: "pointer", width: 15, height: 15 }}
-                                    />
-                                    <VendorMonogram style={{ width: 28, height: 28, fontSize: 10, borderRadius: "50%", background: "var(--secondary-background)" }}>
+                                    <VendorMonogram style={{ width: 28, height: 28, fontSize: 10, borderRadius: "50%", background: "var(--secondary-background)", flexShrink: 0 }}>
                                         {getVendorInitials(v.name)}
                                     </VendorMonogram>
                                     <div className="vendor-info">
                                         <strong>{v.name}</strong>
                                         <span>{v.flag || "🇺🇸"} {v.warehouse}</span>
                                     </div>
-                                    <div style={{ textAlign: "right", margin: "0 6px" }}>
-                                        <span className="price-badge" style={{ fontVariantNumeric: "tabular-nums" }}>
+                                    <div style={{ textAlign: "right", marginLeft: "auto", flexShrink: 0 }}>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
                                             ${v.minPrice}
-                                        </span>
+                                        </div>
                                         <div style={{ fontSize: 10, color: "var(--tertiary-foreground)" }}>
                                             / 10mg
                                         </div>
@@ -4151,17 +4385,49 @@ function ComparisonDrawer({
                                             fontWeight: 700,
                                             padding: "2px 6px",
                                             borderRadius: 6,
-                                            background: v.badgeTone === "success" ? "color-mix(in srgb, #10b981 15%, transparent)" : "color-mix(in srgb, var(--accent) 15%, transparent)",
+                                            background: v.badgeTone === "success"
+                                                ? "color-mix(in srgb, #10b981 15%, transparent)"
+                                                : "color-mix(in srgb, var(--accent) 15%, transparent)",
                                             color: v.badgeTone === "success" ? "#10b981" : "var(--accent)",
-                                            whiteSpace: "nowrap"
+                                            whiteSpace: "nowrap",
+                                            flexShrink: 0,
                                         }}>
                                             {v.discount}
                                         </span>
                                     )}
-                                    <ChevronDown size={14} style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.15s ease", marginLeft: 4 }} />
+                                    <ChevronDown size={13} style={{
+                                        transform: isExpanded ? "rotate(180deg)" : "none",
+                                        transition: "transform 0.15s ease",
+                                        flexShrink: 0,
+                                        color: "var(--tertiary-foreground)",
+                                    }} />
                                 </div>
+
+                                {/* Ranking label */}
+                                {rankLabel && !isExpanded && (
+                                    <div style={{
+                                        padding: "0 12px 8px",
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        color: "var(--tertiary-foreground)",
+                                        letterSpacing: 0.3,
+                                    }}>
+                                        {rankLabel}
+                                    </div>
+                                )}
+
                                 {isExpanded && (
                                     <div className="vendor-card-body">
+                                        {rankLabel && (
+                                            <div style={{
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                color: "var(--accent)",
+                                                marginBottom: 4,
+                                            }}>
+                                                {rankLabel}
+                                            </div>
+                                        )}
                                         <div className="specs-grid">
                                             <div className="spec-item">
                                                 <span>Price / 10mg</span>
@@ -4188,8 +4454,8 @@ function ComparisonDrawer({
                                                 <strong style={{ color: "#10b981" }}>In Stock</strong>
                                             </div>
                                         </div>
-                                        <div className="action-row" style={{ marginTop: 8 }}>
-                                            <button className="btn-primary" onClick={onClose} style={{ flex: 1, padding: "8px 14px" }}>
+                                        <div className="action-row" style={{ marginTop: 8, flexWrap: "wrap", gap: 6 }}>
+                                            <button className="btn-primary" onClick={onClose} style={{ flex: "1 1 auto", padding: "7px 12px", minWidth: 90 }}>
                                                 View Promo
                                             </button>
                                             <a
@@ -4197,9 +4463,19 @@ function ComparisonDrawer({
                                                 className="btn-secondary"
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                style={{ flex: 1, padding: "8px 14px", justifyContent: "center" }}>
+                                                style={{ flex: "1 1 auto", padding: "7px 12px", justifyContent: "center", minWidth: 90 }}>
                                                 Join Community
                                             </a>
+                                            {v.websiteUrl && (
+                                                <a
+                                                    href={v.websiteUrl}
+                                                    className="btn-outline"
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    style={{ flex: "1 1 auto", padding: "7px 12px", justifyContent: "center", minWidth: 90 }}>
+                                                    Visit Website ↗
+                                                </a>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -4207,65 +4483,6 @@ function ComparisonDrawer({
                         );
                     })}
                 </VendorCompareList>
-
-                {selectedIds.length > 0 && (
-                    <div style={{
-                        marginTop: "auto",
-                        padding: 12,
-                        borderRadius: 14,
-                        background: "var(--primary-background)",
-                        border: "1px solid color-mix(in srgb, var(--accent) 35%, transparent)",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 10,
-                        boxShadow: "0 -8px 24px rgba(0,0,0,0.3)"
-                    }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700 }}>
-                            <span>{selectedIds.length} selected</span>
-                            <button
-                                onClick={() => setSelectedIds([])}
-                                style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                                Clear all
-                            </button>
-                        </div>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            {selectedIds.map((id) => {
-                                const v = vendors.find((item) => item.id === id);
-                                if (!v) return null;
-                                return (
-                                    <span key={id} style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 4,
-                                        padding: "3px 8px",
-                                        borderRadius: 12,
-                                        background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
-                                        fontSize: 11,
-                                        fontWeight: 600
-                                    }}>
-                                        {v.name}
-                                        <X size={12} style={{ cursor: "pointer" }} onClick={() => toggleSelect(id)} />
-                                    </span>
-                                );
-                            })}
-                        </div>
-                        <button
-                            className="btn-primary"
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                borderRadius: 10,
-                                background: "var(--accent)",
-                                color: "var(--accent-contrast, #11171c)",
-                                border: "none",
-                                fontWeight: 700,
-                                fontSize: 14,
-                                cursor: "pointer"
-                            }}>
-                            Compare ({selectedIds.length})
-                        </button>
-                    </div>
-                )}
             </CompareDrawerContainer>
         </>
     );
@@ -5199,36 +5416,49 @@ const Promos: React.FC = () => {
 
                     {/* ── Trending Peptides ─────────────────────── */}
                     {!query && activeFilter === "all" && (() => {
-                        // Derive trending products from actual promo data
+                        // Merge real data with static fallbacks for all tracked compounds
                         type TrendProduct = { key: string; name: string; minPrice: number; promoCount: number; vendorCount: number };
                         const productMap = new Map<string, TrendProduct>();
                         const TRACKED = [
-                            { key: "retatrutide", name: "Retatrutide" },
-                            { key: "tirzepatide", name: "Tirzepatide" },
-                            { key: "semaglutide", name: "Semaglutide" },
-                            { key: "ghk-cu",      name: "GHK-Cu" },
-                            { key: "hgh",         name: "HGH" },
+                            { key: "retatrutide", name: "Retatrutide", fallbackPrice: 66, fallbackPromos: 7, fallbackVendors: 14 },
+                            { key: "tirzepatide", name: "Tirzepatide", fallbackPrice: 52, fallbackPromos: 5, fallbackVendors: 10 },
+                            { key: "semaglutide", name: "Semaglutide", fallbackPrice: 50, fallbackPromos: 3, fallbackVendors: 6 },
+                            { key: "ghkcu",        name: "GHK-Cu",     fallbackPrice: 18, fallbackPromos: 4, fallbackVendors: 8 },
+                            { key: "hgh",          name: "HGH",        fallbackPrice: 85, fallbackPromos: 2, fallbackVendors: 5 },
                         ];
-                        for (const { key, name } of TRACKED) {
+                        for (const tracked of TRACKED) {
                             const matching = promos.filter((p) =>
-                                p.items.some((it) => it.product.toLowerCase().includes(key.replace("-", "")))
+                                p.items.some((it) =>
+                                    it.product.toLowerCase().includes(tracked.key)
+                                )
                             );
-                            if (matching.length === 0) continue;
-                            const prices = matching.flatMap((p) => p.items.map((it) => it.price)).filter((pr): pr is number => typeof pr === "number" && isFinite(pr));
-                            const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-                            const vendorCount = new Set(matching.map((p) => p.vendor.name)).size;
-                            productMap.set(key, { key, name, minPrice: Math.round(minPrice * 100) / 100, promoCount: matching.length, vendorCount });
+                            if (matching.length > 0) {
+                                const prices = matching
+                                    .flatMap((p) => p.items.map((it) => it.price))
+                                    .filter((pr): pr is number => typeof pr === "number" && isFinite(pr));
+                                const minPrice = prices.length > 0 ? Math.min(...prices) : tracked.fallbackPrice;
+                                const vendorCount = new Set(matching.map((p) => p.vendor.name)).size;
+                                productMap.set(tracked.key, {
+                                    key: tracked.key,
+                                    name: tracked.name,
+                                    minPrice: Math.round(minPrice * 100) / 100,
+                                    promoCount: matching.length,
+                                    vendorCount,
+                                });
+                            } else {
+                                // Always include with fallback data so all 5 compounds show
+                                productMap.set(tracked.key, {
+                                    key: tracked.key,
+                                    name: tracked.name,
+                                    minPrice: tracked.fallbackPrice,
+                                    promoCount: tracked.fallbackPromos,
+                                    vendorCount: tracked.fallbackVendors,
+                                });
+                            }
                         }
-                        const trendingProducts = [...productMap.values()]
+                        const displayProducts = [...productMap.values()]
                             .sort((a, b) => b.promoCount - a.promoCount)
                             .slice(0, 5);
-
-                        // Fallback to static data if no real promos available
-                        const displayProducts = trendingProducts.length > 0 ? trendingProducts : [
-                            { key: "retatrutide", name: "Retatrutide", minPrice: 66, promoCount: 7, vendorCount: 14 },
-                            { key: "tirzepatide", name: "Tirzepatide", minPrice: 52, promoCount: 5, vendorCount: 10 },
-                            { key: "semaglutide", name: "Semaglutide", minPrice: 50, promoCount: 3, vendorCount: 6 },
-                        ];
 
                         return (
                             <TrendingPeptides
