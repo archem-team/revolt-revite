@@ -1,0 +1,24 @@
+.compound-bay-sso {
+    min-height: 100%;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: var(--background);
+
+    section {
+        width: min(480px, 100%);
+        padding: 28px;
+        border: 1px solid var(--secondary-background);
+        border-radius: 18px;
+        background: var(--primary-background);
+        color: var(--foreground);
+    }
+
+    h1 {
+        margin: 0 0 12px;
+    }
+
+    p {
+        line-height: 1.55;
+    }
+}
