@@ -54,6 +54,17 @@ const OverlayHost = styled.div`
             color: var(--tertiary-foreground);
             opacity: 1;
         }
+
+        /* The app-wide ::selection paints an opaque inverted block, but
+           Chrome forces author selection backgrounds toward ~50% alpha
+           and the glyphs here are transparent — selecting showed a hazy
+           grey slab. Keep selected glyphs transparent (the overlay text
+           beneath stays visible, pills and emoji included) and paint a
+           deliberate translucent wash instead. */
+        &::selection {
+            color: transparent;
+            background: rgba(140, 138, 142, 0.35);
+        }
     }
 
     /* During IME composition show the raw textarea text (with its
