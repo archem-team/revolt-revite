@@ -4,6 +4,7 @@ import styled from "styled-components/macro";
 import { useContext, useEffect, useState } from "preact/hooks";
 
 import TextAreaAutoSize from "../../../lib/TextAreaAutoSize";
+import { convertMentionsToWireFormat } from "../../../lib/convertMentions";
 import { isTouchscreenDevice } from "../../../lib/isTouchscreenDevice";
 
 import AutoComplete, {
@@ -49,14 +50,23 @@ export default function MessageEditor({ message, finish }: Props) {
     async function save() {
         finish();
 
-        if (content.length === 0) {
+        // The editor's autocomplete inserts friendly @RoleName / @username
+        // text just like the composer, so run the same wire-format
+        // conversion the composer runs at send.
+        const converted = convertMentionsToWireFormat(
+            content,
+            message.channel!,
+            message.client,
+        );
+
+        if (converted.length === 0) {
             modalController.push({
                 type: "delete_message",
                 target: message,
             });
-        } else if (content !== message.content) {
+        } else if (converted !== message.content) {
             await message.edit({
-                content,
+                content: converted,
             });
         }
     }

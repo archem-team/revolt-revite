@@ -21,9 +21,15 @@ import { handlers } from "./hast";
 import { RenderCodeblock } from "./plugins/Codeblock";
 import { RenderAnchor } from "./plugins/anchors";
 import { remarkChannels, RenderChannel } from "./plugins/channels";
-import { isOnlyEmoji, remarkEmoji, RenderEmoji } from "./plugins/emoji";
+import {
+    isOnlyEmoji,
+    remarkEmoji,
+    remarkUnicodeEmoji,
+    RenderEmoji,
+    RenderUnicodeEmoji,
+} from "./plugins/emoji";
 import { remarkHtmlToText } from "./plugins/htmlToText";
-import { remarkMention, RenderMention, remarkEveryone, RenderEveryoneMention } from "./plugins/mentions";
+import { remarkMention, RenderMention, remarkEveryone, RenderEveryoneMention, remarkRoleMention, RenderRoleMention } from "./plugins/mentions";
 import { remarkSpoiler, RenderSpoiler } from "./plugins/spoiler";
 import { remarkTimestamps } from "./plugins/timestamps";
 import "./prism";
@@ -38,8 +44,10 @@ const Null: React.FC = () => null;
  */
 const components = {
     emoji: RenderEmoji,
+    uemoji: RenderUnicodeEmoji,
     mention: RenderMention,
     everyone: RenderEveryoneMention,
+    rolemention: RenderRoleMention,
     spoiler: RenderSpoiler,
     channel: RenderChannel,
     a: RenderAnchor,
@@ -143,7 +151,9 @@ const render = unified()
     .use(remarkChannels)
     .use(remarkTimestamps)
     .use(remarkEmoji)
+    .use(remarkUnicodeEmoji)
     .use(remarkMention)
+    .use(remarkRoleMention)
     .use(remarkEveryone)
     .use(remarkHtmlToText)
     .use(remarkRehype, {

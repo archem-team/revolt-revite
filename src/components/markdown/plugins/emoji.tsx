@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { useState } from "preact/hooks";
 
 import { emojiDictionary } from "../../../assets/emojis";
+import { RE_UNICODE_EMOJI } from "../../../lib/unicodeEmoji";
 import { clientController } from "../../../controllers/client/ClientController";
 import { parseEmoji } from "../../common/Emoji";
 import { createComponent, CustomComponentProps } from "./remarkRegexComponent";
@@ -61,6 +62,32 @@ export const remarkEmoji = createComponent(
     (match) => match in emojiDictionary || RE_ULID.test(match),
 );
 
+/**
+ * Render raw unicode emoji with the same Twemoji assets as :name:
+ * tokens, so an emoji looks identical however it was typed.
+ */
+export function RenderUnicodeEmoji({ match }: CustomComponentProps) {
+    const [fail, setFail] = useState(false);
+
+    if (fail) return <span>{match}</span>;
+
+    return (
+        <Emoji
+            alt={match}
+            loading="lazy"
+            className="emoji"
+            draggable={false}
+            src={parseEmoji(match)}
+            onError={() => setFail(true)}
+        />
+    );
+}
+
+export const remarkUnicodeEmoji = createComponent("uemoji", RE_UNICODE_EMOJI);
+
 export function isOnlyEmoji(text: string) {
-    return text.replaceAll(RE_EMOJI, "").trim().length === 0;
+    return (
+        text.replaceAll(RE_EMOJI, "").replaceAll(RE_UNICODE_EMOJI, "").trim()
+            .length === 0
+    );
 }

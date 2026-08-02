@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
 import { IconButton, Picker } from "@revoltchat/ui";
 
 import TextAreaAutoSize from "../../../lib/TextAreaAutoSize";
+import { convertMentionsToWireFormat } from "../../../lib/convertMentions";
 import { debounce } from "../../../lib/debounce";
 import { defer, chainedDefer } from "../../../lib/defer";
 import { internalEmit, internalSubscribe } from "../../../lib/eventEmitter";
@@ -44,6 +45,7 @@ import { modalController } from "../../../controllers/modals/ModalController";
 import { RenderEmoji } from "../../markdown/plugins/emoji";
 import AutoComplete, { useAutoComplete } from "../AutoComplete";
 import { PermissionTooltip } from "../Tooltip";
+import ComposerOverlay from "./ComposerOverlay";
 import FilePreview from "./bars/FilePreview";
 import ReplyBar from "./bars/ReplyBar";
 import { User } from "@styled-icons/boxicons-regular";
@@ -390,33 +392,9 @@ export default observer(({ channel }: Props) => {
             // kept for potential future logic, but currently does nothing
         }
 
-        // Convert @username mentions to <@USER_ID> format.
-        // Hyphens are part of a username: without them "@john-doe" matched
-        // only "@john", the lookup for that name failed, and the mention was
-        // sent as plain text. Same character class the search autocomplete
-        // uses (lib/hooks/useSearchAutoComplete.ts).
-        const mentionRegex = /@([\w-]+)/g;
-        const mentionMatches = content.match(mentionRegex);
-
-        if (mentionMatches) {
-            for (const mention of mentionMatches) {
-                const username = mention.substring(1);
-                if (username.toLowerCase() !== "everyone") {
-                    const user = Array.from(client.users.values()).find(
-                        (u) =>
-                            u.username.toLowerCase() ===
-                            username.toLowerCase(),
-                    );
-
-                    if (user) {
-                        content = content.replace(
-                            mention,
-                            `<@${user._id}>`,
-                        );
-                    }
-                }
-            }
-        }
+        // Convert friendly @RoleName / @username mentions to wire format
+        // (<%ROLE_ID> / <@USER_ID>) — shared with MessageEditor.
+        content = convertMentionsToWireFormat(content, channel, client);
 
         internalEmit("NewMessages", "hide");
         stopTyping();
@@ -710,10 +688,20 @@ export default observer(({ channel }: Props) => {
                     <HackAlertThisFileWillBeReplaced
                         onSelect={(emoji) => {
                             const v = state.draft.get(channel._id);
+                            // Standard emoji go in as the unicode character
+                            // (rendered as the same Twemoji image in composer
+                            // and message); custom emoji have no unicode
+                            // form and stay :ULID:.
+                            const inserted =
+                                emoji in emojiDictionary
+                                    ? emojiDictionary[
+                                          emoji as keyof typeof emojiDictionary
+                                      ]
+                                    : `:${emoji}:`;
                             const cnt: DraftObject = {
                                 content:
                                     (v?.content ? `${v.content} ` : "") +
-                                    `:${emoji}:`,
+                                    inserted,
                             };
                             state.draft.set(channel._id, cnt);
                         }}
@@ -771,6 +759,9 @@ export default observer(({ channel }: Props) => {
                     onKeyUp={onKeyUp}
                     value={state.draft.get(channel._id)?.content ?? ""}
                     padding="var(--message-box-padding)"
+                    overlay={(value) => (
+                        <ComposerOverlay value={value} channel={channel} />
+                    )}
                     onKeyDown={(e) => {
                         if (e.ctrlKey && e.key === "Enter") {
                             e.preventDefault();
