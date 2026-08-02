@@ -2,6 +2,7 @@ import { detect } from "detect-browser";
 import { action, computed, makeAutoObservable, ObservableMap } from "mobx";
 import { API, Client, Nullable } from "revolt.js";
 
+import { submitMfaChallenge } from "../../lib/authFlows";
 import { injectController } from "../../lib/window";
 
 import { state } from "../../mobx/State";
@@ -214,10 +215,10 @@ class ClientController {
 
         // Prompt for MFA verificaiton if necessary
         if (session.result === "MFA") {
-            const { allowed_methods } = session;
             while (session.result === "MFA") {
+                const allowed_methods: API.MFAMethod[] = session.allowed_methods;
                 const mfa_response: API.MFAResponse | undefined =
-                    await new Promise((callback) =>
+                    await new Promise<API.MFAResponse | undefined>((callback) =>
                         modalController.push({
                             type: "mfa_flow",
                             state: "unknown",
@@ -230,18 +231,13 @@ class ClientController {
                     break;
                 }
 
-                try {
-                    session = await this.apiClient.api.post(
-                        "/auth/session/login",
-                        {
-                            mfa_response,
-                            mfa_ticket: session.ticket,
-                            friendly_name,
-                        },
-                    );
-                } catch (err) {
-                    console.error("Failed login:", err);
-                }
+                session = await submitMfaChallenge({
+                    session,
+                    response: mfa_response,
+                    friendlyName: friendly_name,
+                    login: (payload) =>
+                        this.apiClient.api.post("/auth/session/login", payload),
+                });
             }
 
             if (session.result === "MFA") {
