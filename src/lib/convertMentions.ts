@@ -18,7 +18,15 @@ export function composerPingableRoles(channel: Channel) {
     const server = channel.server;
     if (!server) return [];
 
-    const canMentionAll = channel.havePermission("MentionRoles" as never);
+    // Transient states (mid-HMR module graphs, half-connected sessions)
+    // have thrown from deep inside the permission calculator; mention
+    // conversion and its preview must degrade, never crash the client.
+    let canMentionAll = false;
+    try {
+        canMentionAll = channel.havePermission("MentionRoles" as never);
+    } catch (_) {
+        // fall through: only explicitly mentionable roles are offered
+    }
 
     return server.orderedRoles
         .filter(
