@@ -18,6 +18,7 @@ import {
     Preloader,
 } from "@revoltchat/ui";
 
+import { hasMfaResponseValue } from "../../../lib/authFlows";
 import { ModalProps } from "../types";
 
 /**
@@ -51,7 +52,7 @@ function ResponseEntry({
                 <InputBox
                     type="password"
                     value={(value as { password: string })?.password}
-                    onChange={(e) =>
+                    onInput={(e) =>
                         onChange({ password: e.currentTarget.value })
                     }
                 />
@@ -59,8 +60,10 @@ function ResponseEntry({
 
             {type === "Totp" && (
                 <InputBox
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
                     value={(value as { totp_code: string })?.totp_code}
-                    onChange={(e) =>
+                    onInput={(e) =>
                         onChange({ totp_code: e.currentTarget.value })
                     }
                 />
@@ -69,7 +72,7 @@ function ResponseEntry({
             {type === "Recovery" && (
                 <InputBox
                     value={(value as { recovery_code: string })?.recovery_code}
-                    onChange={(e) =>
+                    onInput={(e) =>
                         onChange({ recovery_code: e.currentTarget.value })
                     }
                 />
@@ -143,6 +146,7 @@ export default function MFAFlow({
                     ? [
                           {
                               palette: "primary",
+                              disabled: !hasMfaResponseValue(response),
                               children: (
                                   <Text id="app.special.modals.actions.confirm" />
                               ),
