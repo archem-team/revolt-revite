@@ -207,10 +207,17 @@ export function useAutoComplete(
                     if (channel?.channel_type === "TextChannel") {
                         const server = channel.server;
                         if (server) {
-                            const canMentionAll =
-                                channel.havePermission(
+                            // Degrade, never crash: this runs on every
+                            // keystroke, and transient client states have
+                            // thrown from inside the permission calculator.
+                            let canMentionAll = false;
+                            try {
+                                canMentionAll = channel.havePermission(
                                     "MentionRoles" as never,
                                 );
+                            } catch (_) {
+                                // only explicitly mentionable roles below
+                            }
                             const roles = server.orderedRoles
                                 .filter(
                                     (role) =>
