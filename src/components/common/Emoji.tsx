@@ -1,13 +1,13 @@
 import { emojiDictionary } from "../../assets/emojis";
 
-export type EmojiPack = "mutant" | "twemoji" | "noto" | "openmoji";
-
-let EMOJI_PACK: EmojiPack = "mutant";
-const REVISION = 3;
-
-export function setGlobalEmojiPack(pack: EmojiPack) {
-    EMOJI_PACK = pack;
-}
+// Twemoji is the one emoji style — the pack selector has been removed.
+// Served from jsDelivr out of the maintained fork (jdecked/twemoji, by
+// Twemoji's former maintainers — Twitter's original is dead since 2022).
+// The version is PINNED: jsDelivr serves pinned URLs with immutable
+// caching, and a bump is a deliberate one-line change here. The
+// codepoint-mapping logic below is Twemoji's own, so filenames match.
+const TWEMOJI_VERSION = "17.0.3";
+const EMOJI_BASE_URL = `https://cdn.jsdelivr.net/gh/jdecked/twemoji@${TWEMOJI_VERSION}/assets/svg`;
 
 // Originally taken from Twemoji source code,
 // re-written by bree to be more readable.
@@ -50,7 +50,7 @@ export function parseEmoji(emoji: string) {
     // }
 
     const codepoint = toCodePoint(emoji);
-    return `https://static.revolt.chat/emoji/${EMOJI_PACK}/${codepoint}.svg?rev=${REVISION}`;
+    return `${EMOJI_BASE_URL}/${codepoint}.svg`;
 }
 
 export default function Emoji({
