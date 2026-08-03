@@ -16,6 +16,7 @@ const Login = lazy(() => import("./login/Login"));
 const ConfirmDelete = lazy(() => import("./login/ConfirmDelete"));
 const RevoltApp = lazy(() => import("./RevoltApp"));
 const Directory = lazy(() => import("./directory/Directory"));
+const Ranking = lazy(() => import("./ranking/Ranking"));
 
 const LoadSuspense: React.FC = ({ children }) => (
     // @ts-expect-error Typing issue between Preact and Preact.
@@ -55,6 +56,11 @@ export function App() {
                     <Route path="/d1r3ct0ry-b3ta">
                         <LoadSuspense>
                             <Directory />
+                        </LoadSuspense>
+                    </Route>
+                    <Route path="/docs/ranking">
+                        <LoadSuspense>
+                            <Ranking />
                         </LoadSuspense>
                     </Route>
                     <Route path="/login">
