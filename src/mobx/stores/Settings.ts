@@ -5,7 +5,6 @@ import { mapToRecord } from "../../lib/conversion";
 import { Fonts, MonospaceFonts, Overrides } from "../../context/Theme";
 import { MaterialYouBase } from "../../context/materialTheme";
 
-import { EmojiPack, setGlobalEmojiPack } from "../../components/common/Emoji";
 import Persistent from "../interfaces/Persistent";
 import Store from "../interfaces/Store";
 import Syncable from "../interfaces/Syncable";
@@ -17,7 +16,6 @@ export interface ISettings {
     "notifications:desktop": boolean;
     "notifications:sounds": SoundOptions;
 
-    "appearance:emoji": EmojiPack;
     "appearance:ligatures": boolean;
     "appearance:transparency": boolean;
     "appearance:show_send_button": boolean;
@@ -79,11 +77,6 @@ export default class Settings
      * @param value Value
      */
     @action set<T extends keyof ISettings>(key: T, value: ISettings[T]) {
-        // Emoji needs to be immediately applied.
-        if (key === "appearance:emoji") {
-            setGlobalEmojiPack(value as EmojiPack);
-        }
-
         this.data.set(key, value);
     }
 
@@ -128,7 +121,6 @@ export default class Settings
         _revision: number,
     ) {
         if (key === "appearance") {
-            this.remove("appearance:emoji");
             this.remove("appearance:transparency");
         } else {
             this.remove("appearance:ligatures");
@@ -156,10 +148,7 @@ export default class Settings
 
     @computed toSyncable() {
         const data: Record<"appearance" | "theme", Partial<ISettings>> = {
-            appearance: this.pullKeys([
-                "appearance:emoji",
-                "appearance:transparency",
-            ]),
+            appearance: this.pullKeys(["appearance:transparency"]),
             theme: this.pullKeys([
                 "appearance:ligatures",
                 "appearance:theme:base",
