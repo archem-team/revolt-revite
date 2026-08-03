@@ -3,6 +3,7 @@
     "scripts": {
         "dev": "node scripts/setup_assets.js --check && vite",
         "pull": "node scripts/setup_assets.js",
+        "test": "node --test test/*.test.mjs",
         "build:deps": "cd external && cd components && yarn && yarn build:esm && cd .. && cd revolt.js && yarn && yarn build",
         "build": "yarn && rimraf build && node scripts/setup_assets.js --check && yarn build:deps && vite build",
         "build:highmem": "NODE_OPTIONS='--max-old-space-size=12288' yarn build",

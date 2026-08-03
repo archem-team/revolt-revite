@@ -12,6 +12,7 @@ import BottomNavigation from "../components/navigation/BottomNavigation";
 import LeftSidebar from "../components/navigation/LeftSidebar";
 import RightSidebar from "../components/navigation/RightSidebar";
 import { useSystemAlert } from "../updateWorker";
+import CompoundBaySso from "./CompoundBaySso";
 import Open from "./Open";
 import Channel from "./channels/Channel";
 import Developer from "./developer/Developer";
@@ -228,6 +229,11 @@ export default function App() {
                             <Route path="/settings" component={Settings} />
 
                             <Route path="/discover" component={Discover} />
+
+                            <Route
+                                path="/compound-bay"
+                                component={CompoundBaySso}
+                            />
 
                             <Route path="/dev" component={Developer} />
                             <Route path="/friends" component={Friends} />
