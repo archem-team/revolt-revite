@@ -4762,11 +4762,12 @@ const Promos: React.FC = () => {
             target = allCards.find((c) => (c.getAttribute("data-vendor") || "").toLowerCase().includes(vLower)) || null;
         }
         if (!target) return;
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        const el = target;
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
         // Wait for scroll to settle then flash the highlight
         setTimeout(() => {
-            target.classList.add("promo-highlight");
-            setTimeout(() => target.classList.remove("promo-highlight"), 2000);
+            el.classList.add("promo-highlight");
+            setTimeout(() => el.classList.remove("promo-highlight"), 2000);
         }, 350);
     }, []);
 
