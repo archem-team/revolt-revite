@@ -7,7 +7,7 @@ import {
 } from "../../directory/dataUtils";
 import {
     PAYMENT_LABELS, WAREHOUSE_LABELS, PRODUCT_LABELS,
-    GUARANTEE_LABELS, ORDER_LABELS, API_BASE,
+    GUARANTEE_LABELS, ORDER_LABELS, API_BASE, BACKEND_API_BASE,
 } from "../../directory/types";
 import type { Payment, Warehouses, Products, Guarantees, OrderTypes } from "../../directory/types";
 
@@ -102,6 +102,11 @@ const S = {
     } as const),
     status: (ok: boolean) => ({ fontSize: "13px", color: ok ? "var(--success)" : "var(--error)", marginLeft: "12px" } as const),
     divider: { borderTop: "1px solid var(--tertiary-foreground)", margin: "20px 0" } as const,
+    scoreCard: {
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px",
+        padding: "16px", marginBottom: "24px", borderRadius: "8px",
+        background: "var(--secondary-background)", border: "1px solid var(--tertiary-foreground)",
+    } as const,
 };
 
 interface Props { server: Server }
@@ -110,26 +115,57 @@ export const VendorInfo = observer(({ server }: Props) => {
     const client = useClient();
     const [form, setForm] = useState<VendorData>(defaultData());
     const [isReseller, setIsReseller] = useState(false);
+    const [rankingScore, setRankingScore] = useState<number | null>(null);
     const [loadState, setLoadState] = useState<"loading" | "ready" | "notlisted">("loading");
     const [saveState, setSaveState] = useState<"idle" | "saving" | "ok" | "error">("idle");
     const [errMsg, setErrMsg] = useState("");
 
-    useEffect(() => {
-        fetch(`${API_BASE}/directory/communities/${server._id}`)
-            .then((r) => r.json())
-            .then((res) => {
-                const data = res.data ?? res;
-                if (!data?.id) { setLoadState("notlisted"); return; }
-                setIsReseller(data.type === "reseller");
-                setForm(apiToData(data));
-                setLoadState("ready");
-            })
-            .catch(() => setLoadState("notlisted"));
-    }, [server._id]);
-
     const sessionToken = typeof client.session === "string"
         ? client.session
         : (client.session as any)?.token ?? "";
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadVendorInfo() {
+            try {
+                const response = await fetch(
+                    `${BACKEND_API_BASE}/directory/communities/${server._id}`,
+                    { headers: { "x-session-token": sessionToken } },
+                );
+                if (!response.ok) throw new Error("Backend directory profile unavailable");
+                const result = await response.json();
+                if (cancelled) return;
+                const data = result.data ?? result;
+                if (!data?.id) throw new Error("Directory listing not found");
+                setIsReseller(data.type === "reseller");
+                setForm(apiToData(data));
+                setRankingScore(
+                    typeof data.rankingScore === "number" ? data.rankingScore : null,
+                );
+                setLoadState("ready");
+            } catch {
+                // Keep the existing profile usable while frontend/backend deploys overlap.
+                try {
+                    const response = await fetch(`${API_BASE}/directory/communities/${server._id}`);
+                    if (!response.ok) throw new Error("Directory listing not found");
+                    const result = await response.json();
+                    if (cancelled) return;
+                    const data = result.data ?? result;
+                    if (!data?.id) throw new Error("Directory listing not found");
+                    setIsReseller(data.type === "reseller");
+                    setForm(apiToData(data));
+                    setRankingScore(null);
+                    setLoadState("ready");
+                } catch {
+                    if (!cancelled) setLoadState("notlisted");
+                }
+            }
+        }
+
+        loadVendorInfo();
+        return () => { cancelled = true; };
+    }, [server._id, sessionToken]);
 
     async function handleSave(e: Event) {
         e.preventDefault();
@@ -169,6 +205,21 @@ export const VendorInfo = observer(({ server }: Props) => {
             <p style={{ fontSize: "13px", color: "var(--secondary-foreground)", marginBottom: "20px" }}>
                 Update your vendor details shown in the PepChat directory.
             </p>
+
+            <div style={S.scoreCard}>
+                <div>
+                    <div style={S.label}>Current ranking score</div>
+                    <div style={{ fontSize: "13px", color: "var(--secondary-foreground)", lineHeight: 1.45 }}>
+                        Recent support carries more weight, so your score updates automatically over time. {" "}
+                        <a href="/docs/ranking" style={{ color: "var(--accent)", textDecoration: "none" }}>
+                            How ranking works
+                        </a>
+                    </div>
+                </div>
+                <div style={{ fontSize: "28px", lineHeight: 1, fontWeight: 700, whiteSpace: "nowrap" }}>
+                    {rankingScore === null ? "—" : rankingScore.toFixed(2)}
+                </div>
+            </div>
 
             <form onSubmit={handleSave}>
                 {/* Payment Methods */}
