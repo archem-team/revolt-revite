@@ -3,6 +3,8 @@ import { useContext } from "preact/hooks";
 
 import { Dictionary } from "../context/Locale";
 
+import { resolveDictionaryEntry } from "./i18nFields";
+
 interface Fields {
     [key: string]: Children;
 }
@@ -42,14 +44,8 @@ function recursiveReplaceFields(input: string, fields: Fields) {
 export function TextReact({ id, fields }: Props) {
     const { intl } = useContext(IntlContext) as unknown as IntlType;
 
-    const path = id.split(".");
-    let entry = intl.dictionary[path.shift()!];
-    for (const key of path) {
-        // @ts-expect-error TODO: lazy
-        entry = entry[key];
-    }
-
-    return <>{recursiveReplaceFields(entry as string, fields)}</>;
+    const entry = resolveDictionaryEntry(intl.dictionary, id);
+    return <>{recursiveReplaceFields(entry, fields)}</>;
 }
 
 export function useTranslation() {
