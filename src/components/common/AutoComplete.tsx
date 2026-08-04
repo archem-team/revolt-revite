@@ -236,6 +236,27 @@ export function useAutoComplete(
                     }
                 }
 
+                // Rank the merged list by match quality (exact, then
+                // prefix, then substring) so the best match is the
+                // auto-selected entry — roles included, instead of
+                // always dangling unselected below the user matches.
+                if (search.length > 0) {
+                    const score = (name?: string) => {
+                        const lowered = name?.toLowerCase() ?? "";
+                        if (lowered === search) return 0;
+                        if (lowered.startsWith(search)) return 1;
+                        return 2;
+                    };
+                    matches = matches
+                        .map((entry, i) => [entry, i] as const)
+                        .sort(
+                            (a, b) =>
+                                score(a[0].username) - score(b[0].username) ||
+                                a[1] - b[1],
+                        )
+                        .map(([entry]) => entry);
+                }
+
                 if (matches.length > 0) {
                     const currentPosition =
                         state.type !== "none" ? state.selected : 0;
