@@ -11,6 +11,7 @@ import { modalController } from "./controllers/modals/ModalController";
 import { APP_VERSION } from "./version";
 
 const INTERVAL_HOUR = 36e5;
+const HEALTH_URL = import.meta.env.VITE_HEALTH_URL;
 
 let forceUpdate = false;
 let registration: ServiceWorkerRegistration | undefined;
@@ -77,8 +78,10 @@ export function useSystemAlert() {
  * Check whether the client is out of date
  */
 async function checkVersion() {
+    if (!HEALTH_URL) return;
+
     const { version, poll_rate, alert } = (await fetch(
-        "https://health.revolt.chat/api/health",
+        HEALTH_URL,
     ).then((res) => res.json())) as {
         version: string;
         poll_rate?: number;
@@ -111,10 +114,7 @@ async function checkVersion() {
     }
 }
 
-if (
-    import.meta.env.VITE_API_URL === "https://peptide.chat/api" ||
-    import.meta.env.VITE_API_URL === "https://app.revolt.chat/api"
-) {
+if (HEALTH_URL) {
     // Check for critical updates hourly
     schedule();
     checkVersion();
