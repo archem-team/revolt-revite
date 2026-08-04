@@ -11,6 +11,8 @@ import { Button, Checkbox } from "@revoltchat/ui";
 import { useApplicationState } from "../../mobx/State";
 import { SECTION_NSFW } from "../../mobx/stores/Layout";
 
+import { parseEmoji } from "./Emoji";
+
 const Base = styled.div`
     display: flex;
     flex-grow: 1;
@@ -63,11 +65,7 @@ export default observer((props: Props) => {
 
     return (
         <Base>
-            <img
-                loading="eager"
-                src={"https://static.revolt.chat/emoji/mutant/26a0.svg"}
-                draggable={false}
-            />
+            <img loading="eager" src={parseEmoji("⚠️")} draggable={false} />
             <h2>{props.channel.name}</h2>
             <span className="subtext">
                 <Text id={`app.main.channel.nsfw.${props.type}.marked`} />{" "}
