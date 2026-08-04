@@ -1,5 +1,10 @@
 name: Docker
 
+# A later release must not overtake an earlier retained-asset publication.
+concurrency:
+    group: pepchat-web-${{ (github.ref_name == 'master' || github.ref_name == 'pre-production') && 'production' || 'stage' }}
+    cancel-in-progress: false
+
 on:
     push:
         branches:
@@ -30,8 +35,6 @@ on:
             - "LICENSE"
             - "README"
     workflow_dispatch:
-
-
 
 jobs:
     # test:
@@ -64,7 +67,7 @@ jobs:
     #         #   run: |
     #         #       rm -rf /tmp/.buildx-cache/${{ matrix.architecture }}
     #         #       mv /tmp/.buildx-cache-new/${{ matrix.architecture }} /tmp/.buildx-cache/${{ matrix.architecture }}
-    
+
     publish:
         # needs: [test]
         runs-on: ubuntu-latest
@@ -72,6 +75,8 @@ jobs:
             contents: read
             packages: write
         if: github.event_name != 'pull_request'
+        env:
+            IMAGE_NAME: ghcr.io/archem-team/revolt-revite-${{ (github.ref_name == 'master' || github.ref_name == 'pre-production') && 'pre' || 'stage' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v2
@@ -90,9 +95,10 @@ jobs:
               id: meta
               uses: docker/metadata-action@v3
               with:
-                  images: ghcr.io/archem-team/revolt-revite-${{ (github.ref_name == 'master' || github.ref_name == 'pre-production') && 'pre' || 'stage' }}
+                  images: ${{ env.IMAGE_NAME }}
                   tags: |
-                    type=raw,value=${{ github.sha }}
+                      type=raw,value=${{ github.sha }}
+                      type=raw,value=assets-base
             # - name: Login to DockerHub
             #   uses: docker/login-action@v1
             #   with:
@@ -104,6 +110,18 @@ jobs:
                   registry: ghcr.io
                   username: ${{ github.actor }}
                   password: ${{ secrets.GITHUB_TOKEN }}
+            - name: Restore retained assets from previous release
+              shell: bash
+              run: |
+                  mkdir -p previous-release/assets previous-release/asset-releases
+                  if docker pull "$IMAGE_NAME:assets-base"; then
+                      container_id=$(docker create "$IMAGE_NAME:assets-base")
+                      trap 'docker rm -f "$container_id" >/dev/null 2>&1 || true' EXIT
+                      docker cp "$container_id:/usr/src/app/dist/assets/." previous-release/assets/ || true
+                      docker cp "$container_id:/usr/src/app/dist/asset-releases/." previous-release/asset-releases/ || true
+                  else
+                      echo "No previous asset base found; publishing the first retained release."
+                  fi
             - name: Build and publish
               uses: docker/build-push-action@v4
               with:
@@ -112,16 +130,18 @@ jobs:
                   platforms: linux/amd64
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
+                  build-args: |
+                      RELEASE_ID=${{ github.sha }}
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
     deploy:
         needs: [publish]
         runs-on: ubuntu-latest
         env:
-          CONFIG_BRANCH: ${{ (github.ref_name == 'master' || github.ref_name == 'pre-production') && 'prod' || 'stage' }}
-          IMAGE_NAME: ghcr.io/archem-team/revolt-revite-${{ (github.ref_name == 'master' || github.ref_name == 'pre-production') && 'pre' || 'stage' }}
-          CLONE_DIR: $GITHUB_WORKSPACE/config
-          CONFIG_FILE: $GITHUB_WORKSPACE/config/apps/pepchat/kustomization.yaml
+            CONFIG_BRANCH: ${{ (github.ref_name == 'master' || github.ref_name == 'pre-production') && 'prod' || 'stage' }}
+            IMAGE_NAME: ghcr.io/archem-team/revolt-revite-${{ (github.ref_name == 'master' || github.ref_name == 'pre-production') && 'pre' || 'stage' }}
+            CLONE_DIR: $GITHUB_WORKSPACE/config
+            CONFIG_FILE: $GITHUB_WORKSPACE/config/apps/pepchat/kustomization.yaml
         # ref_type guard: only branch pushes may re-pin an environment
         if: github.event_name != 'pull_request' && github.ref_type == 'branch'
         steps:
@@ -135,13 +155,12 @@ jobs:
               run: |
                   echo "Cloning configuration repository"
                   git clone -b $CONFIG_BRANCH git@github.com:archem-team/administration-cluster.git $CLONE_DIR
-            
+
             - name: Set Up Git Identity
               run: |
                   cd $CLONE_DIR
                   git config user.email "ci@example.com"
                   git config user.name "CI Bot"
-
 
             - name: Update Image Tag in kustomization.yaml
               run: |
@@ -149,15 +168,10 @@ jobs:
 
                   awk -v value="  newName: $IMAGE_NAME" '{sub(/^  newName: .*/, value); print}' $CONFIG_FILE > temp.yml && mv temp.yml $CONFIG_FILE
 
-
             - name: Commit & Push Changes
               run: |
                   cd $CLONE_DIR
                   git add .
                   git commit -am "Update image tag to ${{ github.sha }}" || echo "no changes"
-         
-                  git push origin $CONFIG_BRANCH  
-                  
-          
-                  
-    
+
+                  git push origin $CONFIG_BRANCH
