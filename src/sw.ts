@@ -17,6 +17,11 @@ precacheAndRoute(
     self.__WB_MANIFEST.filter((entry) => {
         try {
             const url = typeof entry === "string" ? entry : entry.url;
+            // Navigation must always be resolved by the network-first handler
+            // below. Precaching index.html would restore stale asset hashes.
+            if (url === "index.html" || url.endsWith("/index.html")) {
+                return false;
+            }
             if (url.includes("-legacy")) return false;
 
             const fn = url.split("/").pop();

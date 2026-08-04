@@ -3,6 +3,7 @@ node_modules
 dist
 dist_injected
 dist-ssr
+/previous-release/
 *.local
 *.log
 /.idea

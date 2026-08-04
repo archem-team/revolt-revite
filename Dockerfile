@@ -1,4 +1,5 @@
 FROM node:16-buster AS builder
+ARG RELEASE_ID=local
 ENV NODE_OPTIONS="--max_old_space_size=12288"
 WORKDIR /usr/src/app
 
@@ -18,9 +19,14 @@ COPY .env.build ./.env
 RUN yarn build:deps
 # RUN yarn typecheck # lol no
 RUN yarn build:highmem
+# previous-release is populated by CI from the last successfully published
+# image. The merge is bounded by age/count and current assets always win.
+RUN RELEASE_ID="$RELEASE_ID" node scripts/merge_release_assets.js && rm -rf previous-release
 RUN yarn workspaces focus --production --all
 
 FROM node:16-alpine
+ARG RELEASE_ID=local
+ENV RELEASE_ID="$RELEASE_ID"
 WORKDIR /usr/src/app
 COPY --from=builder /usr/src/app .
 
