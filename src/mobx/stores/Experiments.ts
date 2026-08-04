@@ -10,7 +10,7 @@ import Store from "../interfaces/Store";
 /**
  * Union type of available experiments.
  */
-export type Experiment = "dummy" | "offline_users" | "plugins" | "admin_beta";
+export type Experiment = "dummy" | "offline_users" | "plugins";
 
 /**
  * Currently active experiments.
@@ -19,7 +19,6 @@ export const AVAILABLE_EXPERIMENTS: Experiment[] = [
     "dummy",
     "offline_users",
     "plugins",
-    "admin_beta",
 ];
 
 /**
@@ -41,11 +40,6 @@ export const EXPERIMENTS: {
         title: "Experimental Plugin API",
         description:
             "This will enable the experimental plugin API. Only touch this if you know what you're doing.",
-    },
-    admin_beta: {
-        title: "Admin Panel Shortcuts",
-        description:
-            "Adds context menu entries to quickly jump to Pepchat Admin Panel. This is intended for use by the team.",
     },
 };
 

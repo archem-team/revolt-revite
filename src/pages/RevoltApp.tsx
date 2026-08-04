@@ -1,5 +1,5 @@
 import { Docked, OverlappingPanels, ShowIf } from "react-overlapping-panels";
-import { Switch, Route, useLocation, Link } from "react-router-dom";
+import { Switch, Route, useLocation, Link, Redirect } from "react-router-dom";
 import styled, { css } from "styled-components/macro";
 
 import { useEffect, useState } from "preact/hooks";
@@ -16,7 +16,6 @@ import CompoundBaySso from "./CompoundBaySso";
 import Open from "./Open";
 import Channel from "./channels/Channel";
 import Developer from "./developer/Developer";
-import Discover from "./discover/Discover";
 import Friends from "./friends/Friends";
 import Home from "./home/Home";
 import HomeNew from "./home/HomeNew";
@@ -228,8 +227,9 @@ export default function App() {
                             />
                             <Route path="/settings" component={Settings} />
 
-                            <Route path="/discover" component={Discover} />
-
+                            <Route path="/discover">
+                                <Redirect to="/home" />
+                            </Route>
                             <Route
                                 path="/compound-bay"
                                 component={CompoundBaySso}

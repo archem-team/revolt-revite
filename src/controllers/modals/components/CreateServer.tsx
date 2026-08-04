@@ -4,6 +4,7 @@ import { Text } from "preact-i18n";
 
 import { ModalForm } from "@revoltchat/ui";
 
+import { ACCEPTABLE_USE_POLICY_URL } from "../../../config/branding";
 import { useClient } from "../../client/ClientController";
 import { mapError } from "../../client/jsx/error";
 import { ModalProps } from "../types";
@@ -25,7 +26,7 @@ export default function CreateServer({
                 <div>
                     By creating this server, you agree to the{" "}
                     <a
-                        href="https://revolt.chat/aup"
+                        href={ACCEPTABLE_USE_POLICY_URL}
                         target="_blank"
                         rel="noreferrer">
                         Acceptable Use Policy.

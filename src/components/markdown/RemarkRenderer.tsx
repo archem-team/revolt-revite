@@ -234,7 +234,6 @@ function sanitise(content: string) {
 
             // Append empty character if string starts with html tag
             // This is to avoid inconsistencies in rendering Markdown inside/after HTML tags
-            // https://github.com/revoltchat/revite/issues/733
             .replace(RE_HTML_TAGS, (match) => `\u200E${match}`)
 
             // Append empty character if line starts with a plus

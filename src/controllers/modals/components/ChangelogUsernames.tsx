@@ -108,11 +108,6 @@ export default function ChangelogUsernames({
                                     }}
                                     disabled
                                 />
-                                <a
-                                    href="https://revolt.chat/posts/evolving-usernames"
-                                    target="_blank">
-                                    Read more about this change
-                                </a>
                             </Column>
                         </div>
                         <Row

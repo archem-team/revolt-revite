@@ -14,6 +14,7 @@ import { QueuedMessage } from "../../../mobx/stores/MessageQueue";
 
 import { I18nError } from "../../../context/Locale";
 
+import { FILE_SERVER_ORIGIN } from "../../../config/branding";
 import { modalController } from "../../../controllers/modals/ModalController";
 import Markdown from "../../markdown/Markdown";
 import UserIcon from "../user/UserIcon";
@@ -62,11 +63,11 @@ const Message = observer(
 
         const userContext = attachContext
             ? useTriggerEvents("Menu", {
-                user: message.author_id,
-                contextualChannel: message.channel_id,
-                contextualMessage: message._id,
-                // eslint-disable-next-line
-            })
+                  user: message.author_id,
+                  contextualChannel: message.channel_id,
+                  contextualMessage: message._id,
+                  // eslint-disable-next-line
+              })
             : undefined;
 
         const openProfile = () =>
@@ -111,11 +112,11 @@ const Message = observer(
                         hideReply
                             ? false
                             : (head &&
-                                !(
-                                    message.reply_ids &&
-                                    message.reply_ids.length > 0
-                                )) ??
-                            false
+                                  !(
+                                      message.reply_ids &&
+                                      message.reply_ids.length > 0
+                                  )) ??
+                              false
                     }
                     contrast={contrast}
                     sending={typeof queued !== "undefined"}
@@ -129,10 +130,10 @@ const Message = observer(
                     failed={typeof queued?.error !== "undefined"}
                     {...(attachContext
                         ? useTriggerEvents("Menu", {
-                            message,
-                            contextualChannel: message.channel_id,
-                            queued,
-                        })
+                              message,
+                              contextualChannel: message.channel_id,
+                              queued,
+                          })
                         : undefined)}
                     onMouseEnter={() => setAnimate(true)}
                     onMouseLeave={() => setAnimate(false)}>
@@ -143,7 +144,11 @@ const Message = observer(
                                 url={message.generateMasqAvatarURL()}
                                 override={
                                     message.webhook?.avatar
-                                        ? `https://autumn.revolt.chat/avatars/${message.webhook.avatar}`
+                                        ? `${
+                                              message.client.configuration
+                                                  ?.features.autumn?.url ??
+                                              FILE_SERVER_ORIGIN
+                                          }/avatars/${message.webhook.avatar}`
                                         : undefined
                                 }
                                 target={user}
@@ -192,13 +197,14 @@ const Message = observer(
                                     (content ? content.length > 0 : false)
                                 }
                             />
-                    ))}
+                        ))}
                         {message.embeds?.map((embed, index) => (
                             <Embed key={index} embed={embed} />
                         ))}
                         <Reactions message={message} />
                         {(mouseHovering || reactionsOpen) &&
-                            !replacement && !type_msg &&
+                            !replacement &&
+                            !type_msg &&
                             !isTouchscreenDevice && (
                                 <MessageOverlayBar
                                     reactionsOpen={reactionsOpen}

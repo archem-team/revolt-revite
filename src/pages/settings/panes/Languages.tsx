@@ -5,7 +5,7 @@ import styles from "./Panes.module.scss";
 import { Text } from "preact-i18n";
 import { useMemo } from "preact/hooks";
 
-import { Checkbox, LineDivider, Tip } from "@revoltchat/ui";
+import { Checkbox } from "@revoltchat/ui";
 
 import { useApplicationState } from "../../../mobx/State";
 
@@ -198,18 +198,6 @@ export const Languages = observer(() => {
                     .filter(([, lang]) => lang.cat === "alt")
                     .map(EntryFactory)}
             </div>
-            <LineDivider />
-            <Tip>
-                <span>
-                    <Text id="app.settings.tips.languages.a" />{" "}
-                    <a
-                        href="https://weblate.insrt.uk/engage/revolt/?utm_source=widget"
-                        target="_blank"
-                        rel="noreferrer">
-                        <Text id="app.settings.tips.languages.b" />
-                    </a>
-                </span>
-            </Tip>
         </div>
     );
 });

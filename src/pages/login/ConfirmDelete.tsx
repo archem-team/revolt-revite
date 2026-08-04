@@ -6,6 +6,7 @@ import { useEffect, useState } from "preact/hooks";
 
 import { Modal, Preloader } from "@revoltchat/ui";
 
+import { SUPPORT_EMAIL } from "../../config/branding";
 import { useApi } from "../../controllers/client/ClientController";
 
 const Centre = styled.div`
@@ -31,7 +32,7 @@ export default function ConfirmDelete() {
                         Your account will be deleted in 7 days.
                         <br />
                         You may contact{" "}
-                        <a href="mailto:contact@pepchat.com">
+                        <a href={`mailto:${SUPPORT_EMAIL}`}>
                             Pepchat support
                         </a>{" "}
                         to cancel the request if you wish.

@@ -2,28 +2,31 @@ import { ChevronRight, Trash } from "@styled-icons/boxicons-regular";
 import { Cog } from "@styled-icons/boxicons-solid";
 import { isFirefox } from "react-device-detect";
 import { useHistory } from "react-router-dom";
-import { Channel, Message, Server, User, API, Permission, UserPermission, Member } from "revolt.js";
+import {
+    Channel,
+    Message,
+    Server,
+    User,
+    API,
+    Permission,
+    UserPermission,
+    Member,
+} from "revolt.js";
 
-
-
-import { ContextMenuWithData, MenuItem, openContextMenu } from "preact-context-menu";
+import {
+    ContextMenuWithData,
+    MenuItem,
+    openContextMenu,
+} from "preact-context-menu";
 import { Text } from "preact-i18n";
 
-
-
 import { Column, IconButton, LineDivider } from "@revoltchat/ui";
-
-
 
 import { useApplicationState } from "../mobx/State";
 import { QueuedMessage } from "../mobx/stores/MessageQueue";
 import { NotificationState } from "../mobx/stores/NotificationOptions";
 
-
-
 import CMNotifications from "./contextmenu/CMNotifications";
-
-
 
 import Tooltip from "../components/common/Tooltip";
 import UserStatus from "../components/common/user/UserStatus";
@@ -32,7 +35,6 @@ import { takeError } from "../controllers/client/jsx/error";
 import { modalController } from "../controllers/modals/ModalController";
 import { internalEmit } from "./eventEmitter";
 import { getRenderer } from "./renderer/Singleton";
-
 
 interface ContextMenuData {
     user?: string;
@@ -50,8 +52,6 @@ interface ContextMenuData {
 
 type Action =
     | { action: "copy_id"; id: string }
-    | { action: "admin"; id: string; type: "channel" | "message" | "user" }
-    | { action: "admin_system"; id: string }
     | { action: "copy_message_link"; message: Message }
     | { action: "copy_selection" }
     | { action: "copy_text"; content: string }
@@ -91,32 +91,32 @@ type Action =
     | { action: "create_channel"; target: Server }
     | { action: "create_category"; target: Server }
     | {
-        action: "create_invite";
-        target: Channel;
-    }
+          action: "create_invite";
+          target: Channel;
+      }
     | { action: "leave_group"; target: Channel }
     | {
-        action: "delete_channel";
-        target: Channel;
-    }
+          action: "delete_channel";
+          target: Channel;
+      }
     | { action: "close_dm"; target: Channel }
     | { action: "leave_server"; target: Server }
     | { action: "delete_server"; target: Server }
     | { action: "edit_identity"; target: Member }
     | {
-        action: "open_notification_options";
-        channel?: Channel;
-        server?: Server;
-    }
+          action: "open_notification_options";
+          channel?: Channel;
+          server?: Server;
+      }
     | { action: "open_settings" }
     | { action: "open_channel_settings"; id: string }
     | { action: "open_server_settings"; id: string }
     | { action: "open_server_channel_settings"; server: string; id: string }
     | {
-        action: "set_notification_state";
-        key: string;
-        state?: NotificationState;
-    }
+          action: "set_notification_state";
+          key: string;
+          state?: NotificationState;
+      }
     | { action: "report"; target: User | Server | Message; messageId?: string };
 
 // ! FIXME: I dare someone to re-write this
@@ -137,18 +137,6 @@ export default function ContextMenus() {
                 case "copy_id":
                     modalController.writeText(data.id);
                     break;
-                case "admin":
-                    window.open(
-                        `https://admin.revolt.chat/panel/inspect/${data.type}/${data.id}`,
-                        "_blank",
-                    );
-                    break;
-                case "admin_system":
-                    window.open(
-                        `https://admin.revolt.chat/panel/inspect/user/${data.id}`,
-                        "_blank",
-                    );
-                    break;
                 case "copy_message_link":
                     {
                         let pathname = `/channel/${data.message.channel_id}/${data.message._id}`;
@@ -166,9 +154,7 @@ export default function ContextMenus() {
                     break;
                 case "mark_as_read":
                     {
-                        if (
-                            data.channel.channel_type === "SavedMessages"
-                        )
+                        if (data.channel.channel_type === "SavedMessages")
                             return;
 
                         client.unreads!.markRead(
@@ -210,8 +196,6 @@ export default function ContextMenus() {
 
                 case "pin_message":
                     {
-
-
                         const messages = getRenderer(
                             data.message.channel!,
                         ).messages;
@@ -219,7 +203,7 @@ export default function ContextMenus() {
                             (x) => x._id === data.message._id,
                         );
 
-                        let message
+                        let message;
 
                         if (index > -1) {
                             message = messages[index];
@@ -234,18 +218,15 @@ export default function ContextMenus() {
                     }
                     break;
 
-
                 case "unpin_message":
                     {
-
-
                         const messages = getRenderer(
                             data.message.channel!,
                         ).messages;
                         const index = messages.findIndex(
                             (x) => x._id === data.message._id,
                         );
-                        let message
+                        let message;
 
                         if (index > -1) {
                             message = messages[index];
@@ -570,16 +551,11 @@ export default function ContextMenus() {
                         elements.push(
                             <MenuItem data={action} disabled={disabled}>
                                 <span style={{ color }}>
-                                    {locale === "admin" ? (
-                                        "Open in Admin Panel"
-                                    ) : locale === "admin_system" ? (
-                                        "Open User in Admin Panel"
-                                    ) : (
-                                        <Text
-                                            id={`app.context_menu.${locale ?? action.action
-                                                }`}
-                                        />
-                                    )}
+                                    <Text
+                                        id={`app.context_menu.${
+                                            locale ?? action.action
+                                        }`}
+                                    />
                                 </span>
                                 {tip && <div className="tip">{tip}</div>}
                             </MenuItem>,
@@ -635,7 +611,7 @@ export default function ContextMenus() {
                     const user = uid ? client.users.get(uid) : undefined;
                     const serverChannel =
                         targetChannel &&
-                            (targetChannel.channel_type === "TextChannel")
+                        targetChannel.channel_type === "TextChannel"
                             ? targetChannel
                             : undefined;
 
@@ -647,8 +623,8 @@ export default function ContextMenus() {
                         (server
                             ? server.permission
                             : serverChannel
-                                ? serverChannel.server?.permission
-                                : 0) || 0;
+                            ? serverChannel.server?.permission
+                            : 0) || 0;
                     const userPermissions = (user ? user.permission : 0) || 0;
 
                     if (unread) {
@@ -895,27 +871,30 @@ export default function ContextMenus() {
                                 generateAction({
                                     action: "unpin_message",
                                     channel,
-                                    message
+                                    message,
                                 });
                             } else {
                                 generateAction({
                                     action: "pin_message",
                                     channel,
-                                    message
+                                    message,
                                 });
                             }
-                        } else if (message.channel?.channel_type == "DirectMessage" || message.channel?.channel_type == "Group") {
+                        } else if (
+                            message.channel?.channel_type == "DirectMessage" ||
+                            message.channel?.channel_type == "Group"
+                        ) {
                             if (message.is_pinned) {
                                 generateAction({
                                     action: "unpin_message",
                                     channel,
-                                    message
+                                    message,
                                 });
                             } else {
                                 generateAction({
                                     action: "pin_message",
                                     channel,
-                                    message
+                                    message,
                                 });
                             }
                         }
@@ -989,8 +968,8 @@ export default function ContextMenus() {
                                 type === "Image"
                                     ? "open_image"
                                     : type === "Video"
-                                        ? "open_video"
-                                        : "open_file",
+                                    ? "open_video"
+                                    : "open_file",
                             );
 
                             generateAction(
@@ -1001,8 +980,8 @@ export default function ContextMenus() {
                                 type === "Image"
                                     ? "save_image"
                                     : type === "Video"
-                                        ? "save_video"
-                                        : "save_file",
+                                    ? "save_video"
+                                    : "save_file",
                             );
 
                             generateAction(
@@ -1038,8 +1017,8 @@ export default function ContextMenus() {
                             type === "Image"
                                 ? "open_image"
                                 : type === "Video"
-                                    ? "open_video"
-                                    : "open_file",
+                                ? "open_video"
+                                : "open_file",
                         );
 
                         generateAction(
@@ -1050,8 +1029,8 @@ export default function ContextMenus() {
                             type === "Image"
                                 ? "save_image"
                                 : type === "Video"
-                                    ? "save_video"
-                                    : "save_file",
+                                ? "save_video"
+                                : "save_file",
                         );
 
                         generateAction(
@@ -1231,44 +1210,13 @@ export default function ContextMenus() {
                         }
 
                         if (!hideIDButton) {
-                            if (state.experiments.isEnabled("admin_beta")) {
-                                generateAction(
-                                    {
-                                        action: "admin",
-                                        id,
-                                        type: cid
-                                            ? "channel"
-                                            : message
-                                                ? "message"
-                                                : "user",
-                                    },
-                                    "admin",
-                                );
-
-                                switch (message?.system?.type) {
-                                    case "user_added":
-                                    case "user_remove":
-                                    case "user_joined":
-                                    case "user_left":
-                                    case "user_kicked":
-                                    case "user_banned":
-                                        generateAction(
-                                            {
-                                                action: "admin_system",
-                                                id: message.system.id,
-                                            },
-                                            "admin_system",
-                                        );
-                                }
-                            }
-
                             generateAction(
                                 { action: "copy_id", id },
                                 cid
                                     ? "copy_cid"
                                     : message
-                                        ? "copy_mid"
-                                        : "copy_uid",
+                                    ? "copy_mid"
+                                    : "copy_uid",
                             );
                         }
                     }

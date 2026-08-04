@@ -189,16 +189,7 @@ export const Profile = observer(() => {
             />
             <div className={styles.markdown}>
                 <Markdown size="24" />
-                <h5>
-                    Descriptions support Markdown formatting,{" "}
-                    <a
-                        href="https://developers.revolt.chat/markdown"
-                        target="_blank"
-                        rel="noreferrer">
-                        learn more here
-                    </a>
-                    .
-                </h5>
+                <h5>Descriptions support Markdown formatting.</h5>
             </div>
             <p>
                 <Button
