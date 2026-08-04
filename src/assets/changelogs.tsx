@@ -1,4 +1,4 @@
-import Lottie, { LottieRefCurrentProps } from "lottie-react";
+import Lottie from "lottie-react";
 
 import { JSX } from "preact";
 
@@ -25,15 +25,7 @@ export const changelogEntries: Record<number, ChangelogPost> = {
         title: "Secure your account with 2FA",
         content: [
             "Two-factor authentication is now available to all users, you can now head over to settings to enable recovery codes and an authenticator app.",
-            {
-                type: "image",
-                src: "https://autumn.revolt.chat/attachments/E21kwmuJGcASgkVLiSIW0wV3ggcaOWjW0TQF7cdFNY/image.png",
-            },
             "Once enabled, you will be prompted on login.",
-            {
-                type: "image",
-                src: "https://autumn.revolt.chat/attachments/LWRYoKR2tE1ggW_Lzm547P1pnrkNgmBaoCAfWvHE74/image.png",
-            },
             "Other authentication methods coming later, stay tuned!",
         ],
     },
@@ -42,12 +34,7 @@ export const changelogEntries: Record<number, ChangelogPost> = {
         title: "In-App Reporting Is Here",
         content: [
             "You can now report any user, server, or message directly from the app.",
-            {
-                type: "image",
-                src: "https://autumn.revolt.chat/attachments/ZuDVIjGiCl61Pk9XGk5qfc8-idN9EnFAk55DUQp713/the.png",
-                shadow: true,
-            },
-            "If you want to learn more about how we're making Pepchat safer for you, check out our new blog post :point_right: [https://revolt.chat/posts/improving-user-safety](https://revolt.chat/posts/improving-user-safety)",
+            "Reports are reviewed by the PepChat moderation team.",
         ],
     },
     3: {
@@ -67,14 +54,6 @@ export const changelogEntries: Record<number, ChangelogPost> = {
                 ),
             },
             "Pepchat has undergone a significant change to its username system, transitioning from unique username handles to a new system of display names and usernames with four-digit number tags called discriminators. The four-digit number tags serve as identifiers to differentiate users with the same username, allowing individuals to select desired usernames that reflect their identity.",
-            {
-                type: "element",
-                element: (
-                    <a href="https://revolt.chat/posts/evolving-usernames">
-                        Read more on our blog!
-                    </a>
-                ),
-            },
         ],
     },
 };

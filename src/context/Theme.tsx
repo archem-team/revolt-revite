@@ -267,7 +267,7 @@ export const MONOSPACE_FONT_KEYS = Object.keys(MONOSPACE_FONTS).sort();
 export const DEFAULT_FONT = "Open Sans";
 export const DEFAULT_MONO_FONT = "Fira Code";
 
-// Generated from https://gitlab.insrt.uk/revolt/community/themes
+// Legacy community theme presets.
 export const PRESETS: Record<string, Theme> = {
     light: {
         accent: "#FD6671",

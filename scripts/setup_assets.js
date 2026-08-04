@@ -5,7 +5,7 @@ const { resolve } = require("path");
 
 let target = process.env.REVOLT_SAAS;
 let branch = process.env.REVOLT_SAAS_BRANCH;
-let DEFAULT_DIRECTORY = "public/assets_default";
+let DEFAULT_DIRECTORY = "public/assets_default/assets";
 let OUT_DIRECTORY = "public/assets";
 
 function exec(command) {

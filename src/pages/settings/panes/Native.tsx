@@ -4,7 +4,7 @@ import { useEffect, useState } from "preact/hooks";
 
 import { Button, CategoryButton, Checkbox, Tip } from "@revoltchat/ui";
 
-import RLogo from "../assets/revolt_r.svg";
+import PepChatLogo from "/assets/logo_round.svg";
 
 export function Native() {
     if (typeof window.native === "undefined") return null;
@@ -200,7 +200,7 @@ export function Native() {
             )*/}
             <hr />
             <CategoryButton
-                icon={<img src={RLogo} draggable={false} />}
+                icon={<img src={PepChatLogo} draggable={false} />}
                 description={<span>version {window.nativeVersion}</span>}
                 action={<Refresh size={24} />}>
                 Pepchat for Desktop

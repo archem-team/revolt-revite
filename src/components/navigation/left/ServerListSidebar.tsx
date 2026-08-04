@@ -10,7 +10,6 @@ import { useApplicationState } from "../../../mobx/State";
 
 import { useClient } from "../../../controllers/client/ClientController";
 import { modalController } from "../../../controllers/modals/ModalController";
-import { IS_REVOLT } from "../../../version";
 
 /* Elevation model: the server rail sits on the LIGHTEST surface
    (container-high; painted at the layout root), so the sidebar
@@ -58,7 +57,7 @@ export default observer(() => {
                 home={state.layout.getLastHomePath}
                 servers={state.ordering.orderedServers}
                 reorder={state.ordering.reorderServer}
-                showDiscovery={IS_REVOLT}
+                showDiscovery={false}
             />
         </RailBase>
     );

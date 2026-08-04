@@ -1,97 +1,44 @@
-# Deprecation Notice
+# PepChat Web
 
-This project is deprecated, however it still may receive maintenance updates.
+PepChat is the web client for the peptide community at
+[peptide.chat](https://peptide.chat). It is built with Preact, Vite, MobX, and
+styled-components.
 
-PRs for small fixes are more than welcome.
+## Quick start
 
-## Deploying a new release
-
-Ensure `.env.local` points to `https://app.revolt.chat/api`.
+This repository uses Git submodules. Clone it recursively, or initialize the
+submodules after cloning.
 
 ```bash
-cd ~/deployments/revite
-git pull
-git submodule update
-
-# check:
-git status
-
-export REVOLT_SAAS_BRANCH=revite/main
-export REMOTE=root@production
-scripts/publish.sh
-
-# SSH in and restart revite:
-ssh $REMOTE
-tmux a -t 4
-```
-
-# Revite
-
-## Description
-
-This is the web client for Revolt, which is also available live at [app.revolt.chat](https://app.revolt.chat).
-
-## Pending Rewrite
-
-The following code is pending a partial or full rewrite:
-
--   `src/components`: components are being migrated to [revoltchat/components](https://github.com/revoltchat/components)
--   `src/styles`: needs to be migrated to [revoltchat/components](https://github.com/revoltchat/components)
--   `src/lib`: this needs to be organised
-
-## Stack
-
--   [Preact](https://preactjs.com/)
--   [Vite](https://vitejs.dev/)
-
-## Submodule Hint
-
-This project contains submodules. Run `git submodule init` after you clone this repository to initialize the submodules.
-It is also recommended to run `git submodule update` after you pull from upstream.
-
-## Resources
-
-### Revite
-
--   [Revite Issue Board](https://github.com/revoltchat/revite/issues)
--   [Google Drive Folder with Screenshots](https://drive.google.com/drive/folders/1Ckhl7_9OTTaKzyisrWHzZw1hHj55JwhD)
-
-### Revolt
-
--   [Revolt Project Board](https://github.com/revoltchat/revolt/discussions) (Submit feature requests here)
--   [Revolt Testers Server](https://app.revolt.chat/invite/Testers)
--   [Contribution Guide](https://developers.revolt.chat/contributing)
-
-## Quick Start
-
-Get revite up and running locally.
-
-```
-git clone --recursive https://github.com/revoltchat/revite
-cd revite
+git clone --recursive git@github.com:archem-team/revolt-revite.git web-pepchat
+cd web-pepchat
 yarn
 yarn build:deps
 yarn dev
 ```
 
-You can now access the client at http://local.revolt.chat:3000.
+The development server runs on port 3000.
 
-## CLI Commands
+## Commands
 
-| Command                                 | Description                                  |
-| --------------------------------------- | -------------------------------------------- |
-| `yarn pull`                             | Setup assets required for Revite.            |
-| `yarn dev`                              | Start the Revolt client in development mode. |
-| `yarn build`                            | Build the Revolt client.                     |
-| `yarn build:deps`                       | Build external dependencies.                 |
-| `yarn preview`                          | Start a local server with the built client.  |
-| `yarn lint`                             | Run ESLint on the client.                    |
-| `yarn fmt`                              | Run Prettier on the client.                  |
-| `yarn typecheck`                        | Run TypeScript type checking on the client.  |
-| `yarn start`                            | Start a local sirv server with built client. |
-| `yarn start:inject`                     | Inject a given API URL and start server.     |
-| `yarn lint \| egrep "no-literals" -B 1` | Scan for untranslated strings.               |
+| Command              | Description                                            |
+| -------------------- | ------------------------------------------------------ |
+| `yarn dev`           | Start the development client.                          |
+| `yarn build:deps`    | Build the external UI and API-client dependencies.     |
+| `yarn build`         | Create a production build.                             |
+| `yarn preview`       | Preview the production build.                          |
+| `yarn lint`          | Run ESLint.                                            |
+| `yarn lint:branding` | Check production surfaces for upstream branding leaks. |
+| `yarn typecheck`     | Run TypeScript type checking.                          |
+
+## Project lineage
+
+PepChat is derived from the open-source Revite client for Revolt. Internal
+dependency names and protocol types retain their upstream names for
+compatibility. PepChat product copy, support links, and public destinations are
+maintained by the Archem team.
 
 ## License
 
-Revite is licensed under the [GNU Affero General Public License v3.0](https://github.com/revoltchat/revite/blob/master/LICENSE).
+This project retains the original copyright notices and is distributed under
+the terms in [LICENSE](LICENSE).

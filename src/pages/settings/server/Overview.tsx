@@ -95,16 +95,7 @@ export const Overview = observer(({ server }: Props) => {
             />
             <div className={styles.markdown}>
                 <Markdown size="24" />
-                <h5>
-                    {"Server descriptions support Markdown formatting. "}
-                    <a
-                        href="https://support.revolt.chat/kb/interface/messages/formatting-your-messages"
-                        target="_blank"
-                        rel="noreferrer">
-                        {"Learn more here"}
-                    </a>
-                    {"."}
-                </h5>
+                <h5>{"Server descriptions support Markdown formatting."}</h5>
             </div>
             <hr />
             <h3>

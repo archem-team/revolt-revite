@@ -29,6 +29,7 @@ import AutoComplete, {
 import CollapsibleSection from "../../../components/common/CollapsibleSection";
 import Tooltip from "../../../components/common/Tooltip";
 import UserIcon from "../../../components/common/user/UserIcon";
+import { ACCEPTABLE_USE_POLICY_URL } from "../../../config/branding";
 import { useClient } from "../../../controllers/client/ClientController";
 import { FileUploader } from "../../../controllers/client/jsx/legacy/FileUploads";
 import { modalController } from "../../../controllers/modals/ModalController";
@@ -523,7 +524,7 @@ export const MyBots = observer(() => {
             <h5>
                 By creating a bot, you are agreeing to the {` `}
                 <a
-                    href="https://revolt.chat/aup"
+                    href={ACCEPTABLE_USE_POLICY_URL}
                     target="_blank"
                     rel="noreferrer">
                     Acceptable Usage Policy

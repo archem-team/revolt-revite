@@ -9,7 +9,6 @@ import {
 import {
     Bell,
     Palette,
-    Coffee,
     IdCard,
     CheckShield,
     Flask,
@@ -22,7 +21,6 @@ import {
 } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import { Route, Switch, useHistory } from "react-router-dom";
-import { LIBRARY_VERSION } from "revolt.js";
 import styled from "styled-components/macro";
 
 import styles from "./Settings.module.scss";
@@ -37,6 +35,7 @@ import UserIcon from "../../components/common/user/UserIcon";
 import { Username } from "../../components/common/user/UserShort";
 import UserStatus from "../../components/common/user/UserStatus";
 import ButtonItem from "../../components/navigation/items/ButtonItem";
+import { SOURCE_REPOSITORY_URL } from "../../config/branding";
 import {
     useClient,
     clientController,
@@ -193,7 +192,7 @@ export default observer(() => {
                 },
                 {
                     divider: true,
-                    category: "revolt",
+                    category: "PepChat",
                     id: "bots",
                     icon: <Bot size={20} />,
                     title: <Text id="app.settings.pages.bots.title" />,
@@ -260,21 +259,12 @@ export default observer(() => {
                         <Text id="app.special.modals.changelogs.title" />
                     </ButtonItem>
                     <a
-                        href="https://github.com/revoltchat"
+                        href={SOURCE_REPOSITORY_URL}
                         target="_blank"
                         rel="noreferrer">
                         <ButtonItem compact>
                             <Github size={20} />
                             <Text id="app.settings.pages.source_code" />
-                        </ButtonItem>
-                    </a>
-                    <a
-                        href="https://insrt.uk/donate"
-                        target="_blank"
-                        rel="noreferrer">
-                        <ButtonItem className={styles.donate} compact>
-                            <Coffee size={20} />
-                            <Text id="app.settings.pages.donate.title" />
                         </ButtonItem>
                     </a>
                     <LineDivider compact />
@@ -297,7 +287,7 @@ export default observer(() => {
                             <a
                                 href={
                                     GIT_BRANCH !== "DETACHED"
-                                        ? `https://github.com/revoltchat/revite/tree/${GIT_BRANCH}`
+                                        ? `${SOURCE_REPOSITORY_URL}/tree/${GIT_BRANCH}`
                                         : undefined
                                 }
                                 target="_blank"
@@ -315,7 +305,6 @@ export default observer(() => {
                         <span>
                             API: {client.configuration?.revolt ?? "N/A"}
                         </span>
-                        <span>revolt.js: {LIBRARY_VERSION}</span>
                     </div>
                 </>
             }

@@ -92,7 +92,6 @@ export default class Plugins implements Store, Persistent<Data> {
         return "revite:plugins";
     }
 
-    // lexisother: https://github.com/revoltchat/revite/pull/571#discussion_r836824601
     list() {
         return [...this.plugins.values()].map(
             ({ namespace, id, version, enabled }) => ({

@@ -1,13 +1,11 @@
-import axios from "axios";
 import localforage from "localforage";
-import * as stackTrace from "stacktrace-js";
 import styled from "styled-components/macro";
 
 import { useEffect, useErrorBoundary, useState } from "preact/hooks";
 
 import { Button } from "@revoltchat/ui";
 
-import { GIT_REVISION } from "../revision";
+import { SUPPORT_EMAIL } from "../config/branding";
 
 const CrashContainer = styled.div`
     // defined for the Button component
@@ -39,19 +37,8 @@ interface Props {
     section: "client" | "renderer";
 }
 
-const ERROR_URL = "https://reporting.revolt.chat";
-
 export function reportError(error: Error, section: string) {
-    stackTrace.fromError(error).then((stackframes) =>
-        axios.post(ERROR_URL, {
-            stackframes,
-            rawStackTrace: error.stack,
-            origin: window.origin,
-            commitSHA: GIT_REVISION,
-            userAgent: navigator.userAgent,
-            section,
-        }),
-    );
+    console.error(`PepChat ${section} error`, error);
 }
 
 export default function ErrorBoundary({ children, section }: Props) {
@@ -105,7 +92,11 @@ export default function ErrorBoundary({ children, section }: Props) {
                 <pre>
                     <code>{error?.stack}</code>
                 </pre>
-                <div>This error has been automatically reported.</div>
+                <div>
+                    This error was logged locally. If the problem continues,
+                    contact{" "}
+                    <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
+                </div>
             </CrashContainer>
         );
     }
