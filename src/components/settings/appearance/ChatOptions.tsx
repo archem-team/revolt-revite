@@ -8,22 +8,6 @@ import { useApplicationState } from "../../../mobx/State";
 
 import { FONTS, Fonts, FONT_KEYS } from "../../../context/Theme";
 
-import { EmojiSelector } from "./legacy/EmojiSelector";
-
-/**
- * ! LEGACY
- * Component providing a way to change emoji pack.
- */
-export const ShimDisplayEmoji = observer(() => {
-    const settings = useApplicationState().settings;
-    return (
-        <EmojiSelector
-            value={settings.get("appearance:emoji")}
-            setValue={(v) => settings.set("appearance:emoji", v)}
-        />
-    );
-});
-
 export default observer(() => {
     const settings = useApplicationState().settings;
 
@@ -62,9 +46,6 @@ export default observer(() => {
                     />
                 )}
             </Column>
-            <hr />
-            {/* Emoji pack selector */}
-            <ShimDisplayEmoji />
         </>
     );
 });
