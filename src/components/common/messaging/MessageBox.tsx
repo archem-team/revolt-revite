@@ -1,5 +1,5 @@
 import { Block } from "@styled-icons/boxicons-regular";
-import { HappyBeaming, Send } from "@styled-icons/boxicons-solid";
+import { FileGif as GifIcon, HappyBeaming, Send } from "@styled-icons/boxicons-solid";
 import Axios, { CancelTokenSource } from "axios";
 import { observer } from "mobx-react-lite";
 import { Channel } from "revolt.js";
@@ -14,6 +14,7 @@ import { IconButton, Picker } from "@revoltchat/ui";
 
 import TextAreaAutoSize from "../../../lib/TextAreaAutoSize";
 import { convertMentionsToWireFormat } from "../../../lib/convertMentions";
+import { tenorEnabled } from "../../../lib/tenor";
 import { debounce } from "../../../lib/debounce";
 import { defer, chainedDefer } from "../../../lib/defer";
 import { internalEmit, internalSubscribe } from "../../../lib/eventEmitter";
@@ -46,6 +47,7 @@ import { RenderEmoji } from "../../markdown/plugins/emoji";
 import AutoComplete, { useAutoComplete } from "../AutoComplete";
 import { PermissionTooltip } from "../Tooltip";
 import ComposerOverlay from "./ComposerOverlay";
+import GifPicker from "./GifPicker";
 import FilePreview from "./bars/FilePreview";
 import ReplyBar from "./bars/ReplyBar";
 import { User } from "@styled-icons/boxicons-regular";
@@ -259,10 +261,12 @@ export default observer(({ channel }: Props) => {
     const [typing, setTyping] = useState<boolean | number>(false);
     const [replies, setReplies] = useState<Reply[]>([]);
     const [picker, setPicker] = useState(false);
+    const [gifPicker, setGifPicker] = useState(false);
     const client = useClient();
     const translate = useTranslation();
 
     const closePicker = useCallback(() => setPicker(false), []);
+    const closeGifPicker = useCallback(() => setGifPicker(false), []);
 
     const renderer = getRenderer(channel);
 
@@ -470,6 +474,40 @@ export default observer(({ channel }: Props) => {
             } catch (error) {
                 state.queue.fail(nonce, takeError(error));
             }
+        }
+    }
+
+    /**
+     * Send a picked GIF as its own message.
+     *
+     * The direct media URL is the content: january embeds that as an
+     * image, where the provider's page URL yields no embed at all. Any
+     * draft the user is part-way through typing is left untouched —
+     * the GIF is a separate message, as it is elsewhere.
+     */
+    async function sendGif(url: string) {
+        closeGifPicker();
+
+        const nonce = ulid();
+        state.settings.sounds.playSound("outbound");
+        setReplies([]);
+
+        state.queue.add(nonce, channel._id, {
+            _id: nonce,
+            channel: channel._id,
+            author: client.user!._id,
+
+            content: url,
+            replies,
+        });
+
+        chainedDefer(() => renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE));
+
+        try {
+            await channel.sendMessage({ content: url, nonce, replies });
+            chainedDefer(() => renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE));
+        } catch (error) {
+            state.queue.fail(nonce, takeError(error));
         }
     }
 
@@ -708,6 +746,9 @@ export default observer(({ channel }: Props) => {
                         onClose={closePicker}
                     />
                 )}
+                {gifPicker && (
+                    <GifPicker onSelect={sendGif} onClose={closeGifPicker} />
+                )}
             </FloatingLayer>
             <Base>
                 {/* {channel.havePermission("UploadFiles") ? ( */}
@@ -832,8 +873,23 @@ export default observer(({ channel }: Props) => {
                     onFocus={onFocus}
                     onBlur={onBlur}
                 />
+                {tenorEnabled && (
+                    <Action>
+                        <IconButton
+                            onClick={() => {
+                                closePicker();
+                                setGifPicker(!gifPicker);
+                            }}>
+                            <GifIcon size={24} />
+                        </IconButton>
+                    </Action>
+                )}
                 <Action>
-                    <IconButton onClick={() => setPicker(!picker)}>
+                    <IconButton
+                        onClick={() => {
+                            closeGifPicker();
+                            setPicker(!picker);
+                        }}>
                         <HappyBeaming size={24} />
                     </IconButton>
                 </Action>
