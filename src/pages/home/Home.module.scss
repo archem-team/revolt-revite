@@ -2,15 +2,30 @@
     height: 100%;
     user-select: none;
     position: relative;
+    /* Clip horizontal overflow at the outer boundary.
+       Safe here because .home does NOT have overflow-y:scroll —
+       combining both on the same element breaks iOS vertical scroll. */
+    overflow-x: hidden;
+
 
     .homeScreen {
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
         align-items: center;
-        height: 100%;
+        /* Do NOT use height: 100% — it caps the scroll container height to the
+           viewport, clipping anything below the fold. Use min-height: 0 so the
+           flex column can grow naturally with content. */
+        min-height: 0;
         padding: 12px;
         padding-top: 12px;
+
+        @media (max-width: 600px) {
+            padding: 4px;
+            /* Removed padding-top: 54px — TabRow above provides header spacing.
+               Excessive top padding was pushing content down and causing bottom cutoff. */
+            padding-top: 8px;
+        }
 
         a {
             font-size: 13px;
