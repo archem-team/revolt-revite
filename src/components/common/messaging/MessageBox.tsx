@@ -14,7 +14,7 @@ import { IconButton, Picker } from "@revoltchat/ui";
 
 import TextAreaAutoSize from "../../../lib/TextAreaAutoSize";
 import { convertMentionsToWireFormat } from "../../../lib/convertMentions";
-import { tenorEnabled } from "../../../lib/tenor";
+import { klipyEnabled } from "../../../lib/klipy";
 import { debounce } from "../../../lib/debounce";
 import { defer, chainedDefer } from "../../../lib/defer";
 import { internalEmit, internalSubscribe } from "../../../lib/eventEmitter";
@@ -873,7 +873,7 @@ export default observer(({ channel }: Props) => {
                     onFocus={onFocus}
                     onBlur={onBlur}
                 />
-                {tenorEnabled && (
+                {klipyEnabled && (
                     <Action>
                         <IconButton
                             onClick={() => {

@@ -6,10 +6,10 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import {
     Gif,
     GifCategory,
-    tenorCategories,
-    tenorSearch,
-    tenorTrending,
-} from "../../../lib/tenor";
+    gifCategories,
+    gifSearch,
+    gifTrending,
+} from "../../../lib/klipy";
 
 const Base = styled.div`
     position: absolute;
@@ -155,7 +155,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
 
     useEffect(() => {
         const controller = new AbortController();
-        tenorCategories(controller.signal)
+        gifCategories(controller.signal)
             .then(setCategories)
             .catch(() => undefined);
 
@@ -173,8 +173,8 @@ export default function GifPicker({ onSelect, onClose }: Props) {
         const timeout = setTimeout(
             () => {
                 (search
-                    ? tenorSearch(search, 30, controller.signal)
-                    : tenorTrending(30, controller.signal)
+                    ? gifSearch(search, 30, controller.signal)
+                    : gifTrending(30, controller.signal)
                 )
                     .then((results) => {
                         setGifs(results);
@@ -200,7 +200,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                 <input
                     ref={input}
                     value={query}
-                    placeholder="Search Tenor"
+                    placeholder="Search GIFs"
                     onInput={(e) => setQuery(e.currentTarget.value)}
                     onKeyDown={(e) => {
                         if (e.key === "Escape") {
@@ -220,8 +220,8 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                 <Categories>
                     {categories.slice(0, 12).map((category) => (
                         <button
-                            key={category.searchterm}
-                            onClick={() => setQuery(category.searchterm)}>
+                            key={category.query}
+                            onClick={() => setQuery(category.query)}>
                             {category.name}
                         </button>
                     ))}
@@ -229,7 +229,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
             )}
 
             {state === "failed" ? (
-                <Notice>Couldn't reach Tenor. Check your connection.</Notice>
+                <Notice>Couldn't reach KLIPY. Check your connection.</Notice>
             ) : state === "loading" ? (
                 <Notice>Loading…</Notice>
             ) : gifs.length === 0 ? (
@@ -251,7 +251,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                 </Results>
             )}
 
-            <Attribution>Powered by Tenor</Attribution>
+            <Attribution>Powered by KLIPY</Attribution>
         </Base>
     );
 }
