@@ -1,5 +1,6 @@
 import { Block } from "@styled-icons/boxicons-regular";
-import { FileGif as GifIcon, HappyBeaming, Send } from "@styled-icons/boxicons-solid";
+import { User } from "@styled-icons/boxicons-regular";
+import { HappyBeaming, Send } from "@styled-icons/boxicons-solid";
 import Axios, { CancelTokenSource } from "axios";
 import { observer } from "mobx-react-lite";
 import { Channel } from "revolt.js";
@@ -14,7 +15,6 @@ import { IconButton, Picker } from "@revoltchat/ui";
 
 import TextAreaAutoSize from "../../../lib/TextAreaAutoSize";
 import { convertMentionsToWireFormat } from "../../../lib/convertMentions";
-import { klipyEnabled } from "../../../lib/klipy";
 import { debounce } from "../../../lib/debounce";
 import { defer, chainedDefer } from "../../../lib/defer";
 import { internalEmit, internalSubscribe } from "../../../lib/eventEmitter";
@@ -47,10 +47,9 @@ import { RenderEmoji } from "../../markdown/plugins/emoji";
 import AutoComplete, { useAutoComplete } from "../AutoComplete";
 import { PermissionTooltip } from "../Tooltip";
 import ComposerOverlay from "./ComposerOverlay";
-import GifPicker from "./GifPicker";
+import MediaPicker from "./MediaPicker";
 import FilePreview from "./bars/FilePreview";
 import ReplyBar from "./bars/ReplyBar";
-import { User } from "@styled-icons/boxicons-regular";
 
 type Props = {
     channel: Channel;
@@ -60,11 +59,11 @@ export type UploadState =
     | { type: "none" }
     | { type: "attached"; files: File[] }
     | {
-        type: "uploading";
-        files: File[];
-        percent: number;
-        cancel: CancelTokenSource;
-    }
+          type: "uploading";
+          files: File[];
+          percent: number;
+          cancel: CancelTokenSource;
+      }
     | { type: "sending"; files: File[] }
     | { type: "failed"; files: File[]; error: string };
 
@@ -192,9 +191,11 @@ export const HackAlertThisFileWillBeReplaced = observer(
     ({
         onSelect,
         onClose,
+        embedded,
     }: {
         onSelect: (emoji: string) => void;
         onClose: () => void;
+        embedded?: boolean;
     }) => {
         const renderEmoji = useMemo(
             () =>
@@ -244,6 +245,7 @@ export const HackAlertThisFileWillBeReplaced = observer(
                 renderEmoji={renderEmoji}
                 onSelect={onSelect}
                 onClose={onClose}
+                embedded={embedded}
             />
         );
     },
@@ -261,12 +263,10 @@ export default observer(({ channel }: Props) => {
     const [typing, setTyping] = useState<boolean | number>(false);
     const [replies, setReplies] = useState<Reply[]>([]);
     const [picker, setPicker] = useState(false);
-    const [gifPicker, setGifPicker] = useState(false);
     const client = useClient();
     const translate = useTranslation();
 
     const closePicker = useCallback(() => setPicker(false), []);
-    const closeGifPicker = useCallback(() => setGifPicker(false), []);
 
     const renderer = getRenderer(channel);
 
@@ -470,7 +470,9 @@ export default observer(({ channel }: Props) => {
                 });
 
                 // Add another scroll to bottom after the message is sent
-                chainedDefer(() => renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE));
+                chainedDefer(() =>
+                    renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE),
+                );
             } catch (error) {
                 state.queue.fail(nonce, takeError(error));
             }
@@ -486,8 +488,6 @@ export default observer(({ channel }: Props) => {
      * the GIF is a separate message, as it is elsewhere.
      */
     async function sendGif(url: string) {
-        closeGifPicker();
-
         const nonce = ulid();
         state.settings.sounds.playSound("outbound");
         setReplies([]);
@@ -723,31 +723,34 @@ export default observer(({ channel }: Props) => {
             />
             <FloatingLayer>
                 {picker && (
-                    <HackAlertThisFileWillBeReplaced
-                        onSelect={(emoji) => {
-                            const v = state.draft.get(channel._id);
-                            // Standard emoji go in as the unicode character
-                            // (rendered as the same Twemoji image in composer
-                            // and message); custom emoji have no unicode
-                            // form and stay :ULID:.
-                            const inserted =
-                                emoji in emojiDictionary
-                                    ? emojiDictionary[
-                                          emoji as keyof typeof emojiDictionary
-                                      ]
-                                    : `:${emoji}:`;
-                            const cnt: DraftObject = {
-                                content:
-                                    (v?.content ? `${v.content} ` : "") +
-                                    inserted,
-                            };
-                            state.draft.set(channel._id, cnt);
-                        }}
-                        onClose={closePicker}
-                    />
-                )}
-                {gifPicker && (
-                    <GifPicker onSelect={sendGif} onClose={closeGifPicker} />
+                    <MediaPicker onSelectGif={sendGif} onClose={closePicker}>
+                        {({ embedded }) => (
+                            <HackAlertThisFileWillBeReplaced
+                                embedded={embedded}
+                                onSelect={(emoji) => {
+                                    const v = state.draft.get(channel._id);
+                                    // Standard emoji go in as the unicode character
+                                    // (rendered as the same Twemoji image in composer
+                                    // and message); custom emoji have no unicode
+                                    // form and stay :ULID:.
+                                    const inserted =
+                                        emoji in emojiDictionary
+                                            ? emojiDictionary[
+                                                  emoji as keyof typeof emojiDictionary
+                                              ]
+                                            : `:${emoji}:`;
+                                    const cnt: DraftObject = {
+                                        content:
+                                            (v?.content
+                                                ? `${v.content} `
+                                                : "") + inserted,
+                                    };
+                                    state.draft.set(channel._id, cnt);
+                                }}
+                                onClose={closePicker}
+                            />
+                        )}
+                    </MediaPicker>
                 )}
             </FloatingLayer>
             <Base>
@@ -764,9 +767,7 @@ export default observer(({ channel }: Props) => {
                             uploadState.type === "uploading" ||
                             uploadState.type === "sending"
                         }
-                        remove={async () =>
-                            setUploadState({ type: "none" })
-                        }
+                        remove={async () => setUploadState({ type: "none" })}
                         onChange={(files) =>
                             setUploadState({ type: "attached", files })
                         }
@@ -873,23 +874,8 @@ export default observer(({ channel }: Props) => {
                     onFocus={onFocus}
                     onBlur={onBlur}
                 />
-                {klipyEnabled && (
-                    <Action>
-                        <IconButton
-                            onClick={() => {
-                                closePicker();
-                                setGifPicker(!gifPicker);
-                            }}>
-                            <GifIcon size={24} />
-                        </IconButton>
-                    </Action>
-                )}
                 <Action>
-                    <IconButton
-                        onClick={() => {
-                            closeGifPicker();
-                            setPicker(!picker);
-                        }}>
+                    <IconButton onClick={() => setPicker(!picker)}>
                         <HappyBeaming size={24} />
                     </IconButton>
                 </Action>

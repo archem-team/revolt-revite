@@ -12,29 +12,19 @@ import {
 } from "../../../lib/klipy";
 
 const Base = styled.div`
-    position: absolute;
-    bottom: 8px;
-    right: 0;
-    z-index: 20;
-
-    width: 340px;
-    height: 400px;
+    flex-grow: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-
-    background: var(--secondary-background);
-    border-radius: var(--border-radius);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-    overflow: hidden;
 `;
 
 const Header = styled.div`
     flex-shrink: 0;
-    padding: 8px;
+    padding: 4px 10px 6px;
     display: flex;
     align-items: center;
     gap: 8px;
-    background: var(--secondary-header);
+    background: transparent;
 
     svg {
         flex-shrink: 0;
@@ -46,10 +36,12 @@ const Header = styled.div`
         min-width: 0;
         border: none;
         outline: none;
-        font-size: 14px;
+        font-size: 0.9em;
         font-family: inherit;
+        padding: 9px 14px;
         color: var(--foreground);
-        background: transparent;
+        border-radius: var(--radius-xl, 20px);
+        background: var(--primary-header);
 
         &::placeholder {
             color: var(--tertiary-foreground);
@@ -68,14 +60,9 @@ const Header = styled.div`
 const Categories = styled.div`
     flex-shrink: 0;
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
-    padding: 8px 8px 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-
-    &::-webkit-scrollbar {
-        display: none;
-    }
+    padding: 2px 10px 8px;
 
     button {
         flex-shrink: 0;
@@ -85,11 +72,11 @@ const Categories = styled.div`
         font-size: 12px;
         font-family: inherit;
         color: var(--foreground);
-        background: var(--primary-background);
-        border-radius: calc(var(--border-radius) * 2);
+        background: var(--primary-header);
+        border-radius: var(--radius-xl, 20px);
 
         &:hover {
-            background: var(--tertiary-background);
+            background: var(--nav-hover, var(--tertiary-background));
         }
     }
 `;
@@ -99,7 +86,7 @@ const Categories = styled.div`
 const Results = styled.div`
     flex-grow: 1;
     overflow-y: auto;
-    padding: 8px;
+    padding: 0 10px 10px;
     column-count: 2;
     column-gap: 6px;
 
@@ -130,11 +117,10 @@ const Notice = styled.div`
 
 const Attribution = styled.div`
     flex-shrink: 0;
-    padding: 4px 8px;
+    padding: 2px 10px 6px;
     font-size: 10px;
     text-align: end;
     color: var(--tertiary-foreground);
-    background: var(--secondary-header);
 `;
 
 interface Props {
