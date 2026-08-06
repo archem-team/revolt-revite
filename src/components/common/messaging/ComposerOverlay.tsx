@@ -213,9 +213,19 @@ interface Props {
 export default observer(({ value, channel }: Props) => {
     if (!value) return null;
 
+    // The overlay is a preview nicety: if tokenizing throws (transient
+    // client state, mid-reload module graphs), show plain text rather
+    // than crashing the composer.
+    let segments: Segment[];
+    try {
+        segments = tokenize(value, channel);
+    } catch (_) {
+        segments = [{ type: "text", text: value }];
+    }
+
     return (
         <>
-            {tokenize(value, channel).map((segment, i) =>
+            {segments.map((segment, i) =>
                 segment.type === "text" ? (
                     segment.text
                 ) : segment.type === "emoji" ? (
