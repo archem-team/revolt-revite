@@ -7,7 +7,7 @@ import { GifCategory } from "../../../lib/klipy";
 const Grid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    gap: 10px;
 `;
 
 const Tile = styled.a`
@@ -15,7 +15,7 @@ const Tile = styled.a`
     display: grid;
     place-items: center;
 
-    aspect-ratio: 2 / 1;
+    aspect-ratio: 16 / 9;
     overflow: hidden;
     cursor: pointer;
     border-radius: var(--radius-md, 8px);

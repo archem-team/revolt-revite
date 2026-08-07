@@ -22,10 +22,10 @@ const Base = styled.div`
 
 const Header = styled.div`
     flex-shrink: 0;
-    padding: 4px 10px 6px;
+    padding: 6px 14px 10px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 
     svg {
         flex-shrink: 0;
@@ -69,21 +69,21 @@ const Scroller = styled.div`
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 0 10px 10px;
+    padding: 0 14px 14px;
 `;
 
 /* Masonry columns: GIF aspect ratios vary wildly, and a fixed grid
    either letterboxes them or crops the subject out. */
 const Masonry = styled.div`
     column-count: 2;
-    column-gap: 6px;
+    column-gap: 10px;
 
     img {
         width: 100%;
         display: block;
         cursor: pointer;
-        margin-bottom: 6px;
-        border-radius: calc(var(--border-radius) / 2);
+        margin-bottom: 10px;
+        border-radius: var(--radius-md, 8px);
         background: var(--primary-background);
 
         &:hover {

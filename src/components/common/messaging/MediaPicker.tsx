@@ -19,11 +19,12 @@ const Base = styled.div`
     right: 10px;
     bottom: 10px;
 
-    width: calc(8 * 40px + 12px + 10px + 44px);
-    height: 440px;
-
-    max-width: calc(100vw - 20px);
-    max-height: 75vh;
+    /* Width tracks the emoji grid's own maths (9 columns of 40px, plus
+       row padding, scrollbar and the category rail) so neither tab ends
+       up with dead space. Both axes shrink to the viewport, so the panel
+       still fits a short window or a phone. */
+    width: min(calc(9 * 40px + 12px + 10px + 44px), calc(100vw - 20px));
+    height: min(560px, calc(100vh - 120px));
 
     display: flex;
     flex-direction: column;
@@ -36,13 +37,13 @@ const Base = styled.div`
 const Tabs = styled.div`
     flex-shrink: 0;
     display: flex;
-    gap: 4px;
-    padding: 8px 10px 0;
+    gap: 6px;
+    padding: 12px 14px 4px;
 
     button {
         cursor: pointer;
         border: none;
-        padding: 6px 14px;
+        padding: 7px 16px;
         font-size: 0.75em;
         font-weight: 600;
         letter-spacing: 0.4px;
