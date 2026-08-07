@@ -111,3 +111,30 @@ export async function gifSearch(
 
     return normalise(data.data.data);
 }
+
+export interface GifCategory {
+    /** Search run when the category is picked. */
+    query: string;
+    name: string;
+    /** Animated still that backs the category tile. */
+    preview: string;
+}
+
+/** Reaction categories ("lol", "thumbs up", …) for the browse grid. */
+export async function gifCategories(signal?: AbortSignal) {
+    const data = await get<{
+        data: {
+            categories: {
+                category: string;
+                query: string;
+                preview_url: string;
+            }[];
+        };
+    }>("categories", {}, signal);
+
+    return data.data.categories.map((entry) => ({
+        query: entry.query,
+        name: entry.category,
+        preview: entry.preview_url,
+    }));
+}

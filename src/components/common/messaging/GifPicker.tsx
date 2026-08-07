@@ -1,9 +1,17 @@
-import { Search, X } from "@styled-icons/boxicons-regular";
+import { ArrowBack, Search, X } from "@styled-icons/boxicons-regular";
 import styled from "styled-components/macro";
 
 import { useEffect, useRef, useState } from "preact/hooks";
 
-import { Gif, gifSearch, gifTrending } from "../../../lib/klipy";
+import {
+    Gif,
+    GifCategory,
+    gifCategories,
+    gifSearch,
+    gifTrending,
+} from "../../../lib/klipy";
+
+import GifCategories from "./GifCategories";
 
 const Base = styled.div`
     flex-grow: 1;
@@ -18,7 +26,6 @@ const Header = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    background: transparent;
 
     svg {
         flex-shrink: 0;
@@ -42,9 +49,10 @@ const Header = styled.div`
         }
     }
 
-    .clear {
+    .action {
         cursor: pointer;
         display: flex;
+
         &:hover svg {
             color: var(--foreground);
         }
@@ -54,9 +62,9 @@ const Header = styled.div`
 /* The scroller and the columns have to be separate elements: a
    multi-column box with a constrained height lays its overflow out as
    further columns to the RIGHT, which is what turned this into a
-   sideways scroller. Height stays auto here, so the columns grow
+   sideways scroller. Height stays auto below, so the columns grow
    downwards and this parent scrolls vertically. */
-const Results = styled.div`
+const Scroller = styled.div`
     flex-grow: 1;
     min-height: 0;
     overflow-y: auto;
@@ -110,38 +118,56 @@ interface Props {
 
 export default function GifPicker({ onSelect, onClose }: Props) {
     const [query, setQuery] = useState("");
-    const [gifs, setGifs] = useState<Gif[]>([]);
+    const [trendingOpen, setTrendingOpen] = useState(false);
+    const [categories, setCategories] = useState<GifCategory[]>([]);
+    const [trending, setTrending] = useState<Gif[]>([]);
+    const [results, setResults] = useState<Gif[]>([]);
     const [state, setState] = useState<"loading" | "ready" | "failed">(
         "loading",
     );
     const input = useRef<HTMLInputElement>(null);
 
-    useEffect(() => input.current?.focus(), []);
+    // Categories back the browse grid; the trending run doubles as the
+    // tile's preview and means opening Trending needs no further request.
+    useEffect(() => {
+        const controller = new AbortController();
+
+        Promise.all([
+            gifCategories(controller.signal),
+            gifTrending(30, controller.signal),
+        ])
+            .then(([fetchedCategories, fetchedTrending]) => {
+                setCategories(fetchedCategories);
+                setTrending(fetchedTrending);
+                setState("ready");
+            })
+            .catch((err) => {
+                if (err.name !== "AbortError") setState("failed");
+            });
+
+        return () => controller.abort();
+    }, []);
 
     // Debounced so typing doesn't fire a request per keystroke; the
     // controller cancels whatever is in flight when the query moves on,
     // so results can never arrive out of order.
     useEffect(() => {
-        const controller = new AbortController();
         const search = query.trim();
+        if (!search) return;
 
+        const controller = new AbortController();
         setState("loading");
-        const timeout = setTimeout(
-            () => {
-                (search
-                    ? gifSearch(search, 30, controller.signal)
-                    : gifTrending(30, controller.signal)
-                )
-                    .then((results) => {
-                        setGifs(results);
-                        setState("ready");
-                    })
-                    .catch((err) => {
-                        if (err.name !== "AbortError") setState("failed");
-                    });
-            },
-            search ? 300 : 0,
-        );
+
+        const timeout = setTimeout(() => {
+            gifSearch(search, 30, controller.signal)
+                .then((found) => {
+                    setResults(found);
+                    setState("ready");
+                })
+                .catch((err) => {
+                    if (err.name !== "AbortError") setState("failed");
+                });
+        }, 300);
 
         return () => {
             clearTimeout(timeout);
@@ -149,39 +175,70 @@ export default function GifPicker({ onSelect, onClose }: Props) {
         };
     }, [query]);
 
+    const browsing = !query.trim() && !trendingOpen;
+    const shown = trendingOpen ? trending : results;
+
+    /** Back out of a category, search or trending, to the browse grid. */
+    function back() {
+        setQuery("");
+        setTrendingOpen(false);
+        input.current?.focus();
+    }
+
     return (
         <Base>
             <Header>
-                <Search size={18} />
+                {browsing ? (
+                    <Search size={18} />
+                ) : (
+                    <div className="action" onClick={back}>
+                        <ArrowBack size={18} />
+                    </div>
+                )}
                 <input
                     ref={input}
                     value={query}
                     placeholder="Search GIFs"
-                    onInput={(e) => setQuery(e.currentTarget.value)}
+                    onInput={(e) => {
+                        setTrendingOpen(false);
+                        setQuery(e.currentTarget.value);
+                    }}
                     onKeyDown={(e) => {
                         if (e.key === "Escape") {
                             e.stopPropagation();
-                            onClose();
+                            if (browsing) onClose();
+                            else back();
                         }
                     }}
                 />
                 {query && (
-                    <div className="clear" onClick={() => setQuery("")}>
+                    <div className="action" onClick={back}>
                         <X size={18} />
                     </div>
                 )}
             </Header>
 
             {state === "failed" ? (
-                <Notice>Couldn't reach KLIPY. Check your connection.</Notice>
+                <Notice>
+                    Couldn&apos;t reach KLIPY. Check your connection.
+                </Notice>
             ) : state === "loading" ? (
                 <Notice>Loading…</Notice>
-            ) : gifs.length === 0 ? (
+            ) : browsing ? (
+                <Scroller>
+                    <GifCategories
+                        categories={categories}
+                        trendingPreview={trending[0]?.preview}
+                        onPick={setQuery}
+                        onTrending={() => setTrendingOpen(true)}
+                    />
+                </Scroller>
+            ) : shown.length === 0 ? (
                 <Notice>No GIFs found.</Notice>
             ) : (
-                <Results>
+                <Scroller>
                     <Masonry>
-                        {gifs.map((gif) => (
+                        {shown.map((gif) => (
                             <img
                                 key={gif.id}
                                 src={gif.preview}
@@ -194,7 +251,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                             />
                         ))}
                     </Masonry>
-                </Results>
+                </Scroller>
             )}
 
             <Attribution>Powered by KLIPY</Attribution>
