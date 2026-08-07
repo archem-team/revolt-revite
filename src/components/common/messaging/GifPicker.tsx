@@ -76,14 +76,14 @@ const Scroller = styled.div`
 /* Masonry columns: GIF aspect ratios vary wildly, and a fixed grid
    either letterboxes them or crops the subject out. */
 const Masonry = styled.div`
-    column-count: 2;
-    column-gap: 10px;
+    column-count: 3;
+    column-gap: 8px;
 
     img {
         width: 100%;
         display: block;
         cursor: pointer;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         border-radius: var(--radius-md, 8px);
         background: var(--primary-background);
 
@@ -228,9 +228,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                     Couldn&apos;t reach KLIPY. Check your connection.
                 </Notice>
             ) : browseState === "loading" ? (
-                <Scroller>
-                    <GifSkeleton variant="tiles" />
-                </Scroller>
+                <GifSkeleton variant="tiles" />
             ) : browsing ? (
                 <Scroller>
                     <GifCategories
@@ -241,9 +239,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                     />
                 </Scroller>
             ) : searchState === "loading" ? (
-                <Scroller>
-                    <GifSkeleton variant="results" />
-                </Scroller>
+                <GifSkeleton variant="results" />
             ) : shown.length === 0 ? (
                 <Notice>No GIFs found.</Notice>
             ) : (

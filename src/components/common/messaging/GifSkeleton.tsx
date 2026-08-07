@@ -59,7 +59,14 @@ const Masonry = styled.div`
     }
 `;
 
+/* Fills the panel and clips at its edge: the shapes are furniture, not
+   content, so a partly-cut last row reads better than a short grid
+   floating above dead space — and it must never raise a scrollbar. */
 const Base = styled.div`
+    flex-grow: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0 14px 14px;
     pointer-events: none;
     user-select: none;
 `;
@@ -69,15 +76,19 @@ interface Props {
     count?: number;
 }
 
-export default function GifSkeleton({ variant, count = 12 }: Props) {
+export default function GifSkeleton({ variant, count }: Props) {
+    // Enough to overfill the tallest panel the viewport allows; the
+    // overflow is clipped rather than scrolled.
+    const total = count ?? (variant === "tiles" ? 24 : 21);
+
     // Fixed per mount — re-renders must not re-roll the heights.
     const heights = useMemo(
         () =>
             Array.from(
-                { length: count },
+                { length: total },
                 () => `${Math.floor(Math.random() * 50 + 70)}px`,
             ),
-        [count],
+        [total],
     );
 
     if (variant === "tiles") {
