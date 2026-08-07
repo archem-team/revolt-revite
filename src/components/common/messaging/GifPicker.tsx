@@ -3,13 +3,7 @@ import styled from "styled-components/macro";
 
 import { useEffect, useRef, useState } from "preact/hooks";
 
-import {
-    Gif,
-    GifCategory,
-    gifCategories,
-    gifSearch,
-    gifTrending,
-} from "../../../lib/klipy";
+import { Gif, gifSearch, gifTrending } from "../../../lib/klipy";
 
 const Base = styled.div`
     flex-grow: 1;
@@ -57,36 +51,22 @@ const Header = styled.div`
     }
 `;
 
-const Categories = styled.div`
-    flex-shrink: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 2px 10px 8px;
-
-    button {
-        flex-shrink: 0;
-        cursor: pointer;
-        border: none;
-        padding: 4px 10px;
-        font-size: 12px;
-        font-family: inherit;
-        color: var(--foreground);
-        background: var(--primary-header);
-        border-radius: var(--radius-xl, 20px);
-
-        &:hover {
-            background: var(--nav-hover, var(--tertiary-background));
-        }
-    }
+/* The scroller and the columns have to be separate elements: a
+   multi-column box with a constrained height lays its overflow out as
+   further columns to the RIGHT, which is what turned this into a
+   sideways scroller. Height stays auto here, so the columns grow
+   downwards and this parent scrolls vertically. */
+const Results = styled.div`
+    flex-grow: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 10px 10px;
 `;
 
 /* Masonry columns: GIF aspect ratios vary wildly, and a fixed grid
    either letterboxes them or crops the subject out. */
-const Results = styled.div`
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 0 10px 10px;
+const Masonry = styled.div`
     column-count: 2;
     column-gap: 6px;
 
@@ -131,22 +111,12 @@ interface Props {
 export default function GifPicker({ onSelect, onClose }: Props) {
     const [query, setQuery] = useState("");
     const [gifs, setGifs] = useState<Gif[]>([]);
-    const [categories, setCategories] = useState<GifCategory[]>([]);
     const [state, setState] = useState<"loading" | "ready" | "failed">(
         "loading",
     );
     const input = useRef<HTMLInputElement>(null);
 
     useEffect(() => input.current?.focus(), []);
-
-    useEffect(() => {
-        const controller = new AbortController();
-        gifCategories(controller.signal)
-            .then(setCategories)
-            .catch(() => undefined);
-
-        return () => controller.abort();
-    }, []);
 
     // Debounced so typing doesn't fire a request per keystroke; the
     // controller cancels whatever is in flight when the query moves on,
@@ -202,18 +172,6 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                 )}
             </Header>
 
-            {!query && categories.length > 0 && (
-                <Categories>
-                    {categories.slice(0, 12).map((category) => (
-                        <button
-                            key={category.query}
-                            onClick={() => setQuery(category.query)}>
-                            {category.name}
-                        </button>
-                    ))}
-                </Categories>
-            )}
-
             {state === "failed" ? (
                 <Notice>Couldn't reach KLIPY. Check your connection.</Notice>
             ) : state === "loading" ? (
@@ -222,18 +180,20 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                 <Notice>No GIFs found.</Notice>
             ) : (
                 <Results>
-                    {gifs.map((gif) => (
-                        <img
-                            key={gif.id}
-                            src={gif.preview}
-                            alt={gif.description}
-                            width={gif.width}
-                            height={gif.height}
-                            loading="lazy"
-                            draggable={false}
-                            onClick={() => onSelect(gif.url)}
-                        />
-                    ))}
+                    <Masonry>
+                        {gifs.map((gif) => (
+                            <img
+                                key={gif.id}
+                                src={gif.preview}
+                                alt={gif.description}
+                                width={gif.width}
+                                height={gif.height}
+                                loading="lazy"
+                                draggable={false}
+                                onClick={() => onSelect(gif.url)}
+                            />
+                        ))}
+                    </Masonry>
                 </Results>
             )}
 

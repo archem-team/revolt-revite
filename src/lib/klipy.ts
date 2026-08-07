@@ -23,12 +23,6 @@ export interface Gif {
     description: string;
 }
 
-export interface GifCategory {
-    /** Query to run when the category is picked. */
-    query: string;
-    name: string;
-}
-
 interface KlipyFile {
     url: string;
     width: number;
@@ -61,7 +55,11 @@ async function get<T>(
 }
 
 /** First tier that actually carries the requested format. */
-function pick(item: KlipyItem, format: "gif" | "webp", tiers: ("hd" | "md" | "sm" | "xs")[]) {
+function pick(
+    item: KlipyItem,
+    format: "gif" | "webp",
+    tiers: ("hd" | "md" | "sm" | "xs")[],
+) {
     for (const tier of tiers) {
         const file = item.file[tier]?.[format];
         if (file?.url) return file;
@@ -100,7 +98,11 @@ export async function gifTrending(limit = 30, signal?: AbortSignal) {
     return normalise(data.data.data);
 }
 
-export async function gifSearch(query: string, limit = 30, signal?: AbortSignal) {
+export async function gifSearch(
+    query: string,
+    limit = 30,
+    signal?: AbortSignal,
+) {
     const data = await get<KlipyPage>(
         "search",
         { q: query, page: "1", per_page: `${limit}` },
@@ -108,15 +110,4 @@ export async function gifSearch(query: string, limit = 30, signal?: AbortSignal)
     );
 
     return normalise(data.data.data);
-}
-
-export async function gifCategories(signal?: AbortSignal) {
-    const data = await get<{
-        data: { categories: { category: string; query: string }[] };
-    }>("categories", {}, signal);
-
-    return data.data.categories.map((entry) => ({
-        query: entry.query,
-        name: entry.category,
-    }));
 }
