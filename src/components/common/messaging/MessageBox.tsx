@@ -1,6 +1,10 @@
 import { Block } from "@styled-icons/boxicons-regular";
 import { User } from "@styled-icons/boxicons-regular";
-import { HappyBeaming, Send } from "@styled-icons/boxicons-solid";
+import {
+    FileGif as GifIcon,
+    HappyBeaming,
+    Send,
+} from "@styled-icons/boxicons-solid";
 import Axios, { CancelTokenSource } from "axios";
 import { observer } from "mobx-react-lite";
 import { Channel } from "revolt.js";
@@ -20,6 +24,7 @@ import { defer, chainedDefer } from "../../../lib/defer";
 import { internalEmit, internalSubscribe } from "../../../lib/eventEmitter";
 import { useTranslation } from "../../../lib/i18n";
 import { isTouchscreenDevice } from "../../../lib/isTouchscreenDevice";
+import { klipyEnabled } from "../../../lib/klipy";
 import {
     getRenderer,
     SMOOTH_SCROLL_ON_RECEIVE,
@@ -47,7 +52,7 @@ import { RenderEmoji } from "../../markdown/plugins/emoji";
 import AutoComplete, { useAutoComplete } from "../AutoComplete";
 import { PermissionTooltip } from "../Tooltip";
 import ComposerOverlay from "./ComposerOverlay";
-import MediaPicker from "./MediaPicker";
+import MediaPicker, { MediaTab } from "./MediaPicker";
 import FilePreview from "./bars/FilePreview";
 import ReplyBar from "./bars/ReplyBar";
 
@@ -263,10 +268,23 @@ export default observer(({ channel }: Props) => {
     const [typing, setTyping] = useState<boolean | number>(false);
     const [replies, setReplies] = useState<Reply[]>([]);
     const [picker, setPicker] = useState(false);
+    const [pickerTab, setPickerTab] = useState<MediaTab>("emoji");
     const client = useClient();
     const translate = useTranslation();
 
     const closePicker = useCallback(() => setPicker(false), []);
+
+    /**
+     * Open the media panel on a given tab, or close it if that tab is
+     * already showing — so each button toggles its own section.
+     */
+    const openPicker = useCallback(
+        (tab: MediaTab) => {
+            setPicker((open) => !(open && pickerTab === tab));
+            setPickerTab(tab);
+        },
+        [pickerTab],
+    );
 
     const renderer = getRenderer(channel);
 
@@ -723,7 +741,11 @@ export default observer(({ channel }: Props) => {
             />
             <FloatingLayer>
                 {picker && (
-                    <MediaPicker onSelectGif={sendGif} onClose={closePicker}>
+                    <MediaPicker
+                        tab={pickerTab}
+                        setTab={setPickerTab}
+                        onSelectGif={sendGif}
+                        onClose={closePicker}>
                         {({ embedded }) => (
                             <HackAlertThisFileWillBeReplaced
                                 embedded={embedded}
@@ -874,8 +896,15 @@ export default observer(({ channel }: Props) => {
                     onFocus={onFocus}
                     onBlur={onBlur}
                 />
+                {klipyEnabled && (
+                    <Action>
+                        <IconButton onClick={() => openPicker("gif")}>
+                            <GifIcon size={24} />
+                        </IconButton>
+                    </Action>
+                )}
                 <Action>
-                    <IconButton onClick={() => setPicker(!picker)}>
+                    <IconButton onClick={() => openPicker("emoji")}>
                         <HappyBeaming size={24} />
                     </IconButton>
                 </Action>

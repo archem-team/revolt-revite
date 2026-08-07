@@ -1,7 +1,5 @@
 import styled from "styled-components/macro";
 
-import { useState } from "preact/hooks";
-
 import { klipyEnabled } from "../../../lib/klipy";
 
 import GifPicker from "./GifPicker";
@@ -73,18 +71,25 @@ const Body = styled.div`
     flex-direction: column;
 `;
 
-type Tab = "emoji" | "gif";
+export type MediaTab = "emoji" | "gif";
 
 interface Props {
     /** The emoji picker, rendered with its own panel chrome disabled. */
     children: (props: { embedded: true }) => preact.ComponentChild;
+    /** Controlled by the composer, so each button opens its own tab. */
+    tab: MediaTab;
+    setTab: (tab: MediaTab) => void;
     onSelectGif: (url: string) => void;
     onClose: () => void;
 }
 
-export default function MediaPicker({ children, onSelectGif, onClose }: Props) {
-    const [tab, setTab] = useState<Tab>("emoji");
-
+export default function MediaPicker({
+    children,
+    tab,
+    setTab,
+    onSelectGif,
+    onClose,
+}: Props) {
     // Without a KLIPY key there is nothing to switch to, so the panel is
     // just the emoji picker as before.
     if (!klipyEnabled) return <>{children({ embedded: true })}</>;
