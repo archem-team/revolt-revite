@@ -1,15 +1,17 @@
 import { TrendingUp } from "@styled-icons/boxicons-regular";
 import styled from "styled-components/macro";
 
+import { useState } from "preact/hooks";
+
 import { GifCategory } from "../../../lib/klipy";
 
-/* Three columns, scrolled vertically by the parent. Narrower tiles fit
-   more reactions per screen; auto-fill keeps them from turning into
-   slivers if the panel is ever squeezed. */
+import { shimmerSurface } from "./GifSkeleton";
+
+/* Two columns of wide tiles, scrolled vertically by the parent. */
 const Grid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
 `;
 
 const Tile = styled.a`
@@ -21,7 +23,17 @@ const Tile = styled.a`
     overflow: hidden;
     cursor: pointer;
     border-radius: var(--radius-md, 8px);
-    background: var(--primary-header);
+
+    /* Each tile shimmers until its own artwork paints, so the grid fills
+       in progressively instead of flashing 36 empty boxes. Dropped once
+       loaded: the gradient is covered by then, and leaving 36 of them
+       animating would repaint the panel forever for nothing. */
+    ${shimmerSurface}
+
+    &[data-loaded="true"] {
+        background: var(--primary-header);
+        animation: none;
+    }
 
     img {
         position: absolute;
@@ -38,15 +50,13 @@ const Tile = styled.a`
         position: relative;
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 4px;
-        padding: 0 6px;
+        gap: 6px;
+        padding: 0 8px;
         text-align: center;
 
         color: #fff;
-        font-size: 0.8em;
+        font-size: 0.95em;
         font-weight: 700;
-        line-height: 1.2;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
     }
 
@@ -80,11 +90,26 @@ export default function GifCategories({
     onPick,
     onTrending,
 }: Props) {
+    const [loaded, setLoaded] = useState<Set<string>>(new Set());
+
+    /** Settle a tile once its artwork paints, so its shimmer can stop. */
+    function markLoaded(key: string) {
+        setLoaded((previous) => new Set(previous).add(key));
+    }
+
     return (
         <Grid>
-            <Tile onClick={onTrending}>
+            <Tile
+                onClick={onTrending}
+                data-loaded={!trendingPreview || loaded.has("__trending")}>
                 {trendingPreview && (
-                    <img src={trendingPreview} alt="" draggable={false} />
+                    <img
+                        src={trendingPreview}
+                        alt=""
+                        draggable={false}
+                        onLoad={() => markLoaded("__trending")}
+                        onError={() => markLoaded("__trending")}
+                    />
                 )}
                 <span>
                     <TrendingUp size={16} />
@@ -94,12 +119,15 @@ export default function GifCategories({
             {categories.map((category) => (
                 <Tile
                     key={category.query}
+                    data-loaded={loaded.has(category.query)}
                     onClick={() => onPick(category.query)}>
                     <img
                         src={category.preview}
                         alt=""
                         loading="lazy"
                         draggable={false}
+                        onLoad={() => markLoaded(category.query)}
+                        onError={() => markLoaded(category.query)}
                     />
                     <span>{category.name}</span>
                 </Tile>

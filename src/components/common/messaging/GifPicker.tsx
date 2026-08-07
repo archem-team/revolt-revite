@@ -12,6 +12,7 @@ import {
 } from "../../../lib/klipy";
 
 import GifCategories from "./GifCategories";
+import GifSkeleton from "./GifSkeleton";
 
 const Base = styled.div`
     flex-grow: 1;
@@ -75,14 +76,14 @@ const Scroller = styled.div`
 /* Masonry columns: GIF aspect ratios vary wildly, and a fixed grid
    either letterboxes them or crops the subject out. */
 const Masonry = styled.div`
-    column-count: 3;
-    column-gap: 8px;
+    column-count: 2;
+    column-gap: 10px;
 
     img {
         width: 100%;
         display: block;
         cursor: pointer;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         border-radius: var(--radius-md, 8px);
         background: var(--primary-background);
 
@@ -215,7 +216,9 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                     Couldn&apos;t reach KLIPY. Check your connection.
                 </Notice>
             ) : state === "loading" ? (
-                <Notice>Loading…</Notice>
+                <Scroller>
+                    <GifSkeleton variant={browsing ? "tiles" : "results"} />
+                </Scroller>
             ) : browsing ? (
                 <Scroller>
                     <GifCategories
