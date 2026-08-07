@@ -3,11 +3,13 @@ import styled from "styled-components/macro";
 
 import { GifCategory } from "../../../lib/klipy";
 
-/* Two columns of wide tiles, scrolled vertically by the parent. */
+/* Three columns, scrolled vertically by the parent. Narrower tiles fit
+   more reactions per screen; auto-fill keeps them from turning into
+   slivers if the panel is ever squeezed. */
 const Grid = styled.div`
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
 `;
 
 const Tile = styled.a`
@@ -36,13 +38,15 @@ const Tile = styled.a`
         position: relative;
         display: flex;
         align-items: center;
-        gap: 6px;
-        padding: 0 8px;
+        justify-content: center;
+        gap: 4px;
+        padding: 0 6px;
         text-align: center;
 
         color: #fff;
-        font-size: 0.95em;
+        font-size: 0.8em;
         font-weight: 700;
+        line-height: 1.2;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
     }
 

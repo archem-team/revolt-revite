@@ -75,14 +75,14 @@ const Scroller = styled.div`
 /* Masonry columns: GIF aspect ratios vary wildly, and a fixed grid
    either letterboxes them or crops the subject out. */
 const Masonry = styled.div`
-    column-count: 2;
-    column-gap: 10px;
+    column-count: 3;
+    column-gap: 8px;
 
     img {
         width: 100%;
         display: block;
         cursor: pointer;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         border-radius: var(--radius-md, 8px);
         background: var(--primary-background);
 
