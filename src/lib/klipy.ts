@@ -40,7 +40,13 @@ interface KlipyItem {
 
 interface KlipyPage {
     result: boolean;
-    data: { data: KlipyItem[] };
+    data: { data: KlipyItem[]; has_next: boolean };
+}
+
+/** One page of GIFs plus whether another can be fetched. */
+export interface GifPage {
+    gifs: Gif[];
+    hasNext: boolean;
 }
 
 async function get<T>(
@@ -88,28 +94,33 @@ function normalise(items: KlipyItem[]): Gif[] {
 }
 
 /** GIFs trending right now, shown before anything is typed. */
-export async function gifTrending(limit = 30, signal?: AbortSignal) {
+export async function gifTrending(
+    page = 1,
+    limit = 30,
+    signal?: AbortSignal,
+): Promise<GifPage> {
     const data = await get<KlipyPage>(
         "trending",
-        { page: "1", per_page: `${limit}` },
+        { page: `${page}`, per_page: `${limit}` },
         signal,
     );
 
-    return normalise(data.data.data);
+    return { gifs: normalise(data.data.data), hasNext: data.data.has_next };
 }
 
 export async function gifSearch(
     query: string,
+    page = 1,
     limit = 30,
     signal?: AbortSignal,
-) {
+): Promise<GifPage> {
     const data = await get<KlipyPage>(
         "search",
-        { q: query, page: "1", per_page: `${limit}` },
+        { q: query, page: `${page}`, per_page: `${limit}` },
         signal,
     );
 
-    return normalise(data.data.data);
+    return { gifs: normalise(data.data.data), hasNext: data.data.has_next };
 }
 
 export interface GifCategory {

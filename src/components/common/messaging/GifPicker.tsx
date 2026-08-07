@@ -14,6 +14,9 @@ import {
 import GifCategories from "./GifCategories";
 import GifSkeleton from "./GifSkeleton";
 
+/** How far below the viewport the sentinel triggers the next page. */
+const PREFETCH_MARGIN = "320px";
+
 const Base = styled.div`
     flex-grow: 1;
     min-height: 0;
@@ -93,6 +96,17 @@ const Masonry = styled.div`
     }
 `;
 
+/* Kept small: the prefetch margin means it usually loads before it
+   scrolls into view, so the label is a fallback, not a state. */
+const Sentinel = styled.div`
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--tertiary-foreground);
+`;
+
 const Notice = styled.div`
     flex-grow: 1;
     display: flex;
@@ -115,6 +129,11 @@ export default function GifPicker({ onSelect, onClose }: Props) {
     const [categories, setCategories] = useState<GifCategory[]>([]);
     const [trending, setTrending] = useState<Gif[]>([]);
     const [results, setResults] = useState<Gif[]>([]);
+    const [page, setPage] = useState(1);
+    const [hasNext, setHasNext] = useState(false);
+    const [trendingPage, setTrendingPage] = useState(1);
+    const [trendingHasNext, setTrendingHasNext] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     // Tracked apart from the search: they load once and outlive any
     // number of searches, and conflating the two left the panel stuck
     // on a skeleton when a search was cleared mid-flight.
@@ -125,6 +144,8 @@ export default function GifPicker({ onSelect, onClose }: Props) {
         "idle" | "loading" | "ready" | "failed"
     >("idle");
     const input = useRef<HTMLInputElement>(null);
+    const scroller = useRef<HTMLDivElement>(null);
+    const sentinel = useRef<HTMLDivElement>(null);
 
     // Categories back the browse grid; the trending run doubles as the
     // tile's preview and means opening Trending needs no further request.
@@ -133,11 +154,12 @@ export default function GifPicker({ onSelect, onClose }: Props) {
 
         Promise.all([
             gifCategories(controller.signal),
-            gifTrending(30, controller.signal),
+            gifTrending(1, 30, controller.signal),
         ])
             .then(([fetchedCategories, fetchedTrending]) => {
                 setCategories(fetchedCategories);
-                setTrending(fetchedTrending);
+                setTrending(fetchedTrending.gifs);
+                setTrendingHasNext(fetchedTrending.hasNext);
                 setBrowseState("ready");
             })
             .catch((err) => {
@@ -164,9 +186,11 @@ export default function GifPicker({ onSelect, onClose }: Props) {
         setSearchState("loading");
 
         const timeout = setTimeout(() => {
-            gifSearch(search, 30, controller.signal)
+            gifSearch(search, 1, 30, controller.signal)
                 .then((found) => {
-                    setResults(found);
+                    setResults(found.gifs);
+                    setPage(1);
+                    setHasNext(found.hasNext);
                     setSearchState("ready");
                 })
                 .catch((err) => {
@@ -182,6 +206,64 @@ export default function GifPicker({ onSelect, onClose }: Props) {
 
     const browsing = !query.trim() && !trendingOpen;
     const shown = trendingOpen ? trending : results;
+    const moreAvailable = trendingOpen ? trendingHasNext : hasNext;
+
+    /** Fetch the next page of whatever is showing and append it. */
+    async function loadMore() {
+        if (loadingMore) return;
+        setLoadingMore(true);
+
+        try {
+            if (trendingOpen) {
+                const next = await gifTrending(trendingPage + 1, 30);
+                const seen = new Set(trending.map((gif) => gif.id));
+                setTrending([
+                    ...trending,
+                    ...next.gifs.filter((gif) => !seen.has(gif.id)),
+                ]);
+                setTrendingPage(trendingPage + 1);
+                setTrendingHasNext(next.hasNext);
+            } else {
+                const next = await gifSearch(query.trim(), page + 1, 30);
+                const seen = new Set(results.map((gif) => gif.id));
+                setResults([
+                    ...results,
+                    ...next.gifs.filter((gif) => !seen.has(gif.id)),
+                ]);
+                setPage(page + 1);
+                setHasNext(next.hasNext);
+            }
+        } catch (_) {
+            // Stop asking; a fresh search re-arms pagination.
+            if (trendingOpen) setTrendingHasNext(false);
+            else setHasNext(false);
+        } finally {
+            setLoadingMore(false);
+        }
+    }
+
+    // The observer only ever calls the latest loadMore — the callback
+    // closes over live state, the observer itself does not.
+    const loadMoreRef = useRef(loadMore);
+    loadMoreRef.current = loadMore;
+
+    useEffect(() => {
+        const target = sentinel.current;
+        if (!target || !moreAvailable) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (entry.isIntersecting) loadMoreRef.current();
+                }
+            },
+            { root: scroller.current, rootMargin: PREFETCH_MARGIN },
+        );
+
+        observer.observe(target);
+        return () => observer.disconnect();
+        // Re-arm whenever the result view or its supply changes.
+    }, [moreAvailable, trendingOpen, searchState, shown.length]);
 
     /** Back out of a category, search or trending, to the browse grid. */
     function back() {
@@ -243,7 +325,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
             ) : shown.length === 0 ? (
                 <Notice>No GIFs found.</Notice>
             ) : (
-                <Scroller>
+                <Scroller ref={scroller}>
                     <Masonry>
                         {shown.map((gif) => (
                             <img
@@ -258,6 +340,11 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                             />
                         ))}
                     </Masonry>
+                    {moreAvailable && (
+                        <Sentinel ref={sentinel}>
+                            {loadingMore ? "Loading more…" : ""}
+                        </Sentinel>
+                    )}
                 </Scroller>
             )}
         </Base>
