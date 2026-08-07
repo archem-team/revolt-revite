@@ -40,8 +40,8 @@ const Shape = styled.div.attrs({ "data-component": "skeleton-shape" })`
 
 const Tiles = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
 
     ${Shape} {
         aspect-ratio: 16 / 9;
@@ -51,11 +51,11 @@ const Tiles = styled.div`
 /* Matches the results masonry, so the swap to real GIFs doesn't shift
    the layout more than the differing heights already do. */
 const Masonry = styled.div`
-    column-count: 3;
-    column-gap: 8px;
+    column-count: 2;
+    column-gap: 10px;
 
     ${Shape} {
-        margin-bottom: 8px;
+        margin-bottom: 10px;
     }
 `;
 
@@ -79,14 +79,14 @@ interface Props {
 export default function GifSkeleton({ variant, count }: Props) {
     // Enough to overfill the tallest panel the viewport allows; the
     // overflow is clipped rather than scrolled.
-    const total = count ?? (variant === "tiles" ? 24 : 21);
+    const total = count ?? (variant === "tiles" ? 16 : 14);
 
     // Fixed per mount — re-renders must not re-roll the heights.
     const heights = useMemo(
         () =>
             Array.from(
                 { length: total },
-                () => `${Math.floor(Math.random() * 50 + 70)}px`,
+                () => `${Math.floor(Math.random() * 70 + 90)}px`,
             ),
         [total],
     );
