@@ -103,14 +103,6 @@ const Notice = styled.div`
     color: var(--tertiary-foreground);
 `;
 
-const Attribution = styled.div`
-    flex-shrink: 0;
-    padding: 2px 10px 6px;
-    font-size: 10px;
-    text-align: end;
-    color: var(--tertiary-foreground);
-`;
-
 interface Props {
     onSelect: (url: string) => void;
     onClose: () => void;
@@ -253,8 +245,6 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                     </Masonry>
                 </Scroller>
             )}
-
-            <Attribution>Powered by KLIPY</Attribution>
         </Base>
     );
 }
