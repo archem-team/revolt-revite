@@ -1,6 +1,6 @@
 import styled from "styled-components/macro";
 
-import { klipyEnabled } from "../../../lib/klipy";
+import { Gif, MediaKind, klipyEnabled } from "../../../lib/klipy";
 
 import GifPicker from "./GifPicker";
 
@@ -72,7 +72,7 @@ const Body = styled.div`
     flex-direction: column;
 `;
 
-export type MediaTab = "emoji" | "gif";
+export type MediaTab = "emoji" | "gif" | "sticker";
 
 interface Props {
     /** The emoji picker, rendered with its own panel chrome disabled. */
@@ -80,7 +80,7 @@ interface Props {
     /** Controlled by the composer, so each button opens its own tab. */
     tab: MediaTab;
     setTab: (tab: MediaTab) => void;
-    onSelectGif: (url: string) => void;
+    onSelectGif: (gif: Gif, kind: MediaKind, query?: string) => void;
     onClose: () => void;
 }
 
@@ -108,12 +108,31 @@ export default function MediaPicker({
                     onClick={() => setTab("gif")}>
                     GIF
                 </button>
+                <button
+                    data-active={tab === "sticker"}
+                    onClick={() => setTab("sticker")}>
+                    Stickers
+                </button>
             </Tabs>
             <Body>
                 {tab === "emoji" ? (
                     children({ embedded: true })
                 ) : (
-                    <GifPicker onSelect={onSelectGif} onClose={onClose} />
+                    <GifPicker
+                        // Remount on switch so the other library's
+                        // results, paging and scroll position don't leak
+                        // across.
+                        key={tab}
+                        kind={tab === "sticker" ? "stickers" : "gifs"}
+                        onSelect={(gif, query) =>
+                            onSelectGif(
+                                gif,
+                                tab === "sticker" ? "stickers" : "gifs",
+                                query,
+                            )
+                        }
+                        onClose={onClose}
+                    />
                 )}
             </Body>
         </Base>

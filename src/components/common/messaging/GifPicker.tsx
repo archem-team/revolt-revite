@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import {
     Gif,
     GifCategory,
+    MediaKind,
     gifCategories,
     gifSearch,
     gifTrending,
@@ -107,6 +108,17 @@ const Sentinel = styled.div`
     color: var(--tertiary-foreground);
 `;
 
+/* KLIPY require their branding in the interface — it gates production
+   access — so this stays put. */
+const Attribution = styled.div`
+    flex-shrink: 0;
+    padding: 2px 14px 8px;
+    font-size: 10px;
+    letter-spacing: 0.3px;
+    text-align: end;
+    color: var(--tertiary-foreground);
+`;
+
 const Notice = styled.div`
     flex-grow: 1;
     display: flex;
@@ -119,11 +131,14 @@ const Notice = styled.div`
 `;
 
 interface Props {
-    onSelect: (url: string) => void;
+    /** Which KLIPY library to browse. */
+    kind: MediaKind;
+    /** Second argument is the search that led here, if any. */
+    onSelect: (gif: Gif, query?: string) => void;
     onClose: () => void;
 }
 
-export default function GifPicker({ onSelect, onClose }: Props) {
+export default function GifPicker({ kind, onSelect, onClose }: Props) {
     const [query, setQuery] = useState("");
     const [trendingOpen, setTrendingOpen] = useState(false);
     const [categories, setCategories] = useState<GifCategory[]>([]);
@@ -153,8 +168,8 @@ export default function GifPicker({ onSelect, onClose }: Props) {
         const controller = new AbortController();
 
         Promise.all([
-            gifCategories(controller.signal),
-            gifTrending(1, 30, controller.signal),
+            gifCategories(kind, controller.signal),
+            gifTrending(kind, 1, 30, controller.signal),
         ])
             .then(([fetchedCategories, fetchedTrending]) => {
                 setCategories(fetchedCategories);
@@ -167,7 +182,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
             });
 
         return () => controller.abort();
-    }, []);
+    }, [kind]);
 
     // Debounced so typing doesn't fire a request per keystroke; the
     // controller cancels whatever is in flight when the query moves on,
@@ -186,7 +201,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
         setSearchState("loading");
 
         const timeout = setTimeout(() => {
-            gifSearch(search, 1, 30, controller.signal)
+            gifSearch(kind, search, 1, 30, controller.signal)
                 .then((found) => {
                     setResults(found.gifs);
                     setPage(1);
@@ -202,7 +217,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
             clearTimeout(timeout);
             controller.abort();
         };
-    }, [query]);
+    }, [kind, query]);
 
     const browsing = !query.trim() && !trendingOpen;
     const shown = trendingOpen ? trending : results;
@@ -215,7 +230,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
 
         try {
             if (trendingOpen) {
-                const next = await gifTrending(trendingPage + 1, 30);
+                const next = await gifTrending(kind, trendingPage + 1, 30);
                 const seen = new Set(trending.map((gif) => gif.id));
                 setTrending([
                     ...trending,
@@ -224,7 +239,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                 setTrendingPage(trendingPage + 1);
                 setTrendingHasNext(next.hasNext);
             } else {
-                const next = await gifSearch(query.trim(), page + 1, 30);
+                const next = await gifSearch(kind, query.trim(), page + 1, 30);
                 const seen = new Set(results.map((gif) => gif.id));
                 setResults([
                     ...results,
@@ -285,7 +300,9 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                 <input
                     ref={input}
                     value={query}
-                    placeholder="Search GIFs"
+                    placeholder={
+                        kind === "stickers" ? "Search stickers" : "Search GIFs"
+                    }
                     onInput={(e) => {
                         setTrendingOpen(false);
                         setQuery(e.currentTarget.value);
@@ -323,7 +340,7 @@ export default function GifPicker({ onSelect, onClose }: Props) {
             ) : searchState === "loading" ? (
                 <GifSkeleton variant="results" />
             ) : shown.length === 0 ? (
-                <Notice>No GIFs found.</Notice>
+                <Notice>Nothing found.</Notice>
             ) : (
                 <Scroller ref={scroller}>
                     <Masonry>
@@ -336,7 +353,9 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                                 height={gif.height}
                                 loading="lazy"
                                 draggable={false}
-                                onClick={() => onSelect(gif.url)}
+                                onClick={() =>
+                                    onSelect(gif, query.trim() || undefined)
+                                }
                             />
                         ))}
                     </Masonry>
@@ -347,6 +366,8 @@ export default function GifPicker({ onSelect, onClose }: Props) {
                     )}
                 </Scroller>
             )}
+
+            <Attribution>Powered by KLIPY</Attribution>
         </Base>
     );
 }

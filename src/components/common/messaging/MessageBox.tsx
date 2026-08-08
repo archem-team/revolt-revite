@@ -24,7 +24,7 @@ import { defer, chainedDefer } from "../../../lib/defer";
 import { internalEmit, internalSubscribe } from "../../../lib/eventEmitter";
 import { useTranslation } from "../../../lib/i18n";
 import { isTouchscreenDevice } from "../../../lib/isTouchscreenDevice";
-import { klipyEnabled } from "../../../lib/klipy";
+import { Gif, MediaKind, gifShare, klipyEnabled } from "../../../lib/klipy";
 import {
     getRenderer,
     SMOOTH_SCROLL_ON_RECEIVE,
@@ -498,31 +498,35 @@ export default observer(({ channel }: Props) => {
     }
 
     /**
-     * Send a picked GIF as its own message.
+     * Send a picked GIF or sticker as its own message.
      *
      * The direct media URL is the content: january embeds that as an
      * image, where the provider's page URL yields no embed at all. Any
      * draft the user is part-way through typing is left untouched —
      * the GIF is a separate message, as it is elsewhere.
      */
-    async function sendGif(url: string) {
+    async function sendGif(gif: Gif, kind: MediaKind, searchQuery?: string) {
         const nonce = ulid();
         state.settings.sounds.playSound("outbound");
         setReplies([]);
+
+        // KLIPY personalise results from what actually gets sent; this is
+        // fire-and-forget and never blocks the message.
+        gifShare(kind, gif.slug, searchQuery);
 
         state.queue.add(nonce, channel._id, {
             _id: nonce,
             channel: channel._id,
             author: client.user!._id,
 
-            content: url,
+            content: gif.url,
             replies,
         });
 
         chainedDefer(() => renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE));
 
         try {
-            await channel.sendMessage({ content: url, nonce, replies });
+            await channel.sendMessage({ content: gif.url, nonce, replies });
             chainedDefer(() => renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE));
         } catch (error) {
             state.queue.fail(nonce, takeError(error));
