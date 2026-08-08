@@ -1,7 +1,7 @@
 [submodule "external/lang"]
 	path = external/lang
 	url = https://github.com/archem-team/translations
-	branch = revite-backports
+	branch = master
 [submodule "external/components"]
 	path = external/components
 	url = https://github.com/archem-team/components

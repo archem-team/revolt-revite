@@ -1,0 +1,35 @@
+name: Translation submodule history
+
+on:
+    pull_request:
+        paths:
+            - "external/lang"
+            - ".github/workflows/translation-submodule.yml"
+            - "scripts/check_translation_submodule.sh"
+    push:
+        branches:
+            - "master"
+            - "stage"
+        paths:
+            - "external/lang"
+            - ".github/workflows/translation-submodule.yml"
+            - "scripts/check_translation_submodule.sh"
+
+jobs:
+    verify-history:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  submodules: false
+
+            - name: Verify translation pointer
+              env:
+                  BASE_REVISION: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+                  HEAD_REVISION: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+              run: |
+                  previous_commit="$(git ls-tree "$BASE_REVISION" external/lang | awk '{print $3}')"
+                  next_commit="$(git ls-tree "$HEAD_REVISION" external/lang | awk '{print $3}')"
+                  scripts/check_translation_submodule.sh "$previous_commit" "$next_commit"
