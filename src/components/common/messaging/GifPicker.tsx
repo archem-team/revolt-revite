@@ -108,17 +108,6 @@ const Sentinel = styled.div`
     color: var(--tertiary-foreground);
 `;
 
-/* KLIPY require their branding in the interface — it gates production
-   access — so this stays put. */
-const Attribution = styled.div`
-    flex-shrink: 0;
-    padding: 2px 14px 8px;
-    font-size: 10px;
-    letter-spacing: 0.3px;
-    text-align: end;
-    color: var(--tertiary-foreground);
-`;
-
 const Notice = styled.div`
     flex-grow: 1;
     display: flex;
@@ -297,12 +286,12 @@ export default function GifPicker({ kind, onSelect, onClose }: Props) {
                         <ArrowBack size={18} />
                     </div>
                 )}
+                {/* The placeholder carries KLIPY's branding, which their
+                    terms require somewhere in the interface. */}
                 <input
                     ref={input}
                     value={query}
-                    placeholder={
-                        kind === "stickers" ? "Search stickers" : "Search GIFs"
-                    }
+                    placeholder="Search KLIPY"
                     onInput={(e) => {
                         setTrendingOpen(false);
                         setQuery(e.currentTarget.value);
@@ -366,8 +355,6 @@ export default function GifPicker({ kind, onSelect, onClose }: Props) {
                     )}
                 </Scroller>
             )}
-
-            <Attribution>Powered by KLIPY</Attribution>
         </Base>
     );
 }
