@@ -4,7 +4,7 @@ This guide explains how to add new translations or modify existing ones in the R
 
 ## Overview
 
-Translations are stored in the `external/lang` submodule, which points to the `archem-team/translations` repository on the `revite-backports` branch.
+Translations are stored in the `external/lang` submodule, which points to the `archem-team/translations` repository on the `master` branch.
 
 ## Prerequisites
 
@@ -24,11 +24,11 @@ cd external/lang
 
 ### 2. Ensure You're on the Correct Branch
 
-The submodule should be on the `revite-backports` branch:
+The submodule should be on the `master` branch:
 
 ```bash
-git checkout revite-backports
-git pull origin revite-backports
+git checkout master
+git pull --ff-only origin master
 ```
 
 ### 3. Verify the Remote URL
@@ -90,10 +90,11 @@ git commit -m "feat: add/update translations for [language/feature]"
 ### 7. Push to the Translations Repository
 
 ```bash
-git push origin revite-backports
+git push origin master
 ```
 
-**Important:** Always push to the `revite-backports` branch, not `master` or other branches.
+**Important:** Merge feature translation commits into `master` before updating
+the Revite submodule. Never point Revite at a translation side branch.
 
 ### 8. Update the Parent Repository
 
@@ -130,8 +131,8 @@ Here's a complete example of adding a new translation:
 cd external/lang
 
 # 2. Ensure on correct branch
-git checkout revite-backports
-git pull origin revite-backports
+git checkout master
+git pull --ff-only origin master
 
 # 3. Make changes
 # Edit en.json, es.json, etc. with your editor
@@ -139,7 +140,7 @@ git pull origin revite-backports
 # 4. Commit and push to translations repo
 git add en.json es.json
 git commit -m "feat: add translations for new feature X"
-git push origin revite-backports
+git push origin master
 
 # 5. Update parent repository
 cd ../..
@@ -155,7 +156,7 @@ git push origin master
 If you see "HEAD detached" when checking out:
 ```bash
 cd external/lang
-git checkout revite-backports
+git checkout master
 ```
 
 ### Remote URL is Wrong
@@ -174,8 +175,8 @@ If the submodule reference is outdated:
 # From the parent repository root
 git submodule update --init --recursive
 cd external/lang
-git checkout revite-backports
-git pull origin revite-backports
+git checkout master
+git pull --ff-only origin master
 ```
 
 ### Can't Push to Translations Repository
@@ -183,16 +184,17 @@ git pull origin revite-backports
 If you get permission errors:
 - Verify you have write access to `archem-team/translations`
 - Check that you're authenticated with GitHub
-- Ensure you're pushing to the correct branch (`revite-backports`)
+- Ensure you're pushing to the correct branch (`master`)
 
 ## Best Practices
 
-1. **Always work on the `revite-backports` branch** - Never commit directly to `master` in the submodule
+1. **Keep release translations on `master`** - Merge feature translation commits into `master` before updating Revite
 2. **Test your JSON syntax** - Invalid JSON will break the application
 3. **Keep translations in sync** - When adding new keys, add them to all language files or at least document which languages need updates
 4. **Use descriptive commit messages** - Help others understand what changed
 5. **Update the parent repo immediately** - Don't leave submodule updates uncommitted
-6. **Pull before pushing** - Always pull latest changes before making edits to avoid conflicts
+6. **Pull before pushing** - Use `git pull --ff-only` so divergent history is resolved explicitly
+7. **Only fast-forward the gitlink** - The new Revite pointer must descend from the previous pointer and already belong to translations `master`
 
 ## Quick Reference
 
@@ -200,12 +202,12 @@ If you get permission errors:
 |------|---------|
 | Navigate to translations | `cd external/lang` |
 | Check current branch | `git branch` |
-| Switch to correct branch | `git checkout revite-backports` |
-| Pull latest changes | `git pull origin revite-backports` |
+| Switch to correct branch | `git checkout master` |
+| Pull latest changes | `git pull --ff-only origin master` |
 | Check status | `git status` |
 | View changes | `git diff` |
 | Commit changes | `git add <files>` then `git commit -m "message"` |
-| Push to translations repo | `git push origin revite-backports` |
+| Push to translations repo | `git push origin master` |
 | Update parent repo | `cd ../..` then `git add external/lang` then `git commit -m "message"` then `git push` |
 
 ## Additional Resources
@@ -213,4 +215,4 @@ If you get permission errors:
 - Translation files are located in: `external/lang/`
 - Main English file: `external/lang/en.json`
 - Submodule repository: https://github.com/archem-team/translations
-- Working branch: `revite-backports`
+- Release branch: `master`
