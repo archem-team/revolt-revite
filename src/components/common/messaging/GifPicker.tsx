@@ -129,7 +129,10 @@ interface Props {
 
 export default function GifPicker({ kind, onSelect, onClose }: Props) {
     const [query, setQuery] = useState("");
-    const [trendingOpen, setTrendingOpen] = useState(false);
+    // Stickers open straight on trending: KLIPY serve the same 36
+    // categories for both libraries, with identical GIF artwork, so a
+    // sticker category grid is a wall of GIFs — actively misleading.
+    const [trendingOpen, setTrendingOpen] = useState(kind === "stickers");
     const [categories, setCategories] = useState<GifCategory[]>([]);
     const [trending, setTrending] = useState<Gif[]>([]);
     const [results, setResults] = useState<Gif[]>([]);
@@ -157,7 +160,11 @@ export default function GifPicker({ kind, onSelect, onClose }: Props) {
         const controller = new AbortController();
 
         Promise.all([
-            gifCategories(kind, controller.signal),
+            // Stickers never show the category grid, so don't spend a
+            // request fetching one.
+            kind === "gifs"
+                ? gifCategories(kind, controller.signal)
+                : Promise.resolve([]),
             gifTrending(kind, 1, 30, controller.signal),
         ])
             .then(([fetchedCategories, fetchedTrending]) => {
@@ -272,7 +279,7 @@ export default function GifPicker({ kind, onSelect, onClose }: Props) {
     /** Back out of a category, search or trending, to the browse grid. */
     function back() {
         setQuery("");
-        setTrendingOpen(false);
+        setTrendingOpen(kind === "stickers");
         input.current?.focus();
     }
 
