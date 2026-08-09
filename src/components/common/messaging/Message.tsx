@@ -61,6 +61,16 @@ const Message = observer(
         const head =
             preferHead || (message.reply_ids && message.reply_ids.length > 0);
 
+        // A message that is nothing but a media link already shows the
+        // media underneath, so printing the URL above it is noise — this
+        // is how a picked GIF or sticker arrives. Only when the link is
+        // the whole message: any surrounding text and it stays.
+        const embedsWholeMessage =
+            typeof content === "string" &&
+            message.embeds?.length === 1 &&
+            message.embeds[0].type === "Image" &&
+            content.trim() === message.embeds[0].url;
+
         const userContext = attachContext
             ? useTriggerEvents("Menu", {
                   user: message.author_id,
@@ -121,11 +131,11 @@ const Message = observer(
                     contrast={contrast}
                     sending={typeof queued !== "undefined"}
                     mention={
-                        client.user && (
-                            (message.mention_ids?.includes(client.user._id)) ||
-                            (message as any).mentionsEveryone ||
-                            (message as any).mentionsSelfRoles
-                        ) || undefined
+                        (client.user &&
+                            (message.mention_ids?.includes(client.user._id) ||
+                                (message as any).mentionsEveryone ||
+                                (message as any).mentionsSelfRoles)) ||
+                        undefined
                     }
                     failed={typeof queued?.error !== "undefined"}
                     {...(attachContext
@@ -181,7 +191,9 @@ const Message = observer(
                             </span>
                         )}
                         {replacement ??
-                            (content && <Markdown content={content} />)}
+                            (content && !embedsWholeMessage && (
+                                <Markdown content={content} />
+                            ))}
                         {!queued && <InviteList message={message} />}
                         {queued?.error && (
                             <Category>
