@@ -244,12 +244,6 @@ export const Form = observer(({ page, callback }: Props) => {
                             <Text id="login.reset" />
                         </Link>
                     </span>
-                    <span className={styles.create}>
-                        <Text id="login.missing_verification" />{" "}
-                        <Link to="/login/resend">
-                            <Text id="login.resend" />
-                        </Link>
-                    </span>
                 </>
             )}
             {(page === "reset" ||
