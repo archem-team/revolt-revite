@@ -770,7 +770,7 @@ const Home: React.FC = () => {
                         title="Open Pepshop store"
                         aria-label={`Open ${server.name} Pepshop store`}>
                         <span className="pepshop-mark">
-                            <span className="pepshop-label">{"Store"}</span>
+                            <span className="pepshop-label">{"Shop"}</span>
                         </span>
                     </PepshopLink>
                 )}
