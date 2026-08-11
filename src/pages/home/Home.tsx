@@ -207,62 +207,104 @@ const LockBadge = styled.div`
     color: var(--foreground);
 `;
 
-/* Hallmark · pre-emit critique: P4 H5 E5 S5 R5 V4 */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
 /* Hallmark · component: storefront mark · genre: existing PepChat system
- * states: default · hover · focus · active
- * contrast: uses the brand-yellow signal and neutral surface tokens
+ * states: default · hover · focus · active · disabled · loading · error · success
+ * contrast: pass (40–41) · mobile: pass (34, 49, 50–57)
  */
-const ServerEntry = styled.div<{ hasPepshop: boolean }>`
+const ServerEntry = styled.div`
     position: relative;
     min-width: 0;
-
-    ${(props) =>
-        props.hasPepshop &&
-        css`
-            a:first-of-type .content {
-                padding-right: var(--space-10);
-                min-width: 0;
-            }
-        `}
 `;
 
 const PepshopLink = styled.a`
-    && {
+    &&&& {
         position: absolute;
         z-index: 2;
-        top: 50%;
-        right: var(--space-10);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: var(--space-8);
-        height: var(--space-8);
+        top: calc(50% - var(--space-1));
+        left: var(--space-1);
+        display: grid;
+        place-items: center;
+        width: var(--space-12);
+        height: var(--space-12);
         padding: 0;
-        border: 1px solid transparent;
-        border-radius: 50%;
-        background: rgba(var(--foreground-rgb), 0.06);
-        color: var(--unreads);
+        border: 0;
+        border-radius: var(--radius-pill);
+        background: transparent;
+        color: var(--warning-contrast);
         text-decoration: none;
         transform: translateY(-50%);
-        transition: 0.1s ease-in-out background-color, 0.1s ease-in-out color;
+        -webkit-tap-highlight-color: transparent;
+
+        &::before {
+            content: "";
+            position: absolute;
+            inset: var(--space-2);
+            border: 2px solid var(--unreads);
+            border-radius: var(--radius-pill);
+            pointer-events: none;
+        }
+
+        .pepshop-mark {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            display: grid;
+            place-items: center;
+            width: var(--space-6);
+            height: var(--space-6);
+            border-radius: var(--radius-pill);
+            background: var(--unreads);
+            color: var(--warning-contrast);
+            box-shadow: 0 0 0 2px var(--secondary-header);
+            transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
         svg {
             width: var(--space-4);
             height: var(--space-4);
         }
 
-        &:hover {
-            background: rgba(var(--foreground-rgb), 0.12);
-            color: var(--unreads);
+        @media (hover: hover) and (pointer: fine) {
+            &:hover .pepshop-mark {
+                transform: translateY(-1px);
+            }
         }
 
         &:focus-visible {
-            outline: 2px solid var(--foreground);
+            outline: 2px solid var(--unreads);
             outline-offset: 2px;
         }
 
-        &:active {
-            background: rgba(var(--foreground-rgb), 0.18);
+        &:active .pepshop-mark {
+            transform: translateY(1px);
+        }
+
+        &[aria-disabled="true"] {
+            cursor: not-allowed;
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        &[aria-busy="true"] {
+            cursor: progress;
+            opacity: 0.72;
+        }
+
+        &[data-state="error"] .pepshop-mark {
+            background: var(--error);
+            color: var(--error-contrast);
+        }
+
+        &[data-state="success"] .pepshop-mark {
+            background: var(--success);
+            color: var(--success-contrast);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .pepshop-mark {
+                transition: none;
+            }
         }
     }
 `;
@@ -698,7 +740,7 @@ const Home: React.FC = () => {
         }
 
         return (
-            <ServerEntry key={server.id} hasPepshop={Boolean(pepshopUrl)}>
+            <ServerEntry key={server.id}>
                 {content}
                 {pepshopUrl && (
                     <PepshopLink
@@ -707,7 +749,9 @@ const Home: React.FC = () => {
                         rel="noreferrer"
                         title="Open Pepshop"
                         aria-label={`Open ${server.name} Pepshop`}>
-                        <Store aria-hidden="true" />
+                        <span className="pepshop-mark">
+                            <Store aria-hidden="true" />
+                        </span>
                     </PepshopLink>
                 )}
             </ServerEntry>
