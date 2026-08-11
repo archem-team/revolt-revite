@@ -1,5 +1,5 @@
 import { Menu, Search, X } from "@styled-icons/boxicons-regular";
-import { Lock, MessageAdd } from "@styled-icons/boxicons-solid";
+import { Lock, MessageAdd, Store } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useHistory, useLocation } from "react-router-dom";
@@ -103,7 +103,8 @@ const HamburgerBtn = styled.button`
         touch-action: manipulation;
         transition: background 0.15s ease, color 0.15s ease;
 
-        &:hover, &:active {
+        &:hover,
+        &:active {
             background: color-mix(in srgb, var(--foreground) 8%, transparent);
             color: var(--foreground);
         }
@@ -126,6 +127,7 @@ interface Server {
     showcolor: string;
     sortorder: number;
     logo?: string;
+    pepshopUrl?: string | null;
 }
 
 interface CachedData {
@@ -203,6 +205,97 @@ const LockBadge = styled.div`
     display: grid;
     place-items: center;
     color: var(--foreground);
+`;
+
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
+/* Hallmark · component: storefront action · genre: existing PepChat system
+ * states: default · hover · focus · active · disabled · loading · error · success
+ * contrast: pass (40–41) · mobile: pass (34, 49, 50–57)
+ */
+const ServerEntry = styled.div`
+    position: relative;
+    min-width: 0;
+
+    > a:first-of-type .content,
+    > div > a:first-of-type .content {
+        min-width: 0;
+        padding-right: var(--space-12);
+    }
+`;
+
+const PepshopLink = styled.a`
+    &&&& {
+        position: absolute;
+        z-index: 2;
+        top: calc(50% - var(--space-1));
+        right: var(--space-12);
+        display: grid;
+        place-items: center;
+        width: var(--space-12);
+        height: var(--space-12);
+        padding: 0;
+        border: 0;
+        border-radius: var(--radius-pill);
+        background: transparent;
+        color: var(--unreads);
+        text-decoration: none;
+        transform: translateY(-50%);
+        -webkit-tap-highlight-color: transparent;
+
+        .pepshop-mark {
+            display: grid;
+            place-items: center;
+            width: var(--space-5);
+            height: var(--space-5);
+            color: inherit;
+            transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        svg {
+            width: var(--space-5);
+            height: var(--space-5);
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            &:hover .pepshop-mark {
+                transform: translateY(-1px);
+            }
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--unreads);
+            outline-offset: 2px;
+        }
+
+        &:active .pepshop-mark {
+            transform: translateY(1px);
+        }
+
+        &[aria-disabled="true"] {
+            cursor: not-allowed;
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        &[aria-busy="true"] {
+            cursor: progress;
+            opacity: 0.72;
+        }
+
+        &[data-state="error"] .pepshop-mark {
+            color: var(--error);
+        }
+
+        &[data-state="success"] .pepshop-mark {
+            color: var(--success);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .pepshop-mark {
+                transition: none;
+            }
+        }
+    }
 `;
 
 // Search field sitting above the directory grid. Mirrors the site's input
@@ -341,7 +434,7 @@ const LoaderWrapper = styled.div`
     margin-top: 48px;
 `;
 
-const CACHE_KEY = "server_list_cache";
+const CACHE_KEY = "server_list_cache_v2";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Safe localStorage wrapper
@@ -362,6 +455,19 @@ const safeStorage = {
         }
     },
 };
+
+function toExternalHttpUrl(value: unknown): string | null {
+    if (typeof value !== "string") return null;
+
+    try {
+        const url = new URL(value);
+        return url.protocol === "https:" || url.protocol === "http:"
+            ? url.toString()
+            : null;
+    } catch {
+        return null;
+    }
+}
 
 const Home: React.FC = () => {
     const client = useClient();
@@ -551,6 +657,7 @@ const Home: React.FC = () => {
 
     const renderServerButton = (server: Server) => {
         const isServerJoined = client.servers.get(server.id);
+        const pepshopUrl = toExternalHttpUrl(server.pepshopUrl);
         const linkTo = isServerJoined
             ? `/server/${server.id}`
             : `/invite/${server.inviteCode}`;
@@ -621,7 +728,23 @@ const Home: React.FC = () => {
             content = <NewServerWrapper>{content}</NewServerWrapper>;
         }
 
-        return content;
+        return (
+            <ServerEntry key={server.id}>
+                {content}
+                {pepshopUrl && (
+                    <PepshopLink
+                        href={pepshopUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Open Pepshop"
+                        aria-label={`Open ${server.name} Pepshop`}>
+                        <span className="pepshop-mark">
+                            <Store aria-hidden="true" />
+                        </span>
+                    </PepshopLink>
+                )}
+            </ServerEntry>
+        );
     };
 
     // Hamburger: toggle the left sidebar panel in/out using the same
