@@ -14,14 +14,19 @@ test("Home renders safe Pepshop links without changing server-card height", asyn
     );
     assert.match(home, /aria-label=\{`Open \$\{server\.name\} Pepshop`\}/);
     assert.match(home, /target="_blank"/);
-    assert.match(home, /left: var\(--space-1\)/);
+    assert.match(home, /right: var\(--space-12\)/);
     assert.match(home, /width: var\(--space-12\)/);
     assert.match(home, /height: var\(--space-12\)/);
     assert.match(home, /const PepshopLink = styled\.a`\s*&&&& \{/);
     assert.match(home, /className="pepshop-mark"/);
-    assert.match(home, /background: var\(--unreads\)/);
-    assert.match(home, /color: var\(--warning-contrast\)/);
+    assert.match(home, /color: var\(--unreads\)/);
+    assert.match(home, /width: var\(--space-5\)/);
+    assert.match(home, /height: var\(--space-5\)/);
+    assert.match(home, /<MessageAdd size=\{20\} \/>/);
+    assert.doesNotMatch(home, /background: var\(--unreads\)/);
     assert.match(home, /position: absolute/);
+    assert.match(home, /padding-right: var\(--space-12\)/);
+    assert.doesNotMatch(home, /&::before \{/);
     assert.match(home, /const CACHE_KEY = "server_list_cache_v2"/);
 
     const pepshopStyles = home.match(

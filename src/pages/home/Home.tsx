@@ -208,13 +208,19 @@ const LockBadge = styled.div`
 `;
 
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
-/* Hallmark · component: storefront mark · genre: existing PepChat system
+/* Hallmark · component: storefront action · genre: existing PepChat system
  * states: default · hover · focus · active · disabled · loading · error · success
  * contrast: pass (40–41) · mobile: pass (34, 49, 50–57)
  */
 const ServerEntry = styled.div`
     position: relative;
     min-width: 0;
+
+    > a:first-of-type .content,
+    > div > a:first-of-type .content {
+        min-width: 0;
+        padding-right: var(--space-12);
+    }
 `;
 
 const PepshopLink = styled.a`
@@ -222,7 +228,7 @@ const PepshopLink = styled.a`
         position: absolute;
         z-index: 2;
         top: calc(50% - var(--space-1));
-        left: var(--space-1);
+        right: var(--space-12);
         display: grid;
         place-items: center;
         width: var(--space-12);
@@ -231,38 +237,23 @@ const PepshopLink = styled.a`
         border: 0;
         border-radius: var(--radius-pill);
         background: transparent;
-        color: var(--warning-contrast);
+        color: var(--unreads);
         text-decoration: none;
         transform: translateY(-50%);
         -webkit-tap-highlight-color: transparent;
 
-        &::before {
-            content: "";
-            position: absolute;
-            inset: var(--space-2);
-            border: 2px solid var(--unreads);
-            border-radius: var(--radius-pill);
-            pointer-events: none;
-        }
-
         .pepshop-mark {
-            position: absolute;
-            right: 0;
-            bottom: 0;
             display: grid;
             place-items: center;
-            width: var(--space-6);
-            height: var(--space-6);
-            border-radius: var(--radius-pill);
-            background: var(--unreads);
-            color: var(--warning-contrast);
-            box-shadow: 0 0 0 2px var(--secondary-header);
+            width: var(--space-5);
+            height: var(--space-5);
+            color: inherit;
             transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         svg {
-            width: var(--space-4);
-            height: var(--space-4);
+            width: var(--space-5);
+            height: var(--space-5);
         }
 
         @media (hover: hover) and (pointer: fine) {
@@ -292,13 +283,11 @@ const PepshopLink = styled.a`
         }
 
         &[data-state="error"] .pepshop-mark {
-            background: var(--error);
-            color: var(--error-contrast);
+            color: var(--error);
         }
 
         &[data-state="success"] .pepshop-mark {
-            background: var(--success);
-            color: var(--success-contrast);
+            color: var(--success);
         }
 
         @media (prefers-reduced-motion: reduce) {
