@@ -38,6 +38,10 @@ import { Button, InputBox, Preloader } from "@revoltchat/ui";
 
 import { useClient } from "../../controllers/client/ClientController";
 import { sendAnalyticsEvent } from "../../lib/analytics";
+import {
+    buildPromoSearchProperties,
+    normalizePromoAnalyticsQuery,
+} from "../../lib/promoAnalytics";
 import { BACKEND_API_BASE } from "../directory/types";
 import ImageLightbox from "./ImageLightbox";
 import PromoSubmit from "./PromoSubmit";
@@ -89,6 +93,9 @@ export interface Promo {
 }
 
 type Sort = "newest" | "updated" | "price_asc" | "price_desc" | "vendor_asc";
+type PromoSearchSource = "typed" | "recent_search" | "comparison";
+type PromoComparisonSource = "trending" | "promo_card";
+type PromoPlacement = "hot" | "results" | "comparison";
 type FilterKey =
     | "all"
     | "marketUpdates"
@@ -5551,6 +5558,7 @@ const Promos: React.FC = () => {
     }, []);
     const pageViewTracked = useRef("");
     const lastSearchTracked = useRef("");
+    const searchSourceRef = useRef<PromoSearchSource>("typed");
     const trackPromoEvent = useCallback(
         (event: string, properties: Record<string, unknown>) => {
             void sendAnalyticsEvent({
@@ -5690,6 +5698,8 @@ const Promos: React.FC = () => {
             vendorCount: new Set(promos.map((promo) => promo.vendor.name)).size,
             ownedServerCount: Math.min(ownedServers.length, 1_000),
             device: window.innerWidth <= 720 ? "mobile" : "desktop",
+            locale: navigator.language,
+            returningVisitor: lastVisit !== null,
         });
     }, [
         error,
@@ -5697,6 +5707,7 @@ const Promos: React.FC = () => {
         ownedServers.length,
         promos,
         sessionToken,
+        lastVisit,
         trackPromoEvent,
     ]);
 
@@ -5908,6 +5919,9 @@ const Promos: React.FC = () => {
 
         trackPromoEvent("promos.filter_changed", {
             filter: "marketUpdates",
+            previousFilter: activeFilter,
+            sort,
+            query: normalizePromoAnalyticsQuery(query) || undefined,
             resultCount: matchingPromos.length,
         });
 
@@ -6016,23 +6030,34 @@ const Promos: React.FC = () => {
 
     useEffect(() => {
         if (loading || !sessionToken) return;
-        const normalizedQuery = query.trim();
+        const normalizedQuery = normalizePromoAnalyticsQuery(query);
         if (!normalizedQuery) {
             lastSearchTracked.current = "";
             return;
         }
 
-        const signature = `${sessionToken}|${normalizedQuery}|${filtered.length}`;
+        const signature = `${sessionToken}|${normalizedQuery}|${filtered.length}|${activeFilter}|${sort}|${searchSourceRef.current}`;
         if (lastSearchTracked.current === signature) return;
         const timer = window.setTimeout(() => {
             lastSearchTracked.current = signature;
-            trackPromoEvent("promos.searched", {
-                queryLength: Math.min([...normalizedQuery].length, 500),
-                resultCount: filtered.length,
-            });
-        }, 1_000);
+            trackPromoEvent(
+                "promos.searched",
+                buildPromoSearchProperties({
+                    query: normalizedQuery,
+                    resultCount: filtered.length,
+                    filter: activeFilter,
+                    sort,
+                    source: searchSourceRef.current,
+                    matches: filtered.map((promo) => ({
+                        id: promo.id,
+                        vendorName: promo.vendor.name,
+                        products: promo.items.map((item) => item.product),
+                    })),
+                }),
+            );
+        }, 2_000);
         return () => window.clearTimeout(timer);
-    }, [filtered.length, loading, query, sessionToken, trackPromoEvent]);
+    }, [activeFilter, filtered, loading, query, sessionToken, sort, trackPromoEvent]);
 
     // Save search term after a delay when typing stops and has results
     useEffect(() => {
@@ -6144,7 +6169,10 @@ const Promos: React.FC = () => {
         return filtered;
     }, [filtered, hotPromos, activeFilter, query]);
 
-    const openComparison = (key: string) => {
+    const openComparison = (
+        key: string,
+        source: PromoComparisonSource = "promo_card",
+    ) => {
         const compound = normalizeCompound(key);
         if (!compound) return;
         const vendorCount = new Set(
@@ -6160,6 +6188,10 @@ const Promos: React.FC = () => {
         trackPromoEvent("promos.comparison_opened", {
             compound,
             vendorCount,
+            source,
+            filter: activeFilter,
+            sort,
+            query: normalizePromoAnalyticsQuery(query) || undefined,
         });
         setCompareProduct(compound);
     };
@@ -6168,11 +6200,18 @@ const Promos: React.FC = () => {
         promo: Promo,
         images: string[],
         initialIndex = 0,
+        placement: PromoPlacement = "results",
+        position?: number,
     ) => {
         trackPromoEvent("promos.image_opened", {
             promoId: promo.id,
             vendorName: promo.vendor.name,
             imageCount: Math.min(images.length, 100),
+            placement,
+            position,
+            filter: activeFilter,
+            sort,
+            query: normalizePromoAnalyticsQuery(query) || undefined,
         });
         openLightbox(images, initialIndex);
     };
@@ -6181,11 +6220,20 @@ const Promos: React.FC = () => {
         promoId: string,
         vendorName: string,
         action: "open" | "join",
+        placement: PromoPlacement = "results",
+        position?: number,
+        compound?: string,
     ) => {
         trackPromoEvent("promos.community_opened", {
             promoId,
             vendorName,
             action,
+            placement,
+            position,
+            compound,
+            filter: activeFilter,
+            sort,
+            query: normalizePromoAnalyticsQuery(query) || undefined,
         });
     };
 
@@ -6327,9 +6375,10 @@ const Promos: React.FC = () => {
                             ref={searchInputRef}
                             palette="secondary"
                             value={inputValue}
-                            onInput={(e) =>
-                                setInputValue(e.currentTarget.value)
-                            }
+                            onInput={(e) => {
+                                searchSourceRef.current = "typed";
+                                setInputValue(e.currentTarget.value);
+                            }}
                             onFocus={() => setSearchFocused(true)}
                             placeholder="Search compounds, vendors..."
                             aria-label="Search compounds, vendors..."
@@ -6355,6 +6404,8 @@ const Promos: React.FC = () => {
                                     <RecentItem
                                         key={idx}
                                         onClick={() => {
+                                            searchSourceRef.current =
+                                                "recent_search";
                                             setInputValue(s);
                                             setQuery(s);
                                             setSearchFocused(false);
@@ -6388,6 +6439,12 @@ const Promos: React.FC = () => {
                             setSort(nextSort);
                             trackPromoEvent("promos.sort_changed", {
                                 sort: nextSort,
+                                previousSort: sort,
+                                filter: activeFilter,
+                                query:
+                                    normalizePromoAnalyticsQuery(query) ||
+                                    undefined,
+                                resultCount: filtered.length,
                             });
                         }}>
                         <option value="newest">Newest First</option>
@@ -6416,6 +6473,12 @@ const Promos: React.FC = () => {
                                     setActiveFilter(chip.key);
                                     trackPromoEvent("promos.filter_changed", {
                                         filter: chip.key,
+                                        previousFilter: activeFilter,
+                                        sort,
+                                        query:
+                                            normalizePromoAnalyticsQuery(
+                                                query,
+                                            ) || undefined,
                                         resultCount: count,
                                     });
                                 }}>
@@ -6436,6 +6499,12 @@ const Promos: React.FC = () => {
                                     setActiveFilter(chip.key);
                                     trackPromoEvent("promos.filter_changed", {
                                         filter: chip.key,
+                                        previousFilter: activeFilter,
+                                        sort,
+                                        query:
+                                            normalizePromoAnalyticsQuery(
+                                                query,
+                                            ) || undefined,
                                         resultCount: count,
                                     });
                                 }}>
@@ -6732,7 +6801,9 @@ const Promos: React.FC = () => {
                                             normalizeCompound(key),
                                         );
                                     }}
-                                    onOpenCompare={openComparison}
+                                    onOpenCompare={(key) =>
+                                        openComparison(key, "trending")
+                                    }
                                 />
                             );
                         })()
@@ -6762,7 +6833,7 @@ const Promos: React.FC = () => {
                                 key={`${activeFilter}-${query}-${sort}`}
                                 onTouchStart={(e: any) => e.stopPropagation()}
                                 onTouchMove={(e: any) => e.stopPropagation()}>
-                                {hotPromos.map((p) => (
+                                {hotPromos.map((p, position) => (
                                     <PromoCard
                                         key={p.id}
                                         promo={p}
@@ -6771,10 +6842,20 @@ const Promos: React.FC = () => {
                                                 p,
                                                 images,
                                                 initialIndex,
+                                                "hot",
+                                                position + 1,
                                             )
                                         }
-                                        onCompare={openComparison}
-                                        onCommunityOpen={trackCommunityOpen}
+                                        onCompare={(key) =>
+                                            openComparison(key, "promo_card")
+                                        }
+                                        onCommunityOpen={(...args) =>
+                                            trackCommunityOpen(
+                                                ...args,
+                                                "hot",
+                                                position + 1,
+                                            )
+                                        }
                                         lastVisit={lastVisit}
                                         featured
                                         searchQuery={query}
@@ -6808,7 +6889,7 @@ const Promos: React.FC = () => {
                         </AllPromosHeader>
                         {allPromos.length > 0 ? (
                             <Grid key={`${activeFilter}-${query}-${sort}`}>
-                                {allPromos.map((p) => (
+                                {allPromos.map((p, position) => (
                                     <PromoCard
                                         key={p.id}
                                         promo={p}
@@ -6817,10 +6898,20 @@ const Promos: React.FC = () => {
                                                 p,
                                                 images,
                                                 initialIndex,
+                                                "results",
+                                                position + 1,
                                             )
                                         }
-                                        onCompare={openComparison}
-                                        onCommunityOpen={trackCommunityOpen}
+                                        onCompare={(key) =>
+                                            openComparison(key, "promo_card")
+                                        }
+                                        onCommunityOpen={(...args) =>
+                                            trackCommunityOpen(
+                                                ...args,
+                                                "results",
+                                                position + 1,
+                                            )
+                                        }
                                         lastVisit={lastVisit}
                                         searchQuery={query}
                                     />
@@ -6983,7 +7074,16 @@ const Promos: React.FC = () => {
                         onClose={() => setCompareProduct(null)}
                         onScrollToPromo={scrollToPromo}
                         onShowToast={showToast}
-                        onCommunityOpen={trackCommunityOpen}
+                        onCommunityOpen={(promoId, vendorName, action) =>
+                            trackCommunityOpen(
+                                promoId,
+                                vendorName,
+                                action,
+                                "comparison",
+                                undefined,
+                                comparisonCompound || undefined,
+                            )
+                        }
                         onApplyFilter={(productKey) => {
                             const compound = normalizeCompound(productKey);
                             if (!compound) return;
@@ -6997,6 +7097,7 @@ const Promos: React.FC = () => {
                                     : null;
 
                             if (knownFilter) {
+                                searchSourceRef.current = "comparison";
                                 setActiveFilter(knownFilter);
                                 setInputValue("");
                                 setQuery("");
@@ -7004,6 +7105,7 @@ const Promos: React.FC = () => {
                                 // Unsupported filter keys use the existing search
                                 // pipeline instead of silently becoming "All".
                                 setActiveFilter("all");
+                                searchSourceRef.current = "comparison";
                                 setInputValue(compound);
                                 setQuery(compound);
                             }
