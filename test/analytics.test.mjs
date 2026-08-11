@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { sendAnalyticsEvent } from "../src/lib/analytics.js";
+import {
+    buildPromoSearchProperties,
+    normalizePromoAnalyticsQuery,
+} from "../src/lib/promoAnalytics.js";
 
 test("analytics events use the common authenticated endpoint", async () => {
     let request;
@@ -51,16 +55,27 @@ test("analytics events are skipped without a session", async () => {
     assert.equal(called, false);
 });
 
-test("promo search analytics send counts without the search text", async () => {
+test("promo search analytics include customer intent and result context", async () => {
     let request;
+    const properties = buildPromoSearchProperties({
+        query: "  retatrutide  ",
+        resultCount: 4,
+        filter: "all",
+        sort: "newest",
+        source: "typed",
+        matches: [
+            {
+                id: "01J8W7NPV2DM3XR48JAYB1RDFK",
+                vendorName: "Northstar Labs",
+                products: ["Retatrutide 10mg", "Retatrutide 10mg"],
+            },
+        ],
+    });
     await sendAnalyticsEvent({
         apiBase: "https://peptide.chat/api",
         token: "test-session",
         event: "promos.searched",
-        properties: {
-            queryLength: 12,
-            resultCount: 4,
-        },
+        properties,
         fetchImpl: async (url, options) => {
             request = { url, options };
             return { ok: true, status: 202 };
@@ -71,9 +86,24 @@ test("promo search analytics send counts without the search text", async () => {
     assert.deepEqual(body, {
         event: "promos.searched",
         properties: {
-            queryLength: 12,
+            query: "retatrutide",
+            queryLength: 11,
             resultCount: 4,
+            filter: "all",
+            sort: "newest",
+            source: "typed",
+            topMatches: [
+                {
+                    promoId: "01J8W7NPV2DM3XR48JAYB1RDFK",
+                    vendorName: "Northstar Labs",
+                    products: ["Retatrutide 10mg"],
+                },
+            ],
         },
     });
-    assert.equal("query" in body.properties, false);
+});
+
+test("promo analytics cap customer-entered queries", () => {
+    const query = `  ${"a".repeat(100)}  `;
+    assert.equal(normalizePromoAnalyticsQuery(query), "a".repeat(80));
 });
