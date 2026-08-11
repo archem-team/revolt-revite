@@ -5356,47 +5356,36 @@ function ComparisonDrawer({
                                                     className="btn-secondary"
                                                     style={{ minHeight: 38, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                                                     onClick={async () => {
-                                                        const allChannels = Array.from(client.channels.values());
                                                         const allServers = Array.from(client.servers.values());
                                                         const vLower = (v.name || "").toLowerCase();
+                                                        const matchedServer = allServers.find(
+                                                            (s) =>
+                                                                (v.serverId && s._id === v.serverId) ||
+                                                                (s.name && s.name.toLowerCase().includes(vLower)),
+                                                        );
 
-                                                        // 1. Try finding a channel directly matching the vendor name
-                                                        let targetChannel = allChannels.find((c) => c.name?.toLowerCase().includes(vLower));
-
-                                                        // 2. Try finding a server matching vendor name or serverId and picking its channel
-                                                        if (!targetChannel) {
-                                                            const matchedServer = allServers.find(
-                                                                (s) => (v.serverId && s._id === v.serverId) || (s.name && s.name.toLowerCase().includes(vLower))
-                                                            );
-                                                            if (matchedServer && matchedServer.channel_ids && matchedServer.channel_ids.length > 0) {
-                                                                targetChannel = allChannels.find((c) => matchedServer.channel_ids.includes(c._id)) || null;
-                                                            }
+                                                        if (matchedServer) {
+                                                            onShowToast?.(`✅ Opened ${v.name} Community`);
+                                                            history.push(`/server/${matchedServer._id}`);
+                                                            onClose();
+                                                            return;
                                                         }
 
-                                                        // 3. Fallback: pick any active text channel in client.channels
-                                                        if (!targetChannel && allChannels.length > 0) {
-                                                            targetChannel = allChannels.find((c) => c.channel_type === "TextChannel") || allChannels[0];
-                                                        }
-
-                                                        // Try joining invite if linked
                                                         const inviteCode = v.inviteLink ? inviteCodeFromLink(v.inviteLink) : null;
                                                         if (inviteCode) {
                                                             try {
-                                                                await client.joinInvite(inviteCode);
+                                                                const joinedServer = await client.joinInvite(inviteCode);
+                                                                onShowToast?.(`✅ Joined ${v.name} Community`);
+                                                                history.push(`/server/${joinedServer._id}`);
+                                                                onClose();
+                                                                return;
                                                             } catch {
-                                                                /* proceed */
+                                                                onShowToast?.(`${v.name} community invite is no longer available.`);
+                                                                return;
                                                             }
                                                         }
 
-                                                        onShowToast?.(`✅ ${isMember ? "Opened" : "Joined"} ${v.name} Community`);
-
-                                                        if (targetChannel) {
-                                                            history.push(`/channel/${targetChannel._id}`);
-                                                        } else {
-                                                            const slug = inviteCode || (v.name ? v.name.toLowerCase().replace(/[^a-z0-9]/g, "") : "pepchat");
-                                                            history.push(`/invite/${slug}`);
-                                                        }
-                                                        onClose();
+                                                        onShowToast?.(`${v.name} community is unavailable.`);
                                                     }}>
                                                     {isMember ? "Open Community" : "Join Community"}
                                                 </button>
@@ -6009,14 +5998,10 @@ const Promos: React.FC = () => {
         { key: "hgh", label: "HGH" },
     ];
 
-    const getFilterCount = useCallback(
-        (key: FilterKey) => {
-            if (key === "all") return promos.length;
-            return promos.filter((p) => matchesFilter(p, key, lastVisit))
-                .length;
-        },
-        [promos, lastVisit],
-    );
+    const getFilterCount = (key: FilterKey) => {
+        if (key === "all") return promos.length;
+        return promos.filter((p) => matchesFilter(p, key, lastVisit)).length;
+    };
 
     return (
         <PageShell>
