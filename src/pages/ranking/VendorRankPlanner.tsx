@@ -1,6 +1,8 @@
 import { observer } from "mobx-react-lite";
 
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
+
+import { sendAnalyticsEvent } from "../../lib/analytics";
 
 import {
     clientController,
@@ -346,6 +348,8 @@ export const VendorRankPlanner = observer(
             {},
         );
         const [scoresLoading, setScoresLoading] = useState(false);
+        const pageViewTracked = useRef(false);
+        const lastEstimateTracked = useRef("");
 
         useEffect(() => {
             if (!loggedIn || !sessionToken) return;
@@ -356,14 +360,24 @@ export const VendorRankPlanner = observer(
                 apiBase: BACKEND_API_BASE,
                 token: sessionToken,
                 signal: controller.signal,
-                })
+            })
                 .then((nextEntries) => {
                     setEntries(nextEntries);
                     setRefreshedAt(new Date());
                     setLoadState("ready");
                 })
                 .catch((error) => {
-                    if (error?.name !== "AbortError") setLoadState("error");
+                    if (error?.name !== "AbortError") {
+                        setLoadState("error");
+                        void sendAnalyticsEvent({
+                            apiBase: BACKEND_API_BASE,
+                            token: sessionToken,
+                            event: "ranking.load_failed",
+                            properties: {
+                                stage: "ranking_snapshot",
+                            },
+                        }).catch(() => undefined);
+                    }
                 });
 
             return () => controller.abort();
@@ -429,15 +443,18 @@ export const VendorRankPlanner = observer(
             const controller = new AbortController();
             setScoresLoading(true);
             Promise.all(
-                ids.map(async (id) => [
-                    id,
-                    await fetchLiveRankingScore({
-                        apiBase: BACKEND_API_BASE,
-                        token: sessionToken,
-                        serverId: id,
-                        signal: controller.signal,
-                    }),
-                ] as const),
+                ids.map(
+                    async (id) =>
+                        [
+                            id,
+                            await fetchLiveRankingScore({
+                                apiBase: BACKEND_API_BASE,
+                                token: sessionToken,
+                                serverId: id,
+                                signal: controller.signal,
+                            }),
+                        ] as const,
+                ),
             )
                 .then((scores) => {
                     setLiveScores((current) => ({
@@ -447,7 +464,18 @@ export const VendorRankPlanner = observer(
                     setScoresLoading(false);
                 })
                 .catch((error) => {
-                    if (error?.name !== "AbortError") setLoadState("error");
+                    if (error?.name !== "AbortError") {
+                        setLoadState("error");
+                        void sendAnalyticsEvent({
+                            apiBase: BACKEND_API_BASE,
+                            token: sessionToken,
+                            event: "ranking.load_failed",
+                            properties: {
+                                serverId: selected.id,
+                                stage: "live_scores",
+                            },
+                        }).catch(() => undefined);
+                    }
                 });
 
             return () => controller.abort();
@@ -458,6 +486,125 @@ export const VendorRankPlanner = observer(
             scoreRequestKey,
             selected,
             sessionToken,
+        ]);
+
+        const targetRank = requestedTargetRank;
+        const targetEntry = entries.find(
+            (entry) => entry.sortOrder === targetRank,
+        );
+        const targetValid =
+            Number.isInteger(targetRank) &&
+            targetRank >= 1 &&
+            targetRank <= maxRank &&
+            Boolean(targetEntry);
+        const selectedLiveScore = selected
+            ? liveScores[selected.id]
+            : undefined;
+        const targetLiveScore = targetEntry
+            ? liveScores[targetEntry.id]
+            : undefined;
+        const scoredSelected = selected
+            ? {
+                  ...selected,
+                  rankingScore: selectedLiveScore ?? Number.NaN,
+              }
+            : undefined;
+        const scoredTargetEntry = targetEntry
+            ? {
+                  ...targetEntry,
+                  rankingScore: targetLiveScore ?? Number.NaN,
+              }
+            : undefined;
+        const estimate =
+            selected &&
+            targetValid &&
+            targetEntry &&
+            Number.isFinite(selectedLiveScore) &&
+            Number.isFinite(targetLiveScore)
+                ? estimateDonationForPosition({
+                      currentRank: selected.sortOrder,
+                      currentScore: selectedLiveScore as number,
+                      targetRank,
+                      targetScore: targetLiveScore as number,
+                  })
+                : undefined;
+
+        useEffect(() => {
+            if (
+                pageViewTracked.current ||
+                loadState !== "ready" ||
+                !selected ||
+                !sessionToken
+            ) {
+                return;
+            }
+            pageViewTracked.current = true;
+            void sendAnalyticsEvent({
+                apiBase: BACKEND_API_BASE,
+                token: sessionToken,
+                event: "ranking.page_viewed",
+                properties: {
+                    serverId: selected.id,
+                    managedServerCount: vendorEntries.length,
+                    language,
+                },
+            }).catch(() => undefined);
+        }, [language, loadState, selected, sessionToken, vendorEntries.length]);
+
+        useEffect(() => {
+            if (
+                !estimate ||
+                !selected ||
+                !targetEntry ||
+                !Number.isFinite(selectedLiveScore) ||
+                !Number.isFinite(targetLiveScore) ||
+                scoresLoading
+            ) {
+                return;
+            }
+
+            const signature = [
+                selected.id,
+                selected.sortOrder,
+                selectedLiveScore,
+                targetRank,
+                targetLiveScore,
+                estimate.status,
+                estimate.amount,
+            ].join("|");
+            if (lastEstimateTracked.current === signature) return;
+
+            const timeout = window.setTimeout(() => {
+                lastEstimateTracked.current = signature;
+                void sendAnalyticsEvent({
+                    apiBase: BACKEND_API_BASE,
+                    token: sessionToken,
+                    event: "ranking.target_estimated",
+                    properties: {
+                        serverId: selected.id,
+                        currentRank: selected.sortOrder,
+                        currentScore: selectedLiveScore,
+                        targetRank,
+                        targetScore: targetLiveScore,
+                        status: estimate.status,
+                        estimatedDonation:
+                            estimate.status === "estimate"
+                                ? estimate.amount
+                                : undefined,
+                    },
+                }).catch(() => undefined);
+            }, 800);
+
+            return () => window.clearTimeout(timeout);
+        }, [
+            estimate,
+            scoresLoading,
+            selected,
+            selectedLiveScore,
+            sessionToken,
+            targetEntry,
+            targetLiveScore,
+            targetRank,
         ]);
 
         if (!loggedIn) {
@@ -482,51 +629,23 @@ export const VendorRankPlanner = observer(
             return <RankPlannerPanel language={language} state="empty" />;
         }
 
-        const targetRank = requestedTargetRank;
-        const targetEntry = entries.find(
-            (entry) => entry.sortOrder === targetRank,
-        );
-        const targetValid =
-            Number.isInteger(targetRank) &&
-            targetRank >= 1 &&
-            targetRank <= maxRank &&
-            Boolean(targetEntry);
-        const selectedLiveScore = liveScores[selected.id];
-        const targetLiveScore = targetEntry
-            ? liveScores[targetEntry.id]
-            : undefined;
-        const scoredSelected = {
-            ...selected,
-            rankingScore: selectedLiveScore ?? Number.NaN,
-        };
-        const scoredTargetEntry = targetEntry
-            ? {
-                  ...targetEntry,
-                  rankingScore: targetLiveScore ?? Number.NaN,
-              }
-            : undefined;
-        const estimate =
-            targetValid &&
-            targetEntry &&
-            Number.isFinite(selectedLiveScore) &&
-            Number.isFinite(targetLiveScore)
-                ? estimateDonationForPosition({
-                      currentRank: selected.sortOrder,
-                      currentScore: selectedLiveScore,
-                      targetRank,
-                      targetScore: targetLiveScore,
-                  })
-                : undefined;
-
         return (
             <RankPlannerPanel
                 language={language}
                 state="ready"
                 ready={{
                     entries: vendorEntries,
-                    selected: scoredSelected,
+                    selected: scoredSelected!,
                     selectedId: effectiveSelectedId,
-                    onSelect: setSelectedId,
+                    onSelect: (serverId) => {
+                        setSelectedId(serverId);
+                        void sendAnalyticsEvent({
+                            apiBase: BACKEND_API_BASE,
+                            token: sessionToken,
+                            event: "ranking.vendor_selected",
+                            properties: { serverId },
+                        }).catch(() => undefined);
+                    },
                     targetValue,
                     onTargetInput: setTargetValue,
                     onTargetBlur: () => setTargetTouched(true),
@@ -537,6 +656,12 @@ export const VendorRankPlanner = observer(
                     onRefresh: () => {
                         setLiveScores({});
                         setRetryKey((value) => value + 1);
+                        void sendAnalyticsEvent({
+                            apiBase: BACKEND_API_BASE,
+                            token: sessionToken,
+                            event: "ranking.scores_refreshed",
+                            properties: { serverId: selected.id },
+                        }).catch(() => undefined);
                     },
                     refreshedAt,
                     disabled: scoresLoading,
