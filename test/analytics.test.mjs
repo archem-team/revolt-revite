@@ -50,3 +50,30 @@ test("analytics events are skipped without a session", async () => {
     assert.equal(sent, false);
     assert.equal(called, false);
 });
+
+test("promo search analytics send counts without the search text", async () => {
+    let request;
+    await sendAnalyticsEvent({
+        apiBase: "https://peptide.chat/api",
+        token: "test-session",
+        event: "promos.searched",
+        properties: {
+            queryLength: 12,
+            resultCount: 4,
+        },
+        fetchImpl: async (url, options) => {
+            request = { url, options };
+            return { ok: true, status: 202 };
+        },
+    });
+
+    const body = JSON.parse(request.options.body);
+    assert.deepEqual(body, {
+        event: "promos.searched",
+        properties: {
+            queryLength: 12,
+            resultCount: 4,
+        },
+    });
+    assert.equal("query" in body.properties, false);
+});

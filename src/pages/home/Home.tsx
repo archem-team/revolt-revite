@@ -1,4 +1,4 @@
-import { Search, X } from "@styled-icons/boxicons-regular";
+import { Menu, Search, X } from "@styled-icons/boxicons-regular";
 import { Lock, MessageAdd } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useMemo, useState } from "react";
@@ -10,15 +10,26 @@ import { Text } from "preact-i18n";
 
 import { CategoryButton, InputBox, Preloader } from "@revoltchat/ui";
 
-import { useClient } from "../../controllers/client/ClientController";
 import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
-import Promos from "./Promos";
+
+import { useClient } from "../../controllers/client/ClientController";
 import { BACKEND_API_BASE } from "../directory/types";
+import Promos from "./Promos";
+
+const COMPACT_LAYOUT_QUERY = "(max-width: 960px)";
 
 const Overlay = styled.div`
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     height: 100%;
     overflow-y: scroll;
+    overscroll-behavior-y: contain;
+    /* NOTE: Do NOT add overflow-x here — combining overflow-x:hidden with
+       overflow-y:scroll on the same element breaks vertical scroll on iOS Safari.
+       Horizontal clipping is handled by the .home wrapper in Home.module.scss */
 
     > * {
         grid-area: 1 / 1;
@@ -26,12 +37,34 @@ const Overlay = styled.div`
 
     .content {
         z-index: 1;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
     }
 
     h3 {
         padding-top: 1rem;
     }
 `;
+
+function getPanelsScroller(): HTMLElement | null {
+    let node = document.querySelector<HTMLElement>(
+        '[data-component="routes"]',
+    )?.parentElement;
+
+    while (node && node !== document.body) {
+        const style = window.getComputedStyle(node);
+        if (
+            node.scrollWidth > node.clientWidth &&
+            (style.overflowX === "auto" || style.overflowX === "scroll")
+        ) {
+            return node;
+        }
+        node = node.parentElement;
+    }
+
+    return null;
+}
 
 /* Plain tab row on the panel — no header bar chrome, same treatment as
    the chat view's plain-text header. */
@@ -40,6 +73,41 @@ const TabRow = styled.div`
     align-items: center;
     flex-shrink: 0;
     padding: 14px 20px 0;
+    gap: 10px;
+
+    @media (max-width: 720px) {
+        /* Prevent tabs from overflowing the viewport width on narrow screens */
+        overflow: hidden;
+        padding: 12px 12px 0;
+        gap: 6px;
+    }
+`;
+
+/* Hamburger button — visible while the sidebar uses the sliding panel layout. */
+const HamburgerBtn = styled.button`
+    display: none;
+
+    @media (max-width: 960px) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--secondary-foreground);
+        cursor: pointer;
+        flex-shrink: 0;
+        touch-action: manipulation;
+        transition: background 0.15s ease, color 0.15s ease;
+
+        &:hover, &:active {
+            background: color-mix(in srgb, var(--foreground) 8%, transparent);
+            color: var(--foreground);
+        }
+    }
 `;
 
 const DisabledWrapper = styled.div`
@@ -77,11 +145,11 @@ const NewServerWrapper = styled.div`
 
 // Dynamic color wrapper component
 const ColorWrapper = styled.div<{ color: string }>`
-    color: ${props => props.color};
+    color: ${(props) => props.color};
     display: contents;
 
     a {
-        color: ${props => props.color};
+        color: ${(props) => props.color};
     }
 `;
 
@@ -188,6 +256,19 @@ const TabBar = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
+    min-width: 0;
+    flex: 1;
+
+    @media (max-width: 720px) {
+        /* Allow tabs to scroll horizontally instead of overflowing viewport */
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
 `;
 
 const Tab = styled.div<{ active: boolean }>`
@@ -199,6 +280,8 @@ const Tab = styled.div<{ active: boolean }>`
     font-weight: 600;
     padding: 7px 16px;
     border-radius: var(--radius-pill, 999px);
+    white-space: nowrap;
+    flex-shrink: 0;
     color: ${(props) =>
         props.active
             ? "var(--channel-active-foreground)"
@@ -216,6 +299,11 @@ const Tab = styled.div<{ active: boolean }>`
             props.active
                 ? "var(--channel-active)"
                 : "rgba(var(--foreground-rgb), 0.06)"};
+    }
+
+    @media (max-width: 480px) {
+        font-size: 13px;
+        padding: 6px 12px;
     }
 
     /* Inside the filled pill the accent chip would vanish — swap it to
@@ -242,7 +330,6 @@ const NewChip = styled.span.attrs({ className: "newchip" })`
     color: var(--channel-active-foreground);
     background: var(--channel-active);
 `;
-
 
 // Holds the circular loader in the content area while the directory loads,
 // so the header and search bar above it stay mounted.
@@ -296,20 +383,54 @@ const Home: React.FC = () => {
     const setTab = (next: "home" | "promos") =>
         history.replace(next === "promos" ? "/?tab=promos" : "/");
 
+    // Promos is only mounted once the user first visits the tab, then stays
+    // mounted (hidden via CSS) for the rest of the session so switching back
+    // and forth doesn't re-create its <img> elements — that unmount/remount
+    // was causing vendor logos to visibly reload every time.
+    const [promosVisited, setPromosVisited] = useState(tab === "promos");
+    const [compactLayout, setCompactLayout] = useState(
+        () =>
+            isTouchscreenDevice ||
+            (typeof window !== "undefined" &&
+                window.matchMedia(COMPACT_LAYOUT_QUERY).matches),
+    );
+    useEffect(() => {
+        if (tab === "promos") setPromosVisited(true);
+    }, [tab]);
+
+    useEffect(() => {
+        const media = window.matchMedia(COMPACT_LAYOUT_QUERY);
+        const updateLayout = () =>
+            setCompactLayout(isTouchscreenDevice || media.matches);
+
+        updateLayout();
+        if (media.addEventListener) {
+            media.addEventListener("change", updateLayout);
+        } else {
+            media.addListener(updateLayout);
+        }
+        return () => {
+            if (media.removeEventListener)
+                media.removeEventListener("change", updateLayout);
+            else media.removeListener(updateLayout);
+        };
+    }, []);
+
     // On mobile the overlapping panels default to the sidebar; when landing on
     // the Promos tab (e.g. after a refresh), bring the content panel into view
     // so the user sees the promos rather than the channel list. Deferred to the
     // next frame so the panel container has laid out before we scroll it.
     useEffect(() => {
-        if (!isTouchscreenDevice || tab !== "promos") return;
+        if (!compactLayout || tab !== "promos") return;
         const raf = requestAnimationFrame(() => {
-            const panels = document.querySelector("#app > div > div > div");
-            // No right panel on home, so the max scroll position lands on the
-            // main (content) panel.
-            panels?.scrollTo({ left: panels.scrollWidth, behavior: "auto" });
+            const panels = getPanelsScroller();
+            panels?.scrollTo({
+                left: panels.scrollWidth - panels.clientWidth,
+                behavior: "auto",
+            });
         });
         return () => cancelAnimationFrame(raf);
-    }, [tab]);
+    }, [compactLayout, tab]);
 
     // Filter by name or description, case-insensitive.
     const filteredServers = useMemo(() => {
@@ -351,10 +472,14 @@ const Home: React.FC = () => {
         const serversUrl = `${BACKEND_API_BASE}/directory/servers`;
 
         try {
-            const serversRes = await fetch(serversUrl, { headers: authHeaders });
+            const serversRes = await fetch(serversUrl, {
+                headers: authHeaders,
+            });
 
             if (!serversRes.ok) {
-                throw new Error(`Servers request failed with status ${serversRes.status}`);
+                throw new Error(
+                    `Servers request failed with status ${serversRes.status}`,
+                );
             }
 
             const serversJson = await serversRes.json();
@@ -369,12 +494,16 @@ const Home: React.FC = () => {
             // the communities endpoint, whose paginated listing could silently
             // drop unrated (new) servers and leave them without a logo.
             {
-                const autumnUrl = client.configuration?.features.autumn?.url ||
+                const autumnUrl =
+                    client.configuration?.features.autumn?.url ||
                     "https://peptide.chat/autumn";
 
                 servers = servers.map((s) =>
                     s.logo
-                        ? { ...s, logo: `${autumnUrl}/icons/${s.logo}?max_side=256` }
+                        ? {
+                              ...s,
+                              logo: `${autumnUrl}/icons/${s.logo}?max_side=256`,
+                          }
                         : s,
                 );
             }
@@ -485,7 +614,9 @@ const Home: React.FC = () => {
         );
 
         if (server.showcolor && server.showcolor.trim()) {
-            content = <ColorWrapper color={server.showcolor}>{content}</ColorWrapper>;
+            content = (
+                <ColorWrapper color={server.showcolor}>{content}</ColorWrapper>
+            );
         } else if (server.new) {
             content = <NewServerWrapper>{content}</NewServerWrapper>;
         }
@@ -493,11 +624,30 @@ const Home: React.FC = () => {
         return content;
     };
 
+    // Hamburger: toggle the left sidebar panel in/out using the same
+    // scroll-based mechanism that OverlappingPanels uses on mobile.
+    const toggleSidebar = () => {
+        const panels = getPanelsScroller();
+        if (!panels) return;
+        // If scrolled right (content visible), scroll back to show sidebar;
+        // if at left (sidebar visible), scroll right to show content.
+        const atLeft = panels.scrollLeft < 50;
+        panels.scrollTo({
+            left: atLeft ? panels.scrollWidth - panels.clientWidth : 0,
+            behavior: "smooth",
+        });
+    };
+
     return (
         <div className={styles.home}>
-            <Overlay>
+            <Overlay data-home-scroll>
                 <div className="content">
                     <TabRow>
+                        <HamburgerBtn
+                            aria-label="Toggle sidebar"
+                            onClick={toggleSidebar}>
+                            <Menu size={20} />
+                        </HamburgerBtn>
                         <TabBar>
                             <Tab
                                 active={tab === "home"}
@@ -513,52 +663,61 @@ const Home: React.FC = () => {
                         </TabBar>
                     </TabRow>
                     <div className={styles.homeScreen}>
-                        {tab === "home" ? (
-                            <>
-                                <SearchWrapper>
-                                    <Search
-                                        size={18}
-                                        className="search-icon"
-                                    />
-                                    <InputBox
-                                        palette="secondary"
-                                        value={query}
-                                        onChange={(e) =>
-                                            setQuery(e.currentTarget.value)
-                                        }
-                                        placeholder="Search communities…"
-                                    />
-                                    {query && (
-                                        <div
-                                            className="clear"
-                                            onClick={() => setQuery("")}>
-                                            <X size={18} />
-                                        </div>
-                                    )}
-                                </SearchWrapper>
-                                {loading ? (
-                                    <LoaderWrapper>
-                                        <Preloader type="ring" />
-                                    </LoaderWrapper>
-                                ) : error ? (
-                                    <NoResults>{error}</NoResults>
-                                ) : (
-                                    <>
-                                        <div className={styles.actions}>
-                                            {filteredServers.map(
-                                                renderServerButton,
-                                            )}
-                                        </div>
-                                        {filteredServers.length === 0 && (
-                                            <NoResults>
-                                                No communities found.
-                                            </NoResults>
-                                        )}
-                                    </>
+                        <div
+                            style={{
+                                display: tab === "home" ? undefined : "none",
+                            }}>
+                            <SearchWrapper>
+                                <Search size={18} className="search-icon" />
+                                <InputBox
+                                    palette="secondary"
+                                    value={query}
+                                    onChange={(e) =>
+                                        setQuery(e.currentTarget.value)
+                                    }
+                                    placeholder="Search communities…"
+                                />
+                                {query && (
+                                    <div
+                                        className="clear"
+                                        onClick={() => setQuery("")}>
+                                        <X size={18} />
+                                    </div>
                                 )}
-                            </>
-                        ) : (
-                            <Promos />
+                            </SearchWrapper>
+                            {loading ? (
+                                <LoaderWrapper>
+                                    <Preloader type="ring" />
+                                </LoaderWrapper>
+                            ) : error ? (
+                                <NoResults>{error}</NoResults>
+                            ) : (
+                                <>
+                                    <div className={styles.actions}>
+                                        {filteredServers.map(
+                                            renderServerButton,
+                                        )}
+                                    </div>
+                                    {filteredServers.length === 0 && (
+                                        <NoResults>
+                                            No communities found.
+                                        </NoResults>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                        {/* .homeScreen centers children (align-items: center),
+                            so tab panes must claim the full row width or the
+                            content shrinks to fit and floats mid-screen. */}
+                        {promosVisited && (
+                            <div
+                                style={{
+                                    width: "100%",
+                                    display:
+                                        tab === "promos" ? undefined : "none",
+                                }}>
+                                <Promos />
+                            </div>
                         )}
                     </div>
                 </div>
