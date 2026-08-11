@@ -1,0 +1,29 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
+
+test("Home renders safe Pepshop links without changing server-card height", async () => {
+    const home = await read("src/pages/home/Home.tsx");
+
+    assert.match(home, /pepshopUrl\?: string \| null/);
+    assert.match(
+        home,
+        /url\.protocol === "https:" \|\| url\.protocol === "http:"/,
+    );
+    assert.match(home, /aria-label=\{`Open \$\{server\.name\} Pepshop`\}/);
+    assert.match(home, /target="_blank"/);
+    assert.match(home, /width: var\(--space-8\)/);
+    assert.match(home, /height: var\(--space-8\)/);
+    assert.match(home, /position: absolute/);
+    assert.match(home, /const CACHE_KEY = "server_list_cache_v2"/);
+
+    const pepshopStyles = home.match(
+        /const PepshopLink = styled\.a`[\s\S]*?\n`;/,
+    )?.[0];
+    assert.ok(pepshopStyles);
+    assert.doesNotMatch(pepshopStyles, /channel-active/);
+    assert.match(pepshopStyles, /color: var\(--unreads\)/);
+    assert.doesNotMatch(home, /<span>\{"Pepshop"\}<\/span>/);
+});

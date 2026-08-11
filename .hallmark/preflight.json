@@ -1,0 +1,16 @@
+{
+    "scannedAt": "2026-08-11",
+    "framework": "Preact 10 with Vite 3",
+    "styling": "styled-components with shared CSS tokens",
+    "fontStack": "Mukta Mahee with system fallbacks",
+    "palette": "src/styles/tokens.css",
+    "spacing": "shared --space-* token scale",
+    "motion": "Lottie available; homepage server cards use restrained CSS transitions",
+    "preserve": [
+        "font stack",
+        "palette",
+        "spacing scale",
+        "homepage two-column/one-column server grid",
+        "above-the-fold listing density"
+    ]
+}

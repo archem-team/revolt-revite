@@ -1,5 +1,5 @@
 import { Menu, Search, X } from "@styled-icons/boxicons-regular";
-import { Lock, MessageAdd } from "@styled-icons/boxicons-solid";
+import { Lock, MessageAdd, Store } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useHistory, useLocation } from "react-router-dom";
@@ -103,7 +103,8 @@ const HamburgerBtn = styled.button`
         touch-action: manipulation;
         transition: background 0.15s ease, color 0.15s ease;
 
-        &:hover, &:active {
+        &:hover,
+        &:active {
             background: color-mix(in srgb, var(--foreground) 8%, transparent);
             color: var(--foreground);
         }
@@ -126,6 +127,7 @@ interface Server {
     showcolor: string;
     sortorder: number;
     logo?: string;
+    pepshopUrl?: string | null;
 }
 
 interface CachedData {
@@ -203,6 +205,66 @@ const LockBadge = styled.div`
     display: grid;
     place-items: center;
     color: var(--foreground);
+`;
+
+/* Hallmark · pre-emit critique: P4 H5 E5 S5 R5 V4 */
+/* Hallmark · component: storefront mark · genre: existing PepChat system
+ * states: default · hover · focus · active
+ * contrast: uses the brand-yellow signal and neutral surface tokens
+ */
+const ServerEntry = styled.div<{ hasPepshop: boolean }>`
+    position: relative;
+    min-width: 0;
+
+    ${(props) =>
+        props.hasPepshop &&
+        css`
+            a:first-of-type .content {
+                padding-right: var(--space-10);
+                min-width: 0;
+            }
+        `}
+`;
+
+const PepshopLink = styled.a`
+    && {
+        position: absolute;
+        z-index: 2;
+        top: 50%;
+        right: var(--space-10);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--space-8);
+        height: var(--space-8);
+        padding: 0;
+        border: 1px solid transparent;
+        border-radius: 50%;
+        background: rgba(var(--foreground-rgb), 0.06);
+        color: var(--unreads);
+        text-decoration: none;
+        transform: translateY(-50%);
+        transition: 0.1s ease-in-out background-color, 0.1s ease-in-out color;
+
+        svg {
+            width: var(--space-4);
+            height: var(--space-4);
+        }
+
+        &:hover {
+            background: rgba(var(--foreground-rgb), 0.12);
+            color: var(--unreads);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--foreground);
+            outline-offset: 2px;
+        }
+
+        &:active {
+            background: rgba(var(--foreground-rgb), 0.18);
+        }
+    }
 `;
 
 // Search field sitting above the directory grid. Mirrors the site's input
@@ -341,7 +403,7 @@ const LoaderWrapper = styled.div`
     margin-top: 48px;
 `;
 
-const CACHE_KEY = "server_list_cache";
+const CACHE_KEY = "server_list_cache_v2";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Safe localStorage wrapper
@@ -362,6 +424,19 @@ const safeStorage = {
         }
     },
 };
+
+function toExternalHttpUrl(value: unknown): string | null {
+    if (typeof value !== "string") return null;
+
+    try {
+        const url = new URL(value);
+        return url.protocol === "https:" || url.protocol === "http:"
+            ? url.toString()
+            : null;
+    } catch {
+        return null;
+    }
+}
 
 const Home: React.FC = () => {
     const client = useClient();
@@ -551,6 +626,7 @@ const Home: React.FC = () => {
 
     const renderServerButton = (server: Server) => {
         const isServerJoined = client.servers.get(server.id);
+        const pepshopUrl = toExternalHttpUrl(server.pepshopUrl);
         const linkTo = isServerJoined
             ? `/server/${server.id}`
             : `/invite/${server.inviteCode}`;
@@ -621,7 +697,21 @@ const Home: React.FC = () => {
             content = <NewServerWrapper>{content}</NewServerWrapper>;
         }
 
-        return content;
+        return (
+            <ServerEntry key={server.id} hasPepshop={Boolean(pepshopUrl)}>
+                {content}
+                {pepshopUrl && (
+                    <PepshopLink
+                        href={pepshopUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Open Pepshop"
+                        aria-label={`Open ${server.name} Pepshop`}>
+                        <Store aria-hidden="true" />
+                    </PepshopLink>
+                )}
+            </ServerEntry>
+        );
     };
 
     // Hamburger: toggle the left sidebar panel in/out using the same
