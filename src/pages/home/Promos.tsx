@@ -37,6 +37,7 @@ import {
 import { Button, InputBox, Preloader } from "@revoltchat/ui";
 
 import { useClient } from "../../controllers/client/ClientController";
+import { sendAnalyticsEvent } from "../../lib/analytics";
 import { BACKEND_API_BASE } from "../directory/types";
 import ImageLightbox from "./ImageLightbox";
 import PromoSubmit from "./PromoSubmit";
@@ -105,6 +106,8 @@ type FilterKey =
 // ─── Caching ──────────────────────────────────────────────────────────────────
 
 const CACHE_PREFIX = "promos_cache_";
+const PROMOS_CACHE_KEY = `${CACHE_PREFIX}all_v2`;
+const PROMOS_PAGE_SIZE = 200;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const LAST_VISIT_KEY = "lastPromoVisit";
 const MARKET_ALERT_DISMISSED_KEY = "promos_market_alert_dismissed";
@@ -113,6 +116,57 @@ const ENDING_SOON_HOURS = 72;
 interface PromoCache {
     timestamp: number;
     data: Promo[];
+}
+
+interface PromoListResponse {
+    success: boolean;
+    data?: {
+        items?: Promo[];
+        pagination?: {
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+    };
+}
+
+async function fetchAllPromos(
+    sessionToken: string,
+    signal: AbortSignal,
+): Promise<Promo[]> {
+    const promos = new Map<string, Promo>();
+
+    for (let page = 1; ; page += 1) {
+        const response = await fetch(
+            `${BACKEND_API_BASE}/promos?page=${page}&pageSize=${PROMOS_PAGE_SIZE}`,
+            {
+                headers: { "x-session-token": sessionToken },
+                signal,
+            },
+        );
+        if (!response.ok) {
+            throw new Error(`Promos request failed with ${response.status}`);
+        }
+
+        const payload = (await response.json()) as PromoListResponse;
+        const pageItems = payload.data?.items;
+        if (!payload.success || !Array.isArray(pageItems)) {
+            throw new Error("Unexpected promos response");
+        }
+
+        pageItems.forEach((promo) => promos.set(promo.id, promo));
+
+        const total = payload.data?.pagination?.total;
+        const reachedReportedTotal =
+            typeof total === "number" && page * PROMOS_PAGE_SIZE >= total;
+        if (
+            reachedReportedTotal ||
+            pageItems.length < PROMOS_PAGE_SIZE ||
+            pageItems.length === 0
+        ) {
+            return [...promos.values()];
+        }
+    }
 }
 
 const safeStorage = {
@@ -348,6 +402,8 @@ function matchesFilter(
             return (
                 promo.shippingFee === 0 || promo.freeShippingThreshold != null
             );
+        case "endingSoon":
+            return isEndingSoon(promo);
         case "recentlyUpdated": {
             const now = Date.now();
             const createdMs = new Date(promo.createdAt).getTime();
@@ -379,6 +435,35 @@ function matchesFilter(
         default:
             return true;
     }
+}
+
+function getWarehouseDisplay(warehouse: string | null | undefined): {
+    label: string;
+    flag: string;
+} {
+    const label = warehouse?.trim();
+    if (!label) return { label: "Warehouse not specified", flag: "" };
+
+    const normalized = label.toLowerCase();
+    if (/\b(?:eu|europe|european)\b/.test(normalized)) {
+        return { label, flag: "🇪🇺" };
+    }
+    if (/\b(?:cn|china|chinese)\b/.test(normalized)) {
+        return { label, flag: "🇨🇳" };
+    }
+    if (
+        /\b(?:india|indian)\b/.test(normalized) ||
+        /^(?:in)(?:\s+warehouse)?$/.test(normalized)
+    ) {
+        return { label, flag: "🇮🇳" };
+    }
+    if (
+        /\b(?:us|usa|american)\b|\bunited[\s-]?states\b/.test(normalized)
+    ) {
+        return { label, flag: "🇺🇸" };
+    }
+
+    return { label, flag: "" };
 }
 
 function escapeRegExp(string: string) {
@@ -3705,6 +3790,11 @@ interface PromoCardProps {
     promo: Promo;
     onOpenImage: (images: string[], startIndex?: number) => void;
     onCompare?: (key: string) => void;
+    onCommunityOpen?: (
+        promoId: string,
+        vendorName: string,
+        action: "open" | "join",
+    ) => void;
     lastVisit: number | null;
     featured?: boolean;
     searchQuery?: string;
@@ -4214,6 +4304,7 @@ const PromoCard = observer(
         promo,
         onOpenImage,
         onCompare,
+        onCommunityOpen,
         lastVisit,
         featured,
         searchQuery = "",
@@ -4526,6 +4617,13 @@ const PromoCard = observer(
                         <ActionIcon
                             as={Link}
                             to={linkTo}
+                            onClick={() =>
+                                onCommunityOpen?.(
+                                    promo.id,
+                                    promo.vendor.name,
+                                    joined ? "open" : "join",
+                                )
+                            }
                             title={
                                 joined ? "Open community" : "Join community"
                             }>
@@ -5043,6 +5141,7 @@ function ComparisonDrawer({
     onScrollToPromo,
     onApplyFilter,
     onShowToast,
+    onCommunityOpen,
 }: {
     productName: string | null;
     vendors: Array<{
@@ -5069,6 +5168,11 @@ function ComparisonDrawer({
     onScrollToPromo?: (vendorName: string, promoId?: string) => void;
     onApplyFilter?: (productKey: string) => void;
     onShowToast?: (msg: string) => void;
+    onCommunityOpen?: (
+        promoId: string,
+        vendorName: string,
+        action: "open" | "join",
+    ) => void;
 }) {
     const client = useClient();
     const history = useHistory();
@@ -5251,7 +5355,10 @@ function ComparisonDrawer({
                                         </VendorMonogram>
                                         <div className="vendor-info">
                                             <strong>{v.name}</strong>
-                                            <span>{v.flag || "🇺🇸"} {v.warehouse}</span>
+                                            <span>
+                                                {v.flag ? `${v.flag} ` : ""}
+                                                {v.warehouse}
+                                            </span>
                                         </div>
 
                                         <div className="vendor-price">
@@ -5356,6 +5463,11 @@ function ComparisonDrawer({
                                                     className="btn-secondary"
                                                     style={{ minHeight: 38, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                                                     onClick={async () => {
+                                                        onCommunityOpen?.(
+                                                            v.promoId || v.id,
+                                                            v.name,
+                                                            isMember ? "open" : "join",
+                                                        );
                                                         const allServers = Array.from(client.servers.values());
                                                         const vLower = (v.name || "").toLowerCase();
                                                         const matchedServer = allServers.find(
@@ -5406,6 +5518,10 @@ function ComparisonDrawer({
 
 const Promos: React.FC = () => {
     const client = useClient();
+    const sessionToken =
+        typeof client.session === "string"
+            ? client.session
+            : (client.session as { token?: string } | undefined)?.token ?? "";
     const [promos, setPromos] = useState<Promo[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -5433,6 +5549,19 @@ const Promos: React.FC = () => {
         setToast({ text: msg, actionText, onAction });
         setTimeout(() => setToast(null), 4500);
     }, []);
+    const pageViewTracked = useRef("");
+    const lastSearchTracked = useRef("");
+    const trackPromoEvent = useCallback(
+        (event: string, properties: Record<string, unknown>) => {
+            void sendAnalyticsEvent({
+                apiBase: BACKEND_API_BASE,
+                token: sessionToken,
+                event,
+                properties,
+            }).catch(() => undefined);
+        },
+        [sessionToken],
+    );
 
     // Keep the previous visit stable for this render session. It is advanced only
     // after the user views the updates, not merely because the page loaded.
@@ -5547,13 +5676,38 @@ const Promos: React.FC = () => {
     );
 
     useEffect(() => {
+        if (
+            loading ||
+            error ||
+            !sessionToken ||
+            pageViewTracked.current === sessionToken
+        )
+            return;
+
+        pageViewTracked.current = sessionToken;
+        trackPromoEvent("promos.page_viewed", {
+            promoCount: promos.length,
+            vendorCount: new Set(promos.map((promo) => promo.vendor.name)).size,
+            ownedServerCount: Math.min(ownedServers.length, 1_000),
+            device: window.innerWidth <= 720 ? "mobile" : "desktop",
+        });
+    }, [
+        error,
+        loading,
+        ownedServers.length,
+        promos,
+        sessionToken,
+        trackPromoEvent,
+    ]);
+
+    useEffect(() => {
         let cancelled = false;
-        const key = CACHE_PREFIX + sort;
+        const controller = new AbortController();
         let hadCache = false;
         let fresh = false;
 
         try {
-            const raw = safeStorage.get(key);
+            const raw = safeStorage.get(PROMOS_CACHE_KEY);
             if (raw) {
                 const parsed: PromoCache = JSON.parse(raw);
                 if (parsed && Array.isArray(parsed.data)) {
@@ -5573,31 +5727,26 @@ const Promos: React.FC = () => {
                 setError(null);
             }
 
-            const sessionToken =
-                typeof client.session === "string"
-                    ? client.session
-                    : (client.session as any)?.token ?? "";
-
-            fetch(`${BACKEND_API_BASE}/promos?sort=${sort}&pageSize=100`, {
-                headers: { "x-session-token": sessionToken },
-            })
-                .then((r) => r.json())
-                .then((res) => {
+            fetchAllPromos(sessionToken, controller.signal)
+                .then((items) => {
                     if (cancelled) return;
-                    if (!res?.success || !Array.isArray(res.data?.items)) {
-                        throw new Error("Unexpected response");
-                    }
-                    const items = res.data.items as Promo[];
                     setPromos(items);
                     setLoading(false);
                     safeStorage.set(
-                        key,
+                        PROMOS_CACHE_KEY,
                         JSON.stringify({ timestamp: Date.now(), data: items }),
                     );
                 })
-                .catch(() => {
-                    if (cancelled) return;
+                .catch((error) => {
+                    if (
+                        cancelled ||
+                        (error instanceof Error && error.name === "AbortError")
+                    )
+                        return;
                     if (!hadCache) {
+                        trackPromoEvent("promos.load_failed", {
+                            stage: "promo_list",
+                        });
                         setError(
                             "Failed to load promos. Please try again later.",
                         );
@@ -5608,8 +5757,9 @@ const Promos: React.FC = () => {
 
         return () => {
             cancelled = true;
+            controller.abort();
         };
-    }, [sort]);
+    }, [sessionToken, trackPromoEvent]);
 
     // Unique promotions that became relevant since the previous acknowledged visit.
     const lastVisitStats = useMemo(() => {
@@ -5756,6 +5906,11 @@ const Promos: React.FC = () => {
             isMarketUpdate(promo, lastVisit),
         );
 
+        trackPromoEvent("promos.filter_changed", {
+            filter: "marketUpdates",
+            resultCount: matchingPromos.length,
+        });
+
         if (matchingPromos.length === 0) {
             setShowMarketUpdatesEmpty(true);
             requestAnimationFrame(() => {
@@ -5858,6 +6013,26 @@ const Promos: React.FC = () => {
             )
             .map(({ promo }) => promo);
     }, [promos, activeFilter, query, sort, lastVisit]);
+
+    useEffect(() => {
+        if (loading || !sessionToken) return;
+        const normalizedQuery = query.trim();
+        if (!normalizedQuery) {
+            lastSearchTracked.current = "";
+            return;
+        }
+
+        const signature = `${sessionToken}|${normalizedQuery}|${filtered.length}`;
+        if (lastSearchTracked.current === signature) return;
+        const timer = window.setTimeout(() => {
+            lastSearchTracked.current = signature;
+            trackPromoEvent("promos.searched", {
+                queryLength: Math.min([...normalizedQuery].length, 500),
+                resultCount: filtered.length,
+            });
+        }, 1_000);
+        return () => window.clearTimeout(timer);
+    }, [filtered.length, loading, query, sessionToken, trackPromoEvent]);
 
     // Save search term after a delay when typing stops and has results
     useEffect(() => {
@@ -5969,6 +6144,58 @@ const Promos: React.FC = () => {
         return filtered;
     }, [filtered, hotPromos, activeFilter, query]);
 
+    const openComparison = (key: string) => {
+        const compound = normalizeCompound(key);
+        if (!compound) return;
+        const vendorCount = new Set(
+            promos
+                .filter((promo) =>
+                    promo.items.some(
+                        (item) =>
+                            normalizeCompound(item.product) === compound,
+                    ),
+                )
+                .map((promo) => promo.vendor.name),
+        ).size;
+        trackPromoEvent("promos.comparison_opened", {
+            compound,
+            vendorCount,
+        });
+        setCompareProduct(compound);
+    };
+
+    const openPromoImages = (
+        promo: Promo,
+        images: string[],
+        initialIndex = 0,
+    ) => {
+        trackPromoEvent("promos.image_opened", {
+            promoId: promo.id,
+            vendorName: promo.vendor.name,
+            imageCount: Math.min(images.length, 100),
+        });
+        openLightbox(images, initialIndex);
+    };
+
+    const trackCommunityOpen = (
+        promoId: string,
+        vendorName: string,
+        action: "open" | "join",
+    ) => {
+        trackPromoEvent("promos.community_opened", {
+            promoId,
+            vendorName,
+            action,
+        });
+    };
+
+    const startSubmission = () => {
+        trackPromoEvent("promos.submission_started", {
+            ownedServerCount: Math.min(ownedServers.length, 1_000),
+        });
+        setSubmitting(true);
+    };
+
     if (submitting) {
         return (
             <PageShell>
@@ -6030,7 +6257,7 @@ const Promos: React.FC = () => {
                     </PageSubtitle>
                 </PageTitleBlock>
                 {ownedServers.length > 0 && (
-                    <SubmitBtn onClick={() => setSubmitting(true)}>
+                    <SubmitBtn onClick={startSubmission}>
                         <Tag size={16} />
                         Submit Promo
                     </SubmitBtn>
@@ -6156,9 +6383,13 @@ const Promos: React.FC = () => {
                     </SearchWrapper>
                     <SortSelect
                         value={sort}
-                        onChange={(e) =>
-                            setSort(e.currentTarget.value as Sort)
-                        }>
+                        onChange={(e) => {
+                            const nextSort = e.currentTarget.value as Sort;
+                            setSort(nextSort);
+                            trackPromoEvent("promos.sort_changed", {
+                                sort: nextSort,
+                            });
+                        }}>
                         <option value="newest">Newest First</option>
                         <option value="updated">Recently Updated</option>
                         <option value="price_asc">Price Low → High</option>
@@ -6181,7 +6412,13 @@ const Promos: React.FC = () => {
                                 key={chip.key}
                                 active={activeFilter === chip.key}
                                 aria-pressed={activeFilter === chip.key}
-                                onClick={() => setActiveFilter(chip.key)}>
+                                onClick={() => {
+                                    setActiveFilter(chip.key);
+                                    trackPromoEvent("promos.filter_changed", {
+                                        filter: chip.key,
+                                        resultCount: count,
+                                    });
+                                }}>
                                 <span>{chip.label}</span>
                                 <span className="chip-count">{count}</span>
                             </FilterChip>
@@ -6195,7 +6432,13 @@ const Promos: React.FC = () => {
                                 key={chip.key}
                                 active={activeFilter === chip.key}
                                 aria-pressed={activeFilter === chip.key}
-                                onClick={() => setActiveFilter(chip.key)}>
+                                onClick={() => {
+                                    setActiveFilter(chip.key);
+                                    trackPromoEvent("promos.filter_changed", {
+                                        filter: chip.key,
+                                        resultCount: count,
+                                    });
+                                }}>
                                 <span>{chip.label}</span>
                                 <span className="chip-count">{count}</span>
                             </FilterChip>
@@ -6228,7 +6471,7 @@ const Promos: React.FC = () => {
                         <div className="cta">
                             <Button
                                 palette="accent"
-                                onClick={() => setSubmitting(true)}>
+                                onClick={startSubmission}>
                                 <Tag size={16} />
                                 Submit your promo
                             </Button>
@@ -6489,11 +6732,7 @@ const Promos: React.FC = () => {
                                             normalizeCompound(key),
                                         );
                                     }}
-                                    onOpenCompare={(key) => {
-                                        setCompareProduct(
-                                            normalizeCompound(key),
-                                        );
-                                    }}
+                                    onOpenCompare={openComparison}
                                 />
                             );
                         })()
@@ -6527,8 +6766,15 @@ const Promos: React.FC = () => {
                                     <PromoCard
                                         key={p.id}
                                         promo={p}
-                                        onOpenImage={openLightbox}
-                                        onCompare={(key) => setCompareProduct(key)}
+                                        onOpenImage={(images, initialIndex) =>
+                                            openPromoImages(
+                                                p,
+                                                images,
+                                                initialIndex,
+                                            )
+                                        }
+                                        onCompare={openComparison}
+                                        onCommunityOpen={trackCommunityOpen}
                                         lastVisit={lastVisit}
                                         featured
                                         searchQuery={query}
@@ -6566,8 +6812,15 @@ const Promos: React.FC = () => {
                                     <PromoCard
                                         key={p.id}
                                         promo={p}
-                                        onOpenImage={openLightbox}
-                                        onCompare={(key) => setCompareProduct(key)}
+                                        onOpenImage={(images, initialIndex) =>
+                                            openPromoImages(
+                                                p,
+                                                images,
+                                                initialIndex,
+                                            )
+                                        }
+                                        onCompare={openComparison}
+                                        onCommunityOpen={trackCommunityOpen}
                                         lastVisit={lastVisit}
                                         searchQuery={query}
                                     />
@@ -6666,8 +6919,7 @@ const Promos: React.FC = () => {
                             )
                             .sort((a, b) => a.price - b.price)[0];
                         const minPrice = lowestPricedItem?.price ?? null;
-                        const wh = (p.warehouse || "").toLowerCase();
-                        const flag = wh.includes("eu") ? "🇪🇺" : wh.includes("cn") ? "🇨🇳" : "🇺🇸";
+                        const warehouse = getWarehouseDisplay(p.warehouse);
                         const shippingText =
                             p.shippingFee === 0
                                 ? "Free Shipping"
@@ -6690,8 +6942,8 @@ const Promos: React.FC = () => {
                             promoId: p.id,
                             name: p.vendor.name,
                             logo: p.vendor.logo || undefined,
-                            warehouse: p.warehouse || "US Warehouse",
-                            flag,
+                            warehouse: warehouse.label,
+                            flag: warehouse.flag,
                             minPrice:
                                 minPrice == null
                                     ? null
@@ -6731,6 +6983,7 @@ const Promos: React.FC = () => {
                         onClose={() => setCompareProduct(null)}
                         onScrollToPromo={scrollToPromo}
                         onShowToast={showToast}
+                        onCommunityOpen={trackCommunityOpen}
                         onApplyFilter={(productKey) => {
                             const compound = normalizeCompound(productKey);
                             if (!compound) return;

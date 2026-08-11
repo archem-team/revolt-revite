@@ -44,32 +44,3 @@ body {
     width: 100%;
     height: calc(100% - var(--app-banner-height, 0px));
 }
-
-// ─── Fix: Horizontal carousel scrolling inside react-overlapping-panels ────────
-//
-// react-overlapping-panels uses a CSS scroll-snap container (._2PvlZ) with
-// scroll-snap-type: x mandatory; overflow-x: scroll.
-//
-// The browser's native touch router sees this outer snap container as the
-// owner of ALL horizontal swipe gestures — inner carousel elements never
-// receive horizontal touches, so swiping them navigates between panels instead.
-//
-// Fix: tell the browser that the MAIN CONTENT PANEL only scrolls vertically
-// (touch-action: pan-y). Horizontal swipes will then fall through to the
-// nearest child that accepts pan-x (our carousels).
-//
-// ._2PvlZ = the snap scroll container  (class from react-overlapping-panels)
-// ._2PvlZ > div:nth-child(2) = the main content panel (left panel is child 1)
-@media (max-width: 960px) {
-    ._2PvlZ > div {
-        // All panel children: default to vertical-only touch handling
-        touch-action: pan-y;
-    }
-
-    // Carousels inside the content panel explicitly claim horizontal panning.
-    // The browser will honour pan-x on these elements over the parent pan-y.
-    [data-carousel="horizontal"] {
-        touch-action: pan-x !important;
-        -webkit-overflow-scrolling: touch;
-    }
-}
