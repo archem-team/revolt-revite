@@ -1,5 +1,5 @@
 import { Menu, Search, X } from "@styled-icons/boxicons-regular";
-import { Lock, MessageAdd, Store } from "@styled-icons/boxicons-solid";
+import { Lock, MessageAdd } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useHistory, useLocation } from "react-router-dom";
@@ -213,47 +213,72 @@ const LockBadge = styled.div`
  * contrast: pass (40–41) · mobile: pass (34, 49, 50–57)
  */
 const ServerEntry = styled.div`
+    --dur-pepshop-micro: 120ms;
+    --ease-pepshop-out: cubic-bezier(0.16, 1, 0.3, 1);
+
     position: relative;
     min-width: 0;
 
     > a:first-of-type .content,
     > div > a:first-of-type .content {
         min-width: 0;
-        padding-right: var(--space-12);
+        padding-right: var(--space-16);
+    }
+
+    > a:first-of-type .action,
+    > div > a:first-of-type .action {
+        display: grid;
+        place-items: center;
+        flex: 0 0 var(--space-8);
+        width: var(--space-8);
+        height: var(--space-8);
     }
 `;
 
 const PepshopLink = styled.a`
+    /* Hallmark · pre-emit critique: P5 H5 E5 S4 R5 V4 */
+    /* Hallmark · component: destination-chip · genre: playful · theme: PepChat
+     * states: default · hover · focus · active · disabled · loading · error · success
+     * contrast: pass (40–41)
+     */
     &&&& {
         position: absolute;
         z-index: 2;
         top: calc(50% - var(--space-1));
-        right: var(--space-12);
+        right: calc(var(--space-12) + var(--space-1));
         display: grid;
         place-items: center;
-        width: var(--space-12);
-        height: var(--space-12);
+        width: calc(var(--space-12) + var(--space-1));
+        height: calc(var(--space-10) + var(--space-1));
         padding: 0;
         border: 0;
         border-radius: var(--radius-pill);
         background: transparent;
         color: var(--unreads);
         text-decoration: none;
-        transform: translateY(-50%);
+        transform: translateY(calc(-50% - 1px));
         -webkit-tap-highlight-color: transparent;
 
         .pepshop-mark {
-            display: grid;
-            place-items: center;
-            width: var(--space-5);
-            height: var(--space-5);
-            color: inherit;
-            transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: var(--space-12);
+            height: var(--space-6);
+            padding: 0;
+            box-sizing: border-box;
+            border-radius: var(--radius-pill);
+            background: var(--unreads);
+            color: var(--primary-background);
+            transition: transform var(--dur-pepshop-micro)
+                var(--ease-pepshop-out);
         }
 
-        svg {
-            width: var(--space-5);
-            height: var(--space-5);
+        .pepshop-label {
+            font-size: var(--font-size-footnote);
+            font-weight: 600;
+            line-height: 1;
+            white-space: nowrap;
         }
 
         @media (hover: hover) and (pointer: fine) {
@@ -268,7 +293,7 @@ const PepshopLink = styled.a`
         }
 
         &:active .pepshop-mark {
-            transform: translateY(1px);
+            transform: scale(0.96);
         }
 
         &[aria-disabled="true"] {
@@ -283,16 +308,22 @@ const PepshopLink = styled.a`
         }
 
         &[data-state="error"] .pepshop-mark {
-            color: var(--error);
+            background: var(--error);
+            color: var(--foreground);
         }
 
         &[data-state="success"] .pepshop-mark {
-            color: var(--success);
+            background: var(--success);
+            color: var(--primary-background);
         }
 
         @media (prefers-reduced-motion: reduce) {
             .pepshop-mark {
                 transition: none;
+            }
+
+            &:hover .pepshop-mark {
+                transform: none;
             }
         }
     }
@@ -702,7 +733,7 @@ const Home: React.FC = () => {
         ) : isServerJoined ? (
             "chevron"
         ) : (
-            <MessageAdd size={20} />
+            <MessageAdd size={22} />
         );
 
         const buttonContent = (
@@ -736,10 +767,10 @@ const Home: React.FC = () => {
                         href={pepshopUrl}
                         target="_blank"
                         rel="noreferrer"
-                        title="Open Pepshop"
-                        aria-label={`Open ${server.name} Pepshop`}>
+                        title="Open Pepshop store"
+                        aria-label={`Open ${server.name} Pepshop store`}>
                         <span className="pepshop-mark">
-                            <Store aria-hidden="true" />
+                            <span className="pepshop-label">{"Store"}</span>
                         </span>
                     </PepshopLink>
                 )}
