@@ -34,7 +34,7 @@ test("Home renders safe Pepshop links without changing server-card height", asyn
     assert.match(home, /color: var\(--primary-background\)/);
     assert.match(home, /font-size: var\(--font-size-footnote\)/);
     assert.match(home, /className="pepshop-label"/);
-    assert.match(home, /<span className="pepshop-label">\{"Store"\}<\/span>/);
+    assert.match(home, /<span className="pepshop-label">\{"Shop"\}<\/span>/);
     assert.doesNotMatch(home, /className="pepshop-arrow"/);
     assert.doesNotMatch(home, /<UpArrowAlt/);
     assert.doesNotMatch(home, /<ShoppingBag/);
