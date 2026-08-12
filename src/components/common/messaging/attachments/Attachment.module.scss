@@ -115,3 +115,35 @@
     background: var(--background);
     border-radius: var(--border-radius);
 }
+
+.imageError {
+    z-index: 1;
+    grid-area: 1 / 1;
+    align-self: center;
+    justify-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: calc(100% - 16px);
+    padding: 7px 10px;
+    border: 0;
+    border-radius: var(--border-radius);
+    color: var(--foreground);
+    background: var(--secondary-background);
+    cursor: pointer;
+    font: inherit;
+
+    &:hover,
+    &:focus-visible {
+        background: var(--tertiary-background);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+    &:active {
+        transform: translateY(1px);
+    }
+}

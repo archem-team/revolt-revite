@@ -1,0 +1,56 @@
+/* Hallmark · component: chat-image-gallery · genre: modern-minimal · theme: existing
+ * states: default · hover · focus · active · disabled · loading · error · success
+ * contrast: existing application tokens
+ * Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4
+ */
+.gallery {
+    --gallery-gap: 8px;
+    --gallery-tile: min(150px, calc((100vw - 106px) / 2));
+
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, var(--gallery-tile)));
+    grid-auto-rows: var(--gallery-tile);
+    gap: var(--gallery-gap);
+    width: calc(var(--gallery-tile) * 2 + var(--gallery-gap));
+    max-width: 100%;
+    margin-top: 4px;
+    overflow: hidden;
+    border-radius: var(--border-radius);
+}
+
+.tile {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    overflow: hidden;
+    background: var(--background);
+    border-radius: var(--border-radius);
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+    }
+
+    &:focus-within {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+    }
+}
+
+.three .tile:first-child {
+    grid-row: span 2;
+}
+
+@media (max-width: 319px) {
+    .gallery {
+        --gallery-tile: min(150px, calc((100vw - 90px) / 2));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tile img {
+        transition: none;
+    }
+}

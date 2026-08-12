@@ -19,6 +19,7 @@ type Props = JSX.HTMLAttributes<HTMLImageElement> & {
 
 export default function ImageFile({ attachment, ...props }: Props) {
     const [loading, setLoading] = useState(ImageLoadingState.Loading);
+    const [attempt, setAttempt] = useState(0);
     const client = useClient();
 
     // Sized for the chat box (2x the 400px display cap, for retina) —
@@ -34,7 +35,20 @@ export default function ImageFile({ attachment, ...props }: Props) {
             {loading !== ImageLoadingState.Loaded && (
                 <div className={styles.imagePlaceholder} />
             )}
+            {loading === ImageLoadingState.Error && (
+                <button
+                    type="button"
+                    className={styles.imageError}
+                    onClick={() => {
+                        setLoading(ImageLoadingState.Loading);
+                        setAttempt((value) => value + 1);
+                    }}>
+                    <span aria-hidden="true">{"!"}</span>
+                    {"Image unavailable · Retry"}
+                </button>
+            )}
             <img
+                key={attempt}
                 {...props}
                 src={url}
                 alt={attachment.filename}
