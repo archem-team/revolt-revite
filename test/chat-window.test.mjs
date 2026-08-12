@@ -165,15 +165,19 @@ test("chat interactions use semantic controls and accessible names", async () =>
 });
 
 test("compact channel routes are brought into view after responsive layout", async () => {
-    const [app, channel, tokens] = await Promise.all([
-        read("src/pages/RevoltApp.tsx"),
-        read("src/pages/channels/Channel.tsx"),
-        read("src/styles/tokens.css"),
-    ]);
+    const [app, channel, tokens, document, errorBoundary, home, compactPanels] =
+        await Promise.all([
+            read("src/pages/RevoltApp.tsx"),
+            read("src/pages/channels/Channel.tsx"),
+            read("src/styles/tokens.css"),
+            read("index.html"),
+            read("src/lib/ErrorBoundary.tsx"),
+            read("src/pages/home/Home.tsx"),
+            read("src/lib/compactPanels.ts"),
+        ]);
 
     assert.match(app, /const COMPACT_LAYOUT_QUERY = "\(max-width: 960px\)"/);
-    assert.match(app, /function getPanelsScroller/);
-    assert.match(app, /left: routes\.offsetLeft/);
+    assert.match(app, /return keepRoutesPanelInView\(\)/);
     assert.match(app, /\[compactLayout, inChannel, inServer, path\]/);
     assert.match(channel, /@media \(max-width: 960px\)[\s\S]*\.searchArea/);
     assert.match(
@@ -181,6 +185,20 @@ test("compact channel routes are brought into view after responsive layout", asy
         /@media \(max-width: 960px\) \{[\s\S]*display: none;/,
     );
     assert.match(tokens, /html,[\s\S]*body \{[\s\S]*overflow-x: clip/);
+    assert.match(document, /unhandledrejection/);
+    assert.match(document, /dynamically imported module/);
+    assert.match(document, /app && !app\.firstElementChild/);
+    assert.match(document, /id="boot-recovery"/);
+    assert.match(document, /Clear cache and refresh/);
+    assert.match(document, /window\.__pepchatRecoverBoot/);
+    assert.match(errorBoundary, /isDynamicImportFailure\(error\)/);
+    assert.match(errorBoundary, /__pepchatRecoverBoot/);
+    assert.match(home, /return keepRoutesPanelInView\(\)/);
+    assert.match(compactPanels, /POSITION_DELAYS_MS/);
+    assert.match(compactPanels, /routes\.scrollIntoView/);
+    assert.match(compactPanels, /panels\.scrollLeft = routes\.offsetLeft/);
+    assert.match(compactPanels, /window\.addEventListener\("pageshow"/);
+    assert.match(compactPanels, /document\.addEventListener\("touchstart"/);
 });
 
 test("new chat-window copy is sourced from the locale dictionary", async () => {

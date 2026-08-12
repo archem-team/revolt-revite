@@ -5,6 +5,7 @@ import styled, { css } from "styled-components/macro";
 import { useEffect, useState } from "preact/hooks";
 
 import ContextMenus from "../lib/ContextMenus";
+import { keepRoutesPanelInView } from "../lib/compactPanels";
 import { isTouchscreenDevice } from "../lib/isTouchscreenDevice";
 
 import { Titlebar } from "../components/native/Titlebar";
@@ -25,25 +26,6 @@ import ServerSettings from "./settings/ServerSettings";
 import Settings from "./settings/Settings";
 
 const COMPACT_LAYOUT_QUERY = "(max-width: 960px)";
-
-function getPanelsScroller(): HTMLElement | null {
-    let node = document.querySelector<HTMLElement>(
-        '[data-component="routes"]',
-    )?.parentElement;
-
-    while (node && node !== document.body) {
-        const style = window.getComputedStyle(node);
-        if (
-            node.scrollWidth > node.clientWidth &&
-            (style.overflowX === "auto" || style.overflowX === "scroll")
-        ) {
-            return node;
-        }
-        node = node.parentElement;
-    }
-
-    return null;
-}
 const AppContainer = styled.div`
     background-size: cover !important;
     background-position: center center !important;
@@ -163,27 +145,7 @@ export default function App() {
     }, []);
     useEffect(() => {
         if (!compactLayout || !(inChannel || inServer)) return;
-
-        let secondFrame = 0;
-        const firstFrame = requestAnimationFrame(() => {
-            secondFrame = requestAnimationFrame(() => {
-                const routes = document.querySelector<HTMLElement>(
-                    '[data-component="routes"]',
-                );
-                const panels = getPanelsScroller();
-                if (!routes || !panels) return;
-
-                panels.scrollTo({
-                    left: routes.offsetLeft,
-                    behavior: "auto",
-                });
-            });
-        });
-
-        return () => {
-            cancelAnimationFrame(firstFrame);
-            cancelAnimationFrame(secondFrame);
-        };
+        return keepRoutesPanelInView();
     }, [compactLayout, inChannel, inServer, path]);
 
     return (

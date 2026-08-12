@@ -10,12 +10,15 @@ import { Text } from "preact-i18n";
 
 import { CategoryButton, InputBox, Preloader } from "@revoltchat/ui";
 
+import { keepRoutesPanelInView } from "../../lib/compactPanels";
 import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
 
 import { useClient } from "../../controllers/client/ClientController";
 import { BACKEND_API_BASE } from "../directory/types";
 import Catalog from "./Catalog";
 import Promos from "./Promos";
+
+const COMPACT_LAYOUT_QUERY = "(max-width: 960px)";
 
 const Overlay = styled.div`
     display: grid;
@@ -55,11 +58,11 @@ const TabRow = styled.div`
     }
 `;
 
-/* Hamburger button — visible on mobile viewports (<= 720px), collapses/expands left sidebar */
+/* Hamburger button — visible while the sidebar uses the sliding panel layout. */
 const HamburgerBtn = styled.button`
     display: none;
 
-    @media (max-width: 720px) {
+    @media (max-width: 960px) {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -75,7 +78,8 @@ const HamburgerBtn = styled.button`
         touch-action: manipulation;
         transition: background 0.15s ease, color 0.15s ease;
 
-        &:hover, &:active {
+        &:hover,
+        &:active {
             background: color-mix(in srgb, var(--foreground) 8%, transparent);
             color: var(--foreground);
         }
@@ -374,19 +378,15 @@ const Home: React.FC = () => {
         if (tab === "catalog") setCatalogVisited(true);
     }, [tab]);
 
-    // On mobile the overlapping panels default to the sidebar; when landing on
-    // the Promos or Catalog tab (e.g. after a refresh), bring the content panel into view
-    // so the user sees the content rather than the channel list. Deferred to the
-    // next frame so the panel container has laid out before we scroll it.
+    // Use the same iOS-safe positioning as deep-linked channel routes. WebKit
+    // may re-snap after async Promos/Catalog content changes the grid layout.
     useEffect(() => {
-        const isMobile = isTouchscreenDevice || (typeof window !== "undefined" && window.innerWidth <= 720);
-        if (!isMobile || (tab !== "promos" && tab !== "catalog"))
-            return;
-        const raf = requestAnimationFrame(() => {
-            const panels = document.querySelector("#app > div > div > div");
-            panels?.scrollTo({ left: panels.scrollWidth, behavior: "auto" });
-        });
-        return () => cancelAnimationFrame(raf);
+        const isCompact =
+            isTouchscreenDevice ||
+            (typeof window !== "undefined" &&
+                window.matchMedia(COMPACT_LAYOUT_QUERY).matches);
+        if (!isCompact || (tab !== "promos" && tab !== "catalog")) return;
+        return keepRoutesPanelInView();
     }, [tab]);
 
     // Filter by name or description, case-insensitive.
@@ -584,12 +584,17 @@ const Home: React.FC = () => {
     // Hamburger: toggle the left sidebar panel in/out using the same
     // scroll-based mechanism that OverlappingPanels uses on mobile.
     const toggleSidebar = () => {
-        const panels = document.querySelector("#app > div > div > div") as HTMLElement | null;
+        const panels = document.querySelector(
+            "#app > div > div > div",
+        ) as HTMLElement | null;
         if (!panels) return;
         // If scrolled right (content visible), scroll back to show sidebar;
         // if at left (sidebar visible), scroll right to show content.
         const atLeft = panels.scrollLeft < 50;
-        panels.scrollTo({ left: atLeft ? panels.scrollWidth : 0, behavior: "smooth" });
+        panels.scrollTo({
+            left: atLeft ? panels.scrollWidth : 0,
+            behavior: "smooth",
+        });
     };
 
     return (
