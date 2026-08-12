@@ -18,6 +18,7 @@ import Layout from "./stores/Layout";
 import LocaleOptions from "./stores/LocaleOptions";
 import MessageQueue from "./stores/MessageQueue";
 import NotificationOptions from "./stores/NotificationOptions";
+import NotificationCenter from "./stores/NotificationCenter";
 import Ordering from "./stores/Ordering";
 import Plugins from "./stores/Plugins";
 import ServerConfig from "./stores/ServerConfig";
@@ -44,6 +45,7 @@ export default class State {
      */
     private config: ServerConfig;
     notifications: NotificationOptions;
+    notificationCenter: NotificationCenter;
     queue: MessageQueue;
     settings: Settings;
     sync: Sync;
@@ -65,6 +67,7 @@ export default class State {
         this.layout = new Layout();
         this.config = new ServerConfig();
         this.notifications = new NotificationOptions(this);
+        this.notificationCenter = new NotificationCenter();
         this.queue = new MessageQueue();
         this.settings = new Settings();
         this.sync = new Sync(this);
@@ -147,6 +150,7 @@ export default class State {
                 reportError(err as any, "failed_sync_apply");
             }
         }
+        this.notificationCenter.onPacket(packet);
     }
 
     /**
@@ -161,6 +165,7 @@ export default class State {
 
             // Register listener for incoming packets.
             client.addListener("packet", this.onPacket);
+            this.notificationCenter.connect(client);
 
             // Register events for notifications.
             client.addListener("message", this.notifications.onMessage);
@@ -267,6 +272,7 @@ export default class State {
             if (client) {
                 client.removeListener("message", this.queue.onMessage);
                 client.removeListener("packet", this.onPacket);
+                this.notificationCenter.disconnect();
                 client.removeListener("message", this.notifications.onMessage);
                 client.removeListener(
                     "user/relationship",
@@ -317,6 +323,7 @@ export default class State {
             this.experiments = new Experiments();
             this.layout = new Layout();
             this.notifications = new NotificationOptions(this);
+            this.notificationCenter = new NotificationCenter();
             this.queue = new MessageQueue();
             this.settings = new Settings();
             this.sync = new Sync(this);

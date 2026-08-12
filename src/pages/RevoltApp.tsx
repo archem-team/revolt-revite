@@ -19,6 +19,7 @@ import Developer from "./developer/Developer";
 import Friends from "./friends/Friends";
 import Home from "./home/Home";
 import HomeNew from "./home/HomeNew";
+import NotificationCenterPage, { NotificationDrawer } from "./notifications/NotificationCenter";
 import InviteBot from "./invite/InviteBot";
 import ChannelSettings from "./settings/ChannelSettings";
 import ServerSettings from "./settings/ServerSettings";
@@ -107,7 +108,8 @@ export default function App() {
         path === "/home" ||
         path === "/settings" ||
         path.startsWith("/friends") ||
-        path.startsWith("/discover");
+        path.startsWith("/discover") ||
+        path.startsWith("/notifications");
     const inChannel = path.includes("/channel");
     const inServer = path.includes("/server");
     // Pages that draw their own header-on-canvas + rounded panel.
@@ -115,7 +117,8 @@ export default function App() {
     const inSpecial =
         (path.startsWith("/friends") && isTouchscreenDevice) ||
         path.startsWith("/invite") ||
-        path.includes("/settings");
+        path.includes("/settings") ||
+        path.startsWith("/notifications");
 
     const alert = useSystemAlert();
     const [statusBar, setStatusBar] = useState(false);
@@ -269,11 +272,13 @@ export default function App() {
                             <Route path="/open/:id" component={Open} />
                             <Route path="/bot/:id" component={InviteBot} />
                             <Route path="/home" component={HomeNew} />
+                            <Route path="/notifications" component={NotificationCenterPage} />
                             <Route path="/" component={Home} />
                         </Switch>
                     </Routes>
                     <ContextMenus />
                 </OverlappingPanels>
+                {!isTouchscreenDevice && <NotificationDrawer />}
             </AppContainer>
         </>
     );

@@ -1,3 +1,4 @@
+import { Bell } from "@styled-icons/boxicons-regular";
 import { Message, Group } from "@styled-icons/boxicons-solid";
 import { observer } from "mobx-react-lite";
 import { useHistory, useLocation } from "react-router";
@@ -57,9 +58,32 @@ const Button = styled.a<{ active: boolean }>`
         `}
 `;
 
+const IconWrap = styled.span`
+    position: relative;
+    display: grid;
+    place-items: center;
+
+    > b {
+        position: absolute;
+        top: -8px;
+        right: -13px;
+        min-width: 17px;
+        height: 17px;
+        padding: 0 4px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--accent);
+        color: var(--accent-contrast) !important;
+        font-size: 10px;
+        line-height: 1;
+    }
+`;
+
 export default observer(() => {
     const client = useClient();
     const layout = useApplicationState().layout;
+    const notificationCenter = useApplicationState().notificationCenter;
     const user = client.users.get(client.user!._id);
 
     const history = useHistory();
@@ -68,7 +92,8 @@ export default observer(() => {
     const friendsActive = path.startsWith("/friends");
     const settingsActive = path.startsWith("/settings");
     const discoverActive = path.startsWith("/discover");
-    const homeActive = !(friendsActive || settingsActive || discoverActive);
+    const notificationsActive = path.startsWith("/notifications");
+    const homeActive = !(friendsActive || settingsActive || discoverActive || notificationsActive);
 
     return (
         <Base>
@@ -97,6 +122,16 @@ export default observer(() => {
                     <IconButton>
                         <ConditionalLink active={friendsActive} to="/friends">
                             <Group size={25} />
+                        </ConditionalLink>
+                    </IconButton>
+                </Button>
+                <Button active={notificationsActive}>
+                    <IconButton>
+                        <ConditionalLink active={notificationsActive} to="/notifications">
+                            <IconWrap>
+                                <Bell size={25} />
+                                {notificationCenter.unreadCount > 0 && <b>{notificationCenter.unreadCount > 99 ? "99+" : notificationCenter.unreadCount}</b>}
+                            </IconWrap>
                         </ConditionalLink>
                     </IconButton>
                 </Button>
