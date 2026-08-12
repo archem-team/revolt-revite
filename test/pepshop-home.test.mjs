@@ -17,6 +17,8 @@ test("Home renders safe Pepshop links without changing server-card height", asyn
         /aria-label=\{`Open \$\{server\.name\} Pepshop store`\}/,
     );
     assert.match(home, /target="_blank"/);
+    assert.match(home, /rel="noopener"/);
+    assert.doesNotMatch(home, /rel="noreferrer"/);
     assert.match(home, /right: calc\(var\(--space-12\) \+ var\(--space-1\)\)/);
     assert.match(home, /width: calc\(var\(--space-12\) \+ var\(--space-1\)\)/);
     assert.match(home, /height: calc\(var\(--space-10\) \+ var\(--space-1\)\)/);

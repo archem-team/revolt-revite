@@ -766,7 +766,7 @@ const Home: React.FC = () => {
                     <PepshopLink
                         href={pepshopUrl}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener"
                         title="Open Pepshop store"
                         aria-label={`Open ${server.name} Pepshop store`}>
                         <span className="pepshop-mark">
