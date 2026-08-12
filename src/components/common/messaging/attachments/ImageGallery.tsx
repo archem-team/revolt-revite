@@ -10,7 +10,13 @@ interface Props {
     attachments: API.File[];
 }
 
-function GalleryTile({ attachment }: { attachment: API.File }) {
+function GalleryTile({
+    attachment,
+    attachments,
+}: {
+    attachment: API.File;
+    attachments: API.File[];
+}) {
     const triggerEvents = useTriggerEvents("Menu", { attachment });
     if (attachment.metadata.type !== "Image") return null;
 
@@ -18,6 +24,7 @@ function GalleryTile({ attachment }: { attachment: API.File }) {
         <div className={styles.tile} {...triggerEvents}>
             <ImageFile
                 attachment={attachment}
+                gallery={attachments}
                 width={attachment.metadata.width}
                 height={attachment.metadata.height}
             />
@@ -35,7 +42,11 @@ export default function ImageGallery({ attachments }: Props) {
             role="group"
             aria-label={`${attachments.length} image attachments`}>
             {attachments.map((attachment) => (
-                <GalleryTile key={attachment._id} attachment={attachment} />
+                <GalleryTile
+                    key={attachment._id}
+                    attachment={attachment}
+                    attachments={attachments}
+                />
             ))}
         </div>
     );

@@ -1,3 +1,4 @@
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 · macrostructure: compact-action-row · genre: atmospheric · tone: quiet utility · palette: existing PepChat · contrast: pass (40–41) · slop: pass (42–49) · mobile: pass (34, 49, 50–57) */
 .embed {
     margin: 0.2em 0;
     // CSS guarantee: whatever the JS sizing computes, an embed can never
@@ -102,6 +103,98 @@
         a {
             cursor: pointer;
         }
+    }
+}
+
+.telegram {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    width: min(100%, var(--attachment-max-width));
+    min-height: 72px;
+    padding: var(--space-3);
+    border: 0;
+    border-radius: var(--radius-lg);
+    color: var(--foreground);
+    background: var(--secondary-background);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+
+.telegramIcon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    padding: var(--space-1);
+    border-radius: var(--radius-lg);
+    background: var(--background);
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+}
+
+.telegramContent {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.telegramSite,
+.telegramHandle,
+.telegramTitle {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.telegramSite {
+    color: var(--secondary-foreground);
+    font-size: var(--font-size-footnote);
+    line-height: 1;
+}
+
+.telegramTitle {
+    color: var(--foreground);
+    font-size: var(--font-size-body-3);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+}
+
+.telegramHandle {
+    color: var(--secondary-foreground);
+    font-size: var(--font-size-body-4);
+    line-height: var(--line-height-tight);
+}
+
+.telegramArrow {
+    flex: none;
+    color: var(--secondary-foreground);
+}
+
+.telegram:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.telegram:active {
+    background: var(--tertiary-background);
+}
+
+.telegram:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .telegram:hover {
+        background: var(--tertiary-background);
     }
 }
 

@@ -15,9 +15,10 @@ enum ImageLoadingState {
 
 type Props = JSX.HTMLAttributes<HTMLImageElement> & {
     attachment: API.File;
+    gallery?: API.File[];
 };
 
-export default function ImageFile({ attachment, ...props }: Props) {
+export default function ImageFile({ attachment, gallery, ...props }: Props) {
     const [loading, setLoading] = useState(ImageLoadingState.Loading);
     const [attempt, setAttempt] = useState(0);
     const client = useClient();
@@ -58,7 +59,11 @@ export default function ImageFile({ attachment, ...props }: Props) {
                     [styles.loading]: loading !== ImageLoadingState.Loaded,
                 })}
                 onClick={() =>
-                    modalController.push({ type: "image_viewer", attachment })
+                    modalController.push({
+                        type: "image_viewer",
+                        attachment,
+                        attachments: gallery,
+                    })
                 }
                 onMouseDown={(ev) =>
                     ev.button === 1 && window.open(original, "_blank")
