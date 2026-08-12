@@ -9,11 +9,11 @@ type NotificationPacket =
     | { type: "NotificationsReadAll"; through: string; unread_count: number }
     | { type: "NotificationCampaignRemove"; campaign_id: string };
 
-type NotificationClient = Client & {
+type NotificationClient = Client & Partial<{
     fetchNotifications(options?: { before?: string; limit?: number; category?: NotificationCategory }): Promise<NotificationPage>;
     markNotificationRead(id: string): Promise<{ unreadCount: number; affected: number }>;
     markAllNotificationsRead(through: string): Promise<{ unreadCount: number; affected: number }>;
-};
+}>;
 
 export default class NotificationCenter {
     items: NotificationItem[] = [];
@@ -48,12 +48,36 @@ export default class NotificationCenter {
         this.drawerOpen = false;
     }
 
+    private async fetchPage(options: { before?: string; limit?: number; category?: NotificationCategory } = {}) {
+        if (!this.client) throw new Error("Notification client is not connected");
+        if (this.client.fetchNotifications) return this.client.fetchNotifications(options);
+
+        const params = new URLSearchParams();
+        if (options.before) params.set("before", options.before);
+        if (options.limit) params.set("limit", String(options.limit));
+        if (options.category) params.set("category", options.category);
+        const suffix = params.toString();
+        return this.client.api.get((`/notifications${suffix ? `?${suffix}` : ""}`) as never) as unknown as Promise<NotificationPage>;
+    }
+
+    private async persistRead(id: string) {
+        if (!this.client) throw new Error("Notification client is not connected");
+        if (this.client.markNotificationRead) return this.client.markNotificationRead(id);
+        return this.client.api.post(`/notifications/${id}/read` as never) as unknown as Promise<{ unreadCount: number; affected: number }>;
+    }
+
+    private async persistAllRead(through: string) {
+        if (!this.client) throw new Error("Notification client is not connected");
+        if (this.client.markAllNotificationsRead) return this.client.markAllNotificationsRead(through);
+        return this.client.api.post("/notifications/read-all" as never, { through } as never) as unknown as Promise<{ unreadCount: number; affected: number }>;
+    }
+
     async load(category?: NotificationCategory) {
         if (!this.client || this.loading) return;
         this.loading = true;
         this.error = undefined;
         try {
-            const page = await this.client.fetchNotifications({ limit: 30, category });
+            const page = await this.fetchPage({ limit: 30, category });
             runInAction(() => {
                 this.items = page.items;
                 this.nextCursor = page.nextCursor;
@@ -70,7 +94,7 @@ export default class NotificationCenter {
         if (!this.client || !this.nextCursor || this.loadingMore) return;
         this.loadingMore = true;
         try {
-            const page = await this.client.fetchNotifications({ before: this.nextCursor, limit: 30 });
+            const page = await this.fetchPage({ before: this.nextCursor, limit: 30 });
             runInAction(() => {
                 const known = new Set(this.items.map((item) => item._id));
                 this.items.push(...page.items.filter((item) => !known.has(item._id)));
@@ -113,7 +137,7 @@ export default class NotificationCenter {
         item.read_at = new Date().toISOString();
         this.unreadCount = Math.max(0, previous - 1);
         try {
-            const result = await this.client.markNotificationRead(id);
+            const result = await this.persistRead(id);
             runInAction(() => (this.unreadCount = result.unreadCount));
         } catch {
             runInAction(() => {
@@ -131,7 +155,7 @@ export default class NotificationCenter {
         const previous = this.unreadCount;
         this.unreadCount = 0;
         try {
-            const result = await this.client.markAllNotificationsRead(through);
+            const result = await this.persistAllRead(through);
             runInAction(() => (this.unreadCount = result.unreadCount));
         } catch {
             runInAction(() => {
