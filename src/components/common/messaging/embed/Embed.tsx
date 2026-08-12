@@ -1,3 +1,4 @@
+import { ChevronRight } from "@styled-icons/boxicons-regular";
 import { API } from "revolt.js";
 
 import styles from "./Embed.module.scss";
@@ -20,6 +21,20 @@ const MAX_EMBED_WIDTH = 400;
 const MAX_EMBED_HEIGHT = 300;
 const CONTAINER_PADDING = 24;
 const MAX_PREVIEW_SIZE = 150;
+
+function telegramHandle(url?: string | null) {
+    if (!url) return;
+
+    try {
+        const parsed = new URL(url);
+        if (!["t.me", "telegram.me"].includes(parsed.hostname)) return;
+
+        const handle = parsed.pathname.split("/").filter(Boolean)[0];
+        return handle ? `@${handle}` : undefined;
+    } catch {
+        return;
+    }
+}
 
 export default function Embed({ embed }: Props) {
     const client = useClient();
@@ -110,6 +125,70 @@ export default function Embed({ embed }: Props) {
                         height={height}
                     />
                 );
+            }
+
+            if (embed.type === "Website") {
+                const handle = telegramHandle(embed.url);
+                if (handle) {
+                    const imageUrl = embed.image?.url ?? embed.icon_url;
+                    return (
+                        <button
+                            type="button"
+                            className={classNames(
+                                styles.embed,
+                                styles.telegram,
+                            )}
+                            onClick={() =>
+                                modalController.openLink(
+                                    embed.url!,
+                                    undefined,
+                                    true,
+                                )
+                            }>
+                            <span
+                                className={styles.telegramIcon}
+                                aria-hidden="true">
+                                {imageUrl && (
+                                    <img
+                                        src={client.proxyFile(imageUrl)}
+                                        alt=""
+                                        loading="lazy"
+                                        decoding="async"
+                                        onError={(event) =>
+                                            (event.currentTarget.style.display =
+                                                "none")
+                                        }
+                                    />
+                                )}
+                            </span>
+                            <span className={styles.telegramContent}>
+                                <span className={styles.telegramSite}>
+                                    {"Telegram"}
+                                </span>
+                                <strong className={styles.telegramTitle}>
+                                    {embed.title ?? handle}
+                                </strong>
+                                <span className={styles.telegramHandle}>
+                                    {handle}
+                                </span>
+                            </span>
+                            <ChevronRight
+                                className={styles.telegramArrow}
+                                size={22}
+                                aria-hidden="true"
+                            />
+                        </button>
+                    );
+                }
+
+                const hasMeaningfulPreview = Boolean(
+                    embed.site_name ||
+                        embed.title ||
+                        embed.image ||
+                        embed.video ||
+                        (embed.special && embed.special.type !== "None"),
+                );
+                if (!hasMeaningfulPreview) return null;
             }
 
             return (

@@ -91,6 +91,7 @@ export type Modal = {
           type: "image_viewer";
           embed?: API.Image;
           attachment?: API.File;
+          attachments?: API.File[];
       }
     | {
           type: "user_picker";
