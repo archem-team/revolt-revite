@@ -33,6 +33,7 @@ import UserStatus from "../components/common/user/UserStatus";
 import { useSession } from "../controllers/client/ClientController";
 import { takeError } from "../controllers/client/jsx/error";
 import { modalController } from "../controllers/modals/ModalController";
+import { getRetryAfterMs } from "./chatSendFailure";
 import { internalEmit } from "./eventEmitter";
 import { getRenderer } from "./renderer/Singleton";
 
@@ -240,8 +241,16 @@ export default function ContextMenus() {
                 case "retry_message":
                     {
                         const nonce = data.message.id;
-                        const fail = (error: string) =>
-                            state.queue.fail(nonce, error);
+                        const fail = (error: unknown) => {
+                            const retryAfter = getRetryAfterMs(error);
+                            state.queue.fail(
+                                nonce,
+                                takeError(error),
+                                retryAfter
+                                    ? Date.now() + retryAfter
+                                    : undefined,
+                            );
+                        };
 
                         client.channels
                             .get(data.message.channel)!

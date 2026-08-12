@@ -15,8 +15,9 @@ interface Props {
     embed: API.Embed;
 }
 
-const MAX_EMBED_WIDTH = 480;
-const MAX_EMBED_HEIGHT = 640;
+const MAX_EMBED_WIDTH = 400;
+// Match the iOS preview ceiling so one rich preview cannot become the chat.
+const MAX_EMBED_HEIGHT = 300;
 const CONTAINER_PADDING = 24;
 const MAX_PREVIEW_SIZE = 150;
 
@@ -32,14 +33,22 @@ export default function Embed({ embed }: Props) {
         w: number,
         h: number,
     ): { width: number; height: number } {
-        const limitingWidth = Math.min(maxWidth, w);
+        const safeWidth = Number.isFinite(w) && w > 0 ? w : 16;
+        const safeHeight = Number.isFinite(h) && h > 0 ? h : 9;
+        const limitingWidth = Math.min(maxWidth, safeWidth);
 
-        const limitingHeight = Math.min(MAX_EMBED_HEIGHT, h);
+        const limitingHeight = Math.min(MAX_EMBED_HEIGHT, safeHeight);
 
         // Calculate smallest possible WxH.
-        const width = Math.min(limitingWidth, limitingHeight * (w / h));
+        const width = Math.min(
+            limitingWidth,
+            limitingHeight * (safeWidth / safeHeight),
+        );
 
-        const height = Math.min(limitingHeight, limitingWidth * (h / w));
+        const height = Math.min(
+            limitingHeight,
+            limitingWidth * (safeHeight / safeWidth),
+        );
 
         return { width, height };
     }

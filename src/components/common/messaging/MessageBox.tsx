@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
 import { IconButton, Picker } from "@revoltchat/ui";
 
 import TextAreaAutoSize from "../../../lib/TextAreaAutoSize";
+import { getRetryAfterMs, retrySeconds } from "../../../lib/chatSendFailure";
 import { convertMentionsToWireFormat } from "../../../lib/convertMentions";
 import { debounce } from "../../../lib/debounce";
 import { defer, chainedDefer } from "../../../lib/defer";
@@ -48,7 +49,6 @@ import { PermissionTooltip } from "../Tooltip";
 import ComposerOverlay from "./ComposerOverlay";
 import FilePreview from "./bars/FilePreview";
 import ReplyBar from "./bars/ReplyBar";
-import { User } from "@styled-icons/boxicons-regular";
 
 type Props = {
     channel: Channel;
@@ -58,11 +58,11 @@ export type UploadState =
     | { type: "none" }
     | { type: "attached"; files: File[] }
     | {
-        type: "uploading";
-        files: File[];
-        percent: number;
-        cancel: CancelTokenSource;
-    }
+          type: "uploading";
+          files: File[];
+          percent: number;
+          cancel: CancelTokenSource;
+      }
     | { type: "sending"; files: File[] }
     | { type: "failed"; files: File[]; error: string };
 
@@ -176,6 +176,24 @@ const FloatingLayer = styled.div`
     position: relative;
 `;
 
+const SendStatus = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 34px;
+    margin: 0 var(--space-2);
+    padding: 6px 12px;
+    border-radius: var(--border-radius);
+    color: var(--foreground);
+    background: var(--secondary-background);
+    font-size: 12px;
+
+    &[data-error="true"] {
+        border-inline-start: 3px solid var(--error);
+    }
+`;
+
 const ThisCodeWillBeReplacedAnywaysSoIMightAsWellJustDoItThisWay__Padding = styled.div`
     width: 16px;
 `;
@@ -259,8 +277,23 @@ export default observer(({ channel }: Props) => {
     const [typing, setTyping] = useState<boolean | number>(false);
     const [replies, setReplies] = useState<Reply[]>([]);
     const [picker, setPicker] = useState(false);
+    const [sendFailure, setSendFailure] = useState<{
+        error: string;
+        retryAt?: number;
+    }>();
+    const [now, setNow] = useState(Date.now());
     const client = useClient();
     const translate = useTranslation();
+    const cooldown = retrySeconds(sendFailure?.retryAt, now);
+    const isCoolingDown = cooldown > 0;
+
+    useEffect(() => {
+        if (!isCoolingDown) return;
+        const timer = window.setInterval(() => setNow(Date.now()), 250);
+        return () => window.clearInterval(timer);
+    }, [isCoolingDown]);
+
+    useEffect(() => setSendFailure(undefined), [channel._id]);
 
     const closePicker = useCallback(() => setPicker(false), []);
 
@@ -380,6 +413,7 @@ export default observer(({ channel }: Props) => {
      * Trigger send message.
      */
     async function send() {
+        if (cooldown > 0) return;
         if (uploadState.type === "uploading" || uploadState.type === "sending")
             return;
 
@@ -464,11 +498,20 @@ export default observer(({ channel }: Props) => {
                     nonce,
                     replies,
                 });
+                setSendFailure(undefined);
 
                 // Add another scroll to bottom after the message is sent
-                chainedDefer(() => renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE));
+                chainedDefer(() =>
+                    renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE),
+                );
             } catch (error) {
-                state.queue.fail(nonce, takeError(error));
+                const retryAfter = getRetryAfterMs(error);
+                const failure = {
+                    error: takeError(error),
+                    retryAt: retryAfter ? Date.now() + retryAfter : undefined,
+                };
+                state.queue.fail(nonce, failure.error, failure.retryAt);
+                setSendFailure(failure);
             }
         }
     }
@@ -548,12 +591,19 @@ export default observer(({ channel }: Props) => {
                 replies,
                 attachments,
             });
+            setSendFailure(undefined);
         } catch (err) {
+            const retryAfter = getRetryAfterMs(err);
+            const failure = {
+                error: takeError(err),
+                retryAt: retryAfter ? Date.now() + retryAfter : undefined,
+            };
             setUploadState({
                 type: "failed",
                 files,
-                error: takeError(err),
+                error: failure.error,
             });
+            setSendFailure(failure);
 
             return;
         }
@@ -683,6 +733,18 @@ export default observer(({ channel }: Props) => {
                 replies={replies}
                 setReplies={setReplies}
             />
+            {sendFailure && (
+                <SendStatus role="status" data-error="true">
+                    <span>
+                        {cooldown > 0
+                            ? `Rate limited · You can retry in ${cooldown}s`
+                            : "Send failed · Your message is preserved below"}
+                    </span>
+                    <span>
+                        {cooldown > 0 ? `${cooldown}s` : "Retry available"}
+                    </span>
+                </SendStatus>
+            )}
             <FloatingLayer>
                 {picker && (
                     <HackAlertThisFileWillBeReplaced
@@ -723,9 +785,7 @@ export default observer(({ channel }: Props) => {
                             uploadState.type === "uploading" ||
                             uploadState.type === "sending"
                         }
-                        remove={async () =>
-                            setUploadState({ type: "none" })
-                        }
+                        remove={async () => setUploadState({ type: "none" })}
                         onChange={(files) =>
                             setUploadState({ type: "attached", files })
                         }
@@ -845,6 +905,16 @@ export default observer(({ channel }: Props) => {
                                 : "mobile"
                         }
                         onClick={send}
+                        disabled={
+                            cooldown > 0 ||
+                            uploadState.type === "uploading" ||
+                            uploadState.type === "sending"
+                        }
+                        aria-label={
+                            cooldown > 0
+                                ? `Retry sending in ${cooldown} seconds`
+                                : "Send message"
+                        }
                         onMouseDown={(e) => e.preventDefault()}>
                         <Send size={24} />
                     </IconButton>

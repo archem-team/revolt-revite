@@ -1,5 +1,6 @@
 import { observer } from "mobx-react-lite";
 import { Message as MessageObject } from "revolt.js";
+import styled from "styled-components/macro";
 
 import { useTriggerEvents } from "preact-context-menu";
 import { memo } from "preact/compat";
@@ -7,14 +8,17 @@ import { useEffect, useState } from "preact/hooks";
 
 import { Category } from "@revoltchat/ui";
 
+import { getRetryAfterMs, retrySeconds } from "../../../lib/chatSendFailure";
 import { internalEmit } from "../../../lib/eventEmitter";
 import { isTouchscreenDevice } from "../../../lib/isTouchscreenDevice";
 
+import { useApplicationState } from "../../../mobx/State";
 import { QueuedMessage } from "../../../mobx/stores/MessageQueue";
 
 import { I18nError } from "../../../context/Locale";
 
 import { FILE_SERVER_ORIGIN } from "../../../config/branding";
+import { takeError } from "../../../controllers/client/jsx/error";
 import { modalController } from "../../../controllers/modals/ModalController";
 import Markdown from "../../markdown/Markdown";
 import UserIcon from "../user/UserIcon";
@@ -25,6 +29,7 @@ import MessageBase, {
     MessageInfo,
 } from "./MessageBase";
 import Attachment from "./attachments/Attachment";
+import ImageGallery from "./attachments/ImageGallery";
 import { MessageReply } from "./attachments/MessageReply";
 import { Reactions } from "./attachments/Reactions";
 import { MessageOverlayBar } from "./bars/MessageOverlayBar";
@@ -40,6 +45,102 @@ interface Props {
     content?: Children;
     head?: boolean;
     hideReply?: boolean;
+}
+
+const FailureActions = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    color: var(--error);
+    font-size: 12px;
+
+    button {
+        min-height: 30px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: var(--border-radius);
+        color: var(--foreground);
+        background: var(--secondary-background);
+        cursor: pointer;
+        font: inherit;
+
+        &:hover,
+        &:focus-visible {
+            background: var(--tertiary-background);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        &:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        &:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+    }
+`;
+
+function QueuedFailureActions({
+    queued,
+    client,
+}: {
+    queued: QueuedMessage;
+    client: MessageObject["client"];
+}) {
+    const application = useApplicationState();
+    const [now, setNow] = useState(Date.now());
+    const seconds = retrySeconds(queued.retryAt, now);
+    const isWaitingToRetry = seconds > 0;
+
+    useEffect(() => {
+        if (!isWaitingToRetry) return;
+        const timer = window.setInterval(() => setNow(Date.now()), 250);
+        return () => window.clearInterval(timer);
+    }, [isWaitingToRetry]);
+
+    const retry = async () => {
+        if (seconds > 0) return;
+        application.queue.start(queued.id);
+        try {
+            await client.channels.get(queued.channel)?.sendMessage({
+                nonce: queued.id,
+                content: queued.data.content,
+                replies: queued.data.replies,
+            });
+        } catch (error) {
+            const retryAfter = getRetryAfterMs(error);
+            application.queue.fail(
+                queued.id,
+                takeError(error),
+                retryAfter ? Date.now() + retryAfter : undefined,
+            );
+        }
+    };
+
+    return (
+        <FailureActions role="alert">
+            <span>
+                {seconds > 0
+                    ? `Rate limited · Retry in ${seconds}s`
+                    : "Message not sent"}
+            </span>
+            <button type="button" disabled={seconds > 0} onClick={retry}>
+                {seconds > 0 ? `Retry in ${seconds}s` : "Retry"}
+            </button>
+            <button
+                type="button"
+                onClick={() => application.queue.remove(queued.id)}>
+                {"Cancel"}
+            </button>
+        </FailureActions>
+    );
 }
 
 const Message = observer(
@@ -58,6 +159,14 @@ const Message = observer(
         const user = message.author;
 
         const content = message.content;
+        const imageAttachments =
+            message.attachments?.filter(
+                (attachment) => attachment.metadata.type === "Image",
+            ) ?? [];
+        const otherAttachments =
+            message.attachments?.filter(
+                (attachment) => attachment.metadata.type !== "Image",
+            ) ?? [];
         const head =
             preferHead || (message.reply_ids && message.reply_ids.length > 0);
 
@@ -121,11 +230,11 @@ const Message = observer(
                     contrast={contrast}
                     sending={typeof queued !== "undefined"}
                     mention={
-                        client.user && (
-                            (message.mention_ids?.includes(client.user._id)) ||
-                            (message as any).mentionsEveryone ||
-                            (message as any).mentionsSelfRoles
-                        ) || undefined
+                        (client.user &&
+                            (message.mention_ids?.includes(client.user._id) ||
+                                (message as any).mentionsEveryone ||
+                                (message as any).mentionsSelfRoles)) ||
+                        undefined
                     }
                     failed={typeof queued?.error !== "undefined"}
                     {...(attachContext
@@ -184,16 +293,34 @@ const Message = observer(
                             (content && <Markdown content={content} />)}
                         {!queued && <InviteList message={message} />}
                         {queued?.error && (
-                            <Category>
-                                <I18nError error={queued.error} />
-                            </Category>
+                            <>
+                                <Category>
+                                    <I18nError error={queued.error} />
+                                </Category>
+                                <QueuedFailureActions
+                                    queued={queued}
+                                    client={client}
+                                />
+                            </>
                         )}
-                        {message.attachments?.map((attachment, index) => (
+                        {imageAttachments.length === 1 && (
                             <Attachment
-                                key={index}
+                                attachment={imageAttachments[0]}
+                                hasContent={
+                                    content ? content.length > 0 : false
+                                }
+                            />
+                        )}
+                        {imageAttachments.length > 1 && (
+                            <ImageGallery attachments={imageAttachments} />
+                        )}
+                        {otherAttachments.map((attachment, index) => (
+                            <Attachment
+                                key={attachment._id}
                                 attachment={attachment}
                                 hasContent={
                                     index > 0 ||
+                                    imageAttachments.length > 0 ||
                                     (content ? content.length > 0 : false)
                                 }
                             />
