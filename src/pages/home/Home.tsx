@@ -11,6 +11,7 @@ import { Text } from "preact-i18n";
 import { CategoryButton, InputBox, Preloader } from "@revoltchat/ui";
 
 import { sendAnalyticsEvent } from "../../lib/analytics";
+import { keepRoutesPanelInView } from "../../lib/compactPanels";
 import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
 
 import { useClient } from "../../controllers/client/ClientController";
@@ -49,22 +50,10 @@ const Overlay = styled.div`
 `;
 
 function getPanelsScroller(): HTMLElement | null {
-    let node = document.querySelector<HTMLElement>(
-        '[data-component="routes"]',
-    )?.parentElement;
-
-    while (node && node !== document.body) {
-        const style = window.getComputedStyle(node);
-        if (
-            node.scrollWidth > node.clientWidth &&
-            (style.overflowX === "auto" || style.overflowX === "scroll")
-        ) {
-            return node;
-        }
-        node = node.parentElement;
-    }
-
-    return null;
+    return (
+        document.querySelector<HTMLElement>('[data-component="routes"]')
+            ?.parentElement ?? null
+    );
 }
 
 /* Plain tab row on the panel — no header bar chrome, same treatment as
@@ -559,19 +548,12 @@ const Home: React.FC = () => {
     }, []);
 
     // On mobile the overlapping panels default to the sidebar; when landing on
-    // the Promos tab (e.g. after a refresh), bring the content panel into view
-    // so the user sees the promos rather than the channel list. Deferred to the
-    // next frame so the panel container has laid out before we scroll it.
+    // the Promos tab (e.g. after a refresh), keep trying until the grid has its
+    // final track widths. A single-frame attempt races slower phone layout and
+    // can leave the desktop/sidebar panel visible at a mobile screen size.
     useEffect(() => {
         if (!compactLayout || tab !== "promos") return;
-        const raf = requestAnimationFrame(() => {
-            const panels = getPanelsScroller();
-            panels?.scrollTo({
-                left: panels.scrollWidth - panels.clientWidth,
-                behavior: "auto",
-            });
-        });
-        return () => cancelAnimationFrame(raf);
+        return keepRoutesPanelInView();
     }, [compactLayout, tab]);
 
     // Filter by name or description, case-insensitive.
