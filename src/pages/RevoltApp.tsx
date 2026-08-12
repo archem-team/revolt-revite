@@ -24,6 +24,26 @@ import ChannelSettings from "./settings/ChannelSettings";
 import ServerSettings from "./settings/ServerSettings";
 import Settings from "./settings/Settings";
 
+const COMPACT_LAYOUT_QUERY = "(max-width: 960px)";
+
+function getPanelsScroller(): HTMLElement | null {
+    let node = document.querySelector<HTMLElement>(
+        '[data-component="routes"]',
+    )?.parentElement;
+
+    while (node && node !== document.body) {
+        const style = window.getComputedStyle(node);
+        if (
+            node.scrollWidth > node.clientWidth &&
+            (style.overflowX === "auto" || style.overflowX === "scroll")
+        ) {
+            return node;
+        }
+        node = node.parentElement;
+    }
+
+    return null;
+}
 const AppContainer = styled.div`
     background-size: cover !important;
     background-position: center center !important;
@@ -71,7 +91,10 @@ export const StatusBar = styled.div`
 const Routes = styled.div.attrs({ "data-component": "routes" })<{
     borders: boolean;
     panel: boolean;
+    compact: boolean;
 }>`
+    width: 100%;
+    max-width: 100%;
     min-width: 0;
     display: flex;
     position: relative;
@@ -84,7 +107,7 @@ const Routes = styled.div.attrs({ "data-component": "routes" })<{
         props.panel ? "var(--primary-background)" : "transparent"};
 
     ${(props) =>
-        !isTouchscreenDevice &&
+        !props.compact &&
         props.panel &&
         css`
             margin: var(--space-2);
@@ -114,7 +137,54 @@ export default function App() {
 
     const alert = useSystemAlert();
     const [statusBar, setStatusBar] = useState(false);
+    const [compactLayout, setCompactLayout] = useState(
+        () =>
+            isTouchscreenDevice ||
+            (typeof window !== "undefined" &&
+                window.matchMedia(COMPACT_LAYOUT_QUERY).matches),
+    );
     useEffect(() => setStatusBar(true), [alert]);
+    useEffect(() => {
+        const media = window.matchMedia(COMPACT_LAYOUT_QUERY);
+        const updateLayout = () =>
+            setCompactLayout(isTouchscreenDevice || media.matches);
+
+        updateLayout();
+        if (media.addEventListener) {
+            media.addEventListener("change", updateLayout);
+        } else {
+            media.addListener(updateLayout);
+        }
+        return () => {
+            if (media.removeEventListener)
+                media.removeEventListener("change", updateLayout);
+            else media.removeListener(updateLayout);
+        };
+    }, []);
+    useEffect(() => {
+        if (!compactLayout || !(inChannel || inServer)) return;
+
+        let secondFrame = 0;
+        const firstFrame = requestAnimationFrame(() => {
+            secondFrame = requestAnimationFrame(() => {
+                const routes = document.querySelector<HTMLElement>(
+                    '[data-component="routes"]',
+                );
+                const panels = getPanelsScroller();
+                if (!routes || !panels) return;
+
+                panels.scrollTo({
+                    left: routes.offsetLeft,
+                    behavior: "auto",
+                });
+            });
+        });
+
+        return () => {
+            cancelAnimationFrame(firstFrame);
+            cancelAnimationFrame(secondFrame);
+        };
+    }, [compactLayout, inChannel, inServer, path]);
 
     return (
         <>
@@ -149,7 +219,7 @@ export default function App() {
                     <Titlebar />
                 )}
                 <OverlappingPanels
-                    width="100vw"
+                    width="100%"
                     height={
                         (alert && statusBar ? "calc(" : "") +
                         (window.isNative && !window.native.getConfig().frame
@@ -172,9 +242,10 @@ export default function App() {
                         showIf: fixedBottomNav ? ShowIf.Always : ShowIf.Left,
                         height: 50,
                     }}
-                    docked={isTouchscreenDevice ? Docked.None : Docked.Left}>
+                    docked={compactLayout ? Docked.None : Docked.Left}>
                     <Routes
                         borders={inServer}
+                        compact={compactLayout}
                         panel={!(inChannel || inServer || inFriends)}>
                         <Switch>
                             <Route

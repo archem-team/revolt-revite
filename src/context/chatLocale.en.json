@@ -1,0 +1,46 @@
+{
+    "app": {
+        "main": {
+            "channel": {
+                "media": {
+                    "gallery": "{{count}} image attachments",
+                    "open_image": "Open {{filename}}, image {{index}} of {{total}}",
+                    "image_unavailable": "Image unavailable",
+                    "retry": "Retry",
+                    "viewer": "{{filename}} image viewer",
+                    "close_viewer": "Close image viewer",
+                    "previous_image": "Previous image",
+                    "next_image": "Next image",
+                    "loading_image": "Loading image…",
+                    "failed_image": "This image could not be loaded.",
+                    "show_more_previews": "Show {{count}} more link previews",
+                    "show_fewer_previews": "Show fewer link previews",
+                    "open_attachment": "Open {{filename}}",
+                    "download_attachment": "Download {{filename}}",
+                    "telegram": "Telegram",
+                    "open_link_image": "Open linked image"
+                },
+                "accessibility": {
+                    "add_emoji": "Add emoji",
+                    "reaction": "{{emoji}}, {{count}} reactions",
+                    "copy_code": "Copy code to clipboard",
+                    "open_emoji_picker": "Open emoji picker",
+                    "send_message": "Send message",
+                    "retry_sending": "Retry sending in {{seconds}} seconds"
+                },
+                "send_status": {
+                    "rate_limited": "Rate limited · Retry in {{seconds}}s",
+                    "not_sent": "Message not sent",
+                    "retry_in": "Retry in {{seconds}}s",
+                    "retry": "Retry",
+                    "cancel": "Cancel"
+                },
+                "editor": {
+                    "hint": "Escape to cancel · Enter to save",
+                    "cancel": "Cancel editing",
+                    "save": "Save edit"
+                }
+            }
+        }
+    }
+}

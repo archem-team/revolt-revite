@@ -11,10 +11,6 @@
         width: 100%;
     }
 
-    &.image {
-        cursor: pointer;
-    }
-
     &.website {
         gap: 6px;
         flex-direction: row;
@@ -103,6 +99,37 @@
         a {
             cursor: pointer;
         }
+    }
+}
+
+.imageButton {
+    display: grid;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--border-radius);
+    background: transparent;
+    cursor: pointer;
+
+    .image {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+    }
+
+    &:active:not(:disabled) .image {
+        opacity: 0.82;
+    }
+
+    &:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
     }
 }
 
@@ -337,5 +364,28 @@
 
     .openIcon {
         grid-area: open;
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-md);
+        color: var(--secondary-foreground);
+
+        &:focus-visible {
+            outline: 2px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
+
+        &:active {
+            color: var(--foreground);
+            background: var(--tertiary-background);
+        }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        .openIcon:hover {
+            color: var(--foreground);
+            background: var(--tertiary-background);
+        }
     }
 }

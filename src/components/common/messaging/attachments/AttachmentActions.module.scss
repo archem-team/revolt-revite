@@ -1,5 +1,5 @@
 .actions.imageAction {
-    grid-template: 
+    grid-template:
         "name icon external download" auto
         "size icon external download" auto
         / minmax(20px, 1fr) min-content min-content;
@@ -7,14 +7,14 @@
 
 .actions {
     display: grid;
-    grid-template: 
+    grid-template:
         "icon name external download" auto
         "icon size external download" auto
         / min-content minmax(20px, 1fr) min-content;
 
     align-items: center;
     column-gap: 12px;
-    
+
     width: 100%;
     padding: 8px;
     overflow: none;
@@ -27,7 +27,7 @@
         white-space: nowrap;
         overflow: hidden;
     }
-    
+
     .filesize {
         grid-area: size;
 
@@ -45,5 +45,31 @@
 
     .iconType {
         grid-area: icon;
+    }
+
+    a {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-md);
+        color: var(--secondary-foreground);
+
+        &:focus-visible {
+            outline: 2px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
+
+        &:active {
+            color: var(--foreground);
+            background: var(--tertiary-background);
+        }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        a:hover {
+            color: var(--foreground);
+            background: var(--tertiary-background);
+        }
     }
 }
