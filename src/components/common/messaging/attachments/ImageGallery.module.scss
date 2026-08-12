@@ -39,6 +39,19 @@
     }
 }
 
+.more {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--background) 72%, transparent);
+    font-size: var(--font-size-title-1);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+}
+
 .three .tile:first-child {
     grid-row: span 2;
 }

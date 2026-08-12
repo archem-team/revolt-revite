@@ -5,6 +5,8 @@ import styles from "./Embed.module.scss";
 import classNames from "classnames";
 import { useContext } from "preact/hooks";
 
+import { useTranslation } from "../../../../lib/i18n";
+
 import { useClient } from "../../../../controllers/client/ClientController";
 import { modalController } from "../../../../controllers/modals/ModalController";
 import { MessageAreaWidthContext } from "../../../../pages/channels/messaging/MessageArea";
@@ -36,8 +38,22 @@ function telegramHandle(url?: string | null) {
     }
 }
 
+export function isRenderableEmbed(embed: API.Embed) {
+    if (embed.type !== "Website") return true;
+    if (telegramHandle(embed.url)) return true;
+
+    return Boolean(
+        embed.site_name ||
+            embed.title ||
+            embed.image ||
+            embed.video ||
+            (embed.special && embed.special.type !== "None"),
+    );
+}
+
 export default function Embed({ embed }: Props) {
     const client = useClient();
+    const translate = useTranslation();
 
     const maxWidth = Math.min(
         useContext(MessageAreaWidthContext) - CONTAINER_PADDING,
@@ -128,6 +144,7 @@ export default function Embed({ embed }: Props) {
             }
 
             if (embed.type === "Website") {
+                if (!isRenderableEmbed(embed)) return null;
                 const handle = telegramHandle(embed.url);
                 if (handle) {
                     const imageUrl = embed.image?.url ?? embed.icon_url;
@@ -163,7 +180,9 @@ export default function Embed({ embed }: Props) {
                             </span>
                             <span className={styles.telegramContent}>
                                 <span className={styles.telegramSite}>
-                                    {"Telegram"}
+                                    {translate(
+                                        "app.main.channel.media.telegram",
+                                    )}
                                 </span>
                                 <strong className={styles.telegramTitle}>
                                     {embed.title ?? handle}
@@ -180,15 +199,6 @@ export default function Embed({ embed }: Props) {
                         </button>
                     );
                 }
-
-                const hasMeaningfulPreview = Boolean(
-                    embed.site_name ||
-                        embed.title ||
-                        embed.image ||
-                        embed.video ||
-                        (embed.special && embed.special.type !== "None"),
-                );
-                if (!hasMeaningfulPreview) return null;
             }
 
             return (
@@ -231,14 +241,17 @@ export default function Embed({ embed }: Props) {
                         {embed.type === "Website" && embed.title && (
                             <span>
                                 <a
-                                    onMouseDown={(ev) =>
-                                        (ev.button === 0 || ev.button === 1) &&
+                                    href={embed.url ?? undefined}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(event) => {
+                                        event.preventDefault();
                                         modalController.openLink(
                                             embed.url!,
                                             undefined,
                                             true,
-                                        )
-                                    }
+                                        );
+                                    }}
                                     className={styles.title}>
                                     {embed.title}
                                 </a>
@@ -282,21 +295,28 @@ export default function Embed({ embed }: Props) {
         }
         case "Image": {
             return (
-                <img
-                    className={classNames(styles.embed, styles.image)}
+                <button
+                    type="button"
+                    className={classNames(styles.embed, styles.imageButton)}
                     style={calculateSize(embed.width, embed.height)}
-                    src={client.proxyFile(embed.url)}
-                    type="text/html"
-                    frameBorder="0"
-                    loading="lazy"
+                    aria-label={translate(
+                        "app.main.channel.media.open_link_image",
+                    )}
                     onClick={() =>
                         modalController.push({ type: "image_viewer", embed })
                     }
                     onMouseDown={(ev) =>
                         ev.button === 1 &&
                         modalController.openLink(embed.url, undefined, true)
-                    }
-                />
+                    }>
+                    <img
+                        className={styles.image}
+                        src={client.proxyFile(embed.url)}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                    />
+                </button>
             );
         }
         case "Video": {

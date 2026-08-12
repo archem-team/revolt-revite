@@ -1,10 +1,11 @@
 import { Message } from "revolt.js";
 import styled from "styled-components/macro";
 
-import { useContext, useEffect, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 import TextAreaAutoSize from "../../../lib/TextAreaAutoSize";
 import { convertMentionsToWireFormat } from "../../../lib/convertMentions";
+import { useTranslation } from "../../../lib/i18n";
 import { isTouchscreenDevice } from "../../../lib/isTouchscreenDevice";
 
 import AutoComplete, {
@@ -30,10 +31,21 @@ const EditorBase = styled.div`
         font-size: 11px;
         color: var(--tertiary-foreground);
 
-        a {
+        button {
+            padding: 0;
+            border: 0;
+            color: inherit;
+            background: transparent;
             cursor: pointer;
+            font: inherit;
+
             &:hover {
                 text-decoration: underline;
+            }
+
+            &:focus-visible {
+                outline: 2px solid var(--focus-ring);
+                outline-offset: 2px;
             }
         }
     }
@@ -46,6 +58,7 @@ interface Props {
 
 export default function MessageEditor({ message, finish }: Props) {
     const [content, setContent] = useState(message.content ?? "");
+    const translate = useTranslation();
 
     async function save() {
         finish();
@@ -128,8 +141,19 @@ export default function MessageEditor({ message, finish }: Props) {
                 onBlur={onBlur}
             />
             <span className="caption">
-                escape to <a onClick={finish}>cancel</a> &middot; enter to{" "}
-                <a onClick={save}>save</a>
+                <button
+                    type="button"
+                    aria-label={translate("app.main.channel.editor.cancel")}
+                    onClick={finish}>
+                    {translate("app.special.modals.actions.cancel")}
+                </button>{" "}
+                {"·"}{" "}
+                <button
+                    type="button"
+                    aria-label={translate("app.main.channel.editor.save")}
+                    onClick={save}>
+                    {translate("app.special.modals.actions.save")}
+                </button>
             </span>
         </EditorBase>
     );

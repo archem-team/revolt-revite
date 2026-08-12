@@ -9,11 +9,9 @@ import { API } from "revolt.js";
 
 import styles from "./AttachmentActions.module.scss";
 import classNames from "classnames";
-import { useContext } from "preact/hooks";
-
-import { IconButton } from "@revoltchat/ui";
 
 import { determineFileSize } from "../../../../lib/fileSize";
+import { useTranslation } from "../../../../lib/i18n";
 
 import { useClient } from "../../../../controllers/client/ClientController";
 
@@ -23,6 +21,7 @@ interface Props {
 
 export default function AttachmentActions({ attachment }: Props) {
     const client = useClient();
+    const translate = useTranslation();
     const { filename, metadata, size } = attachment;
 
     const url = client.generateFileURL(attachment);
@@ -37,26 +36,32 @@ export default function AttachmentActions({ attachment }: Props) {
                 <div className={classNames(styles.actions, styles.imageAction)}>
                     <span className={styles.filename}>{filename}</span>
                     <span className={styles.filesize}>
-                        {`${metadata.width}x${metadata.height}`} ({filesize})
+                        {`${metadata.width}x${metadata.height}`} {"("}
+                        {filesize}
+                        {")"}
                     </span>
                     <a
                         href={open_url}
                         target="_blank"
                         className={styles.iconType}
+                        aria-label={translate(
+                            "app.main.channel.media.open_attachment",
+                            { filename },
+                        )}
                         rel="noreferrer">
-                        <IconButton>
-                            <LinkExternal size={24} />
-                        </IconButton>
+                        <LinkExternal size={24} aria-hidden="true" />
                     </a>
                     <a
                         href={download_url}
                         className={styles.downloadIcon}
                         download
+                        aria-label={translate(
+                            "app.main.channel.media.download_attachment",
+                            { filename },
+                        )}
                         target={isFirefox || window.native ? "_blank" : "_self"}
                         rel="noreferrer">
-                        <IconButton>
-                            <Download size={24} />
-                        </IconButton>
+                        <Download size={24} aria-hidden="true" />
                     </a>
                 </div>
             );
@@ -70,11 +75,13 @@ export default function AttachmentActions({ attachment }: Props) {
                         href={download_url}
                         className={styles.downloadIcon}
                         download
+                        aria-label={translate(
+                            "app.main.channel.media.download_attachment",
+                            { filename },
+                        )}
                         target={isFirefox || window.native ? "_blank" : "_self"}
                         rel="noreferrer">
-                        <IconButton>
-                            <Download size={24} />
-                        </IconButton>
+                        <Download size={24} aria-hidden="true" />
                     </a>
                 </div>
             );
@@ -84,17 +91,21 @@ export default function AttachmentActions({ attachment }: Props) {
                     <Video size={24} className={styles.iconType} />
                     <span className={styles.filename}>{filename}</span>
                     <span className={styles.filesize}>
-                        {`${metadata.width}x${metadata.height}`} ({filesize})
+                        {`${metadata.width}x${metadata.height}`} {"("}
+                        {filesize}
+                        {")"}
                     </span>
                     <a
                         href={download_url}
                         className={styles.downloadIcon}
                         download
+                        aria-label={translate(
+                            "app.main.channel.media.download_attachment",
+                            { filename },
+                        )}
                         target={isFirefox || window.native ? "_blank" : "_self"}
                         rel="noreferrer">
-                        <IconButton>
-                            <Download size={24} />
-                        </IconButton>
+                        <Download size={24} aria-hidden="true" />
                     </a>
                 </div>
             );
@@ -109,21 +120,25 @@ export default function AttachmentActions({ attachment }: Props) {
                             href={open_url}
                             target="_blank"
                             className={styles.externalType}
+                            aria-label={translate(
+                                "app.main.channel.media.open_attachment",
+                                { filename },
+                            )}
                             rel="noreferrer">
-                            <IconButton>
-                                <LinkExternal size={24} />
-                            </IconButton>
+                            <LinkExternal size={24} aria-hidden="true" />
                         </a>
                     )}
                     <a
                         href={download_url}
                         className={styles.downloadIcon}
                         download
+                        aria-label={translate(
+                            "app.main.channel.media.download_attachment",
+                            { filename },
+                        )}
                         target={isFirefox || window.native ? "_blank" : "_self"}
                         rel="noreferrer">
-                        <IconButton>
-                            <Download size={24} />
-                        </IconButton>
+                        <Download size={24} aria-hidden="true" />
                     </a>
                 </div>
             );

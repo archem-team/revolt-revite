@@ -893,8 +893,13 @@ export default observer(({ channel }: Props) => {
                     onBlur={onBlur}
                 />
                 <Action>
-                    <IconButton onClick={() => setPicker(!picker)}>
-                        <HappyBeaming size={24} />
+                    <IconButton
+                        aria-label={translate(
+                            "app.main.channel.accessibility.open_emoji_picker",
+                        )}
+                        aria-expanded={picker}
+                        onClick={() => setPicker(!picker)}>
+                        <HappyBeaming size={24} aria-hidden="true" />
                     </IconButton>
                 </Action>
                 <Action>
@@ -912,11 +917,16 @@ export default observer(({ channel }: Props) => {
                         }
                         aria-label={
                             cooldown > 0
-                                ? `Retry sending in ${cooldown} seconds`
-                                : "Send message"
+                                ? translate(
+                                      "app.main.channel.accessibility.retry_sending",
+                                      { seconds: String(cooldown) },
+                                  )
+                                : translate(
+                                      "app.main.channel.accessibility.send_message",
+                                  )
                         }
                         onMouseDown={(e) => e.preventDefault()}>
-                        <Send size={24} />
+                        <Send size={24} aria-hidden="true" />
                     </IconButton>
                 </Action>
             </Base>

@@ -10,6 +10,7 @@ import { Category } from "@revoltchat/ui";
 
 import { getRetryAfterMs, retrySeconds } from "../../../lib/chatSendFailure";
 import { internalEmit } from "../../../lib/eventEmitter";
+import { useTranslation } from "../../../lib/i18n";
 import { isTouchscreenDevice } from "../../../lib/isTouchscreenDevice";
 
 import { useApplicationState } from "../../../mobx/State";
@@ -33,7 +34,7 @@ import ImageGallery from "./attachments/ImageGallery";
 import { MessageReply } from "./attachments/MessageReply";
 import { Reactions } from "./attachments/Reactions";
 import { MessageOverlayBar } from "./bars/MessageOverlayBar";
-import Embed from "./embed/Embed";
+import Embed, { isRenderableEmbed } from "./embed/Embed";
 import InviteList from "./embed/EmbedInvite";
 
 interface Props {
@@ -87,6 +88,43 @@ const FailureActions = styled.div`
     }
 `;
 
+const PreviewToggle = styled.button`
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    margin-top: var(--space-1);
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-md);
+    color: var(--secondary-foreground);
+    background: var(--secondary-background);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--font-size-body-4);
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+    }
+
+    &:active:not(:disabled) {
+        background: var(--tertiary-background);
+    }
+
+    &:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover:not(:disabled) {
+            background: var(--tertiary-background);
+        }
+    }
+`;
+
+const MAX_INLINE_EMBEDS = 1;
+
 function QueuedFailureActions({
     queued,
     client,
@@ -95,6 +133,7 @@ function QueuedFailureActions({
     client: MessageObject["client"];
 }) {
     const application = useApplicationState();
+    const translate = useTranslation();
     const [now, setNow] = useState(Date.now());
     const seconds = retrySeconds(queued.retryAt, now);
     const isWaitingToRetry = seconds > 0;
@@ -128,16 +167,22 @@ function QueuedFailureActions({
         <FailureActions role="alert">
             <span>
                 {seconds > 0
-                    ? `Rate limited · Retry in ${seconds}s`
-                    : "Message not sent"}
+                    ? translate("app.main.channel.send_status.rate_limited", {
+                          seconds: String(seconds),
+                      })
+                    : translate("app.main.channel.send_status.not_sent")}
             </span>
             <button type="button" disabled={seconds > 0} onClick={retry}>
-                {seconds > 0 ? `Retry in ${seconds}s` : "Retry"}
+                {seconds > 0
+                    ? translate("app.main.channel.send_status.retry_in", {
+                          seconds: String(seconds),
+                      })
+                    : translate("app.main.channel.send_status.retry")}
             </button>
             <button
                 type="button"
                 onClick={() => application.queue.remove(queued.id)}>
-                {"Cancel"}
+                {translate("app.main.channel.send_status.cancel")}
             </button>
         </FailureActions>
     );
@@ -156,6 +201,7 @@ const Message = observer(
         type_msg,
     }: Props) => {
         const client = message.client;
+        const translate = useTranslation();
         const user = message.author;
 
         const content = message.content;
@@ -201,7 +247,14 @@ const Message = observer(
         // ! FIXME(?): animate on hover
         const [mouseHovering, setAnimate] = useState(false);
         const [reactionsOpen, setReactionsOpen] = useState(false);
+        const [showAllEmbeds, setShowAllEmbeds] = useState(false);
+        const embeds = (message.embeds ?? []).filter(isRenderableEmbed);
+        const visibleEmbeds = showAllEmbeds
+            ? embeds
+            : embeds.slice(0, MAX_INLINE_EMBEDS);
+        const hiddenEmbedCount = Math.max(0, embeds.length - MAX_INLINE_EMBEDS);
         useEffect(() => setAnimate(false), [replacement]);
+        useEffect(() => setShowAllEmbeds(false), [message._id]);
 
         return (
             <div id={message._id}>
@@ -325,9 +378,26 @@ const Message = observer(
                                 }
                             />
                         ))}
-                        {message.embeds?.map((embed, index) => (
+                        {visibleEmbeds.map((embed, index) => (
                             <Embed key={index} embed={embed} />
                         ))}
+                        {hiddenEmbedCount > 0 && (
+                            <PreviewToggle
+                                type="button"
+                                aria-expanded={showAllEmbeds}
+                                onClick={() =>
+                                    setShowAllEmbeds((value) => !value)
+                                }>
+                                {showAllEmbeds
+                                    ? translate(
+                                          "app.main.channel.media.show_fewer_previews",
+                                      )
+                                    : translate(
+                                          "app.main.channel.media.show_more_previews",
+                                          { count: String(hiddenEmbedCount) },
+                                      )}
+                            </PreviewToggle>
+                        )}
                         <Reactions message={message} />
                         {(mouseHovering || reactionsOpen) &&
                             !replacement &&

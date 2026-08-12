@@ -19,13 +19,34 @@ import Developer from "./developer/Developer";
 import Friends from "./friends/Friends";
 import Home from "./home/Home";
 import HomeNew from "./home/HomeNew";
-import NotificationCenterPage, { NotificationDrawer } from "./notifications/NotificationCenter";
 import InviteBot from "./invite/InviteBot";
+import NotificationCenterPage, {
+    NotificationDrawer,
+} from "./notifications/NotificationCenter";
 import ChannelSettings from "./settings/ChannelSettings";
 import ServerSettings from "./settings/ServerSettings";
 import Settings from "./settings/Settings";
 
 const COMPACT_LAYOUT_QUERY = "(max-width: 960px)";
+
+function getPanelsScroller(): HTMLElement | null {
+    let node = document.querySelector<HTMLElement>(
+        '[data-component="routes"]',
+    )?.parentElement;
+
+    while (node && node !== document.body) {
+        const style = window.getComputedStyle(node);
+        if (
+            node.scrollWidth > node.clientWidth &&
+            (style.overflowX === "auto" || style.overflowX === "scroll")
+        ) {
+            return node;
+        }
+        node = node.parentElement;
+    }
+
+    return null;
+}
 
 const AppContainer = styled.div`
     background-size: cover !important;
@@ -146,6 +167,30 @@ export default function App() {
             else media.removeListener(updateLayout);
         };
     }, []);
+    useEffect(() => {
+        if (!compactLayout || !(inChannel || inServer)) return;
+
+        let secondFrame = 0;
+        const firstFrame = requestAnimationFrame(() => {
+            secondFrame = requestAnimationFrame(() => {
+                const routes = document.querySelector<HTMLElement>(
+                    '[data-component="routes"]',
+                );
+                const panels = getPanelsScroller();
+                if (!routes || !panels) return;
+
+                panels.scrollTo({
+                    left: routes.offsetLeft,
+                    behavior: "auto",
+                });
+            });
+        });
+
+        return () => {
+            cancelAnimationFrame(firstFrame);
+            cancelAnimationFrame(secondFrame);
+        };
+    }, [compactLayout, inChannel, inServer, path]);
 
     return (
         <>
@@ -272,7 +317,10 @@ export default function App() {
                             <Route path="/open/:id" component={Open} />
                             <Route path="/bot/:id" component={InviteBot} />
                             <Route path="/home" component={HomeNew} />
-                            <Route path="/notifications" component={NotificationCenterPage} />
+                            <Route
+                                path="/notifications"
+                                component={NotificationCenterPage}
+                            />
                             <Route path="/" component={Home} />
                         </Switch>
                     </Routes>

@@ -81,6 +81,12 @@ const HeaderRow = styled.div.attrs({ "data-component": "channel-header-row" })`
         display: flex;
         align-items: center;
     }
+
+    @media (max-width: 960px) {
+        .searchArea {
+            display: none;
+        }
+    }
 `;
 
 const Body = styled.div.attrs({ "data-component": "channel-body" })`
@@ -139,6 +145,13 @@ const MemberColumn = styled.div.attrs({ "data-component": "member-column" })`
         &::-webkit-scrollbar-thumb {
             border-top: 0 solid transparent;
         }
+    }
+
+    /* A fixed 248px member rail leaves the conversation unusable on compact
+       desktop/tablet viewports. The header control retains the user's saved
+       preference; the rail returns automatically when space is available. */
+    @media (max-width: 960px) {
+        display: none;
     }
 `;
 
