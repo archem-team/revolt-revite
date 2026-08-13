@@ -123,6 +123,13 @@ const PreviewToggle = styled.button`
     }
 `;
 
+const MessageFrame = styled.div`
+    &[data-has-attachments="true"]
+        + &[data-has-attachments="true"][data-message-head="false"] {
+        margin-top: var(--message-group-spacing, 12px);
+    }
+`;
+
 const MAX_INLINE_EMBEDS = 1;
 
 function QueuedFailureActions({
@@ -215,6 +222,8 @@ const Message = observer(
             ) ?? [];
         const head =
             preferHead || (message.reply_ids && message.reply_ids.length > 0);
+        const hasAttachments =
+            imageAttachments.length + otherAttachments.length > 0;
 
         const userContext = attachContext
             ? useTriggerEvents("Menu", {
@@ -257,7 +266,10 @@ const Message = observer(
         useEffect(() => setShowAllEmbeds(false), [message._id]);
 
         return (
-            <div id={message._id}>
+            <MessageFrame
+                id={message._id}
+                data-has-attachments={hasAttachments}
+                data-message-head={Boolean(head)}>
                 {!hideReply &&
                     message.reply_ids?.map((message_id, index) => (
                         <MessageReply
@@ -412,7 +424,7 @@ const Message = observer(
                             )}
                     </MessageContent>
                 </MessageBase>
-            </div>
+            </MessageFrame>
         );
     },
 );
