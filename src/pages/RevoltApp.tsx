@@ -144,9 +144,9 @@ export default function App() {
         };
     }, []);
     useEffect(() => {
-        if (!compactLayout || !(inChannel || inServer)) return;
+        if (!compactLayout) return;
         return keepRoutesPanelInView();
-    }, [compactLayout, inChannel, inServer, path]);
+    }, [compactLayout, path]);
 
     return (
         <>
