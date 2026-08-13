@@ -37,6 +37,21 @@ test("chat media stays within a bounded viewport contract", async () => {
     assert.doesNotMatch(embedMedia, /case "YouTube"[\s\S]{0,400}<iframe/);
 });
 
+test("separate attachment messages have stronger spacing than one gallery", async () => {
+    const message = await read("src/components/common/messaging/Message.tsx");
+    const gallery = await read(
+        "src/components/common/messaging/attachments/ImageGallery.module.scss",
+    );
+
+    assert.match(gallery, /--gallery-gap: 8px/);
+    assert.match(
+        message,
+        /data-has-attachments="true"[\s\S]*data-message-head="false"[\s\S]*var\(--message-group-spacing, 12px\)/,
+    );
+    assert.match(message, /data-has-attachments=\{hasAttachments\}/);
+    assert.match(message, /data-message-head=\{Boolean\(head\)\}/);
+});
+
 test("rate limits expose accurate retry countdowns", () => {
     const now = Date.parse("2026-08-12T12:00:00Z");
 
