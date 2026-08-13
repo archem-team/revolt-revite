@@ -178,7 +178,9 @@ test("compact channel routes are brought into view after responsive layout", asy
 
     assert.match(app, /const COMPACT_LAYOUT_QUERY = "\(max-width: 960px\)"/);
     assert.match(app, /return keepRoutesPanelInView\(\)/);
-    assert.match(app, /\[compactLayout, inChannel, inServer, path\]/);
+    assert.match(app, /if \(!compactLayout\) return;/);
+    assert.match(app, /\[compactLayout, path\]/);
+    assert.doesNotMatch(app, /!\(inChannel \|\| inServer\)/);
     assert.match(channel, /@media \(max-width: 960px\)[\s\S]*\.searchArea/);
     assert.match(
         channel,
