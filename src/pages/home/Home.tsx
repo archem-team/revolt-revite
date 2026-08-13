@@ -10,6 +10,7 @@ import { Text } from "preact-i18n";
 
 import { CategoryButton, InputBox, Preloader } from "@revoltchat/ui";
 
+import { sendAnalyticsEvent } from "../../lib/analytics";
 import { isTouchscreenDevice } from "../../lib/isTouchscreenDevice";
 
 import { useClient } from "../../controllers/client/ClientController";
@@ -502,6 +503,10 @@ function toExternalHttpUrl(value: unknown): string | null {
 
 const Home: React.FC = () => {
     const client = useClient();
+    const sessionToken =
+        typeof client.session === "string"
+            ? client.session
+            : (client.session as { token?: string } | undefined)?.token ?? "";
     const [servers, setServers] = useState<Server[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -600,10 +605,6 @@ const Home: React.FC = () => {
         // Both directory endpoints are now served by the Rust backend
         // (BACKEND_API_BASE, absolute URL — bypasses the dev `/api` proxy) and
         // require auth via the `x-session-token` header.
-        const sessionToken =
-            typeof client.session === "string"
-                ? client.session
-                : (client.session as any)?.token ?? "";
         const authHeaders = { "x-session-token": sessionToken };
 
         const serversUrl = `${BACKEND_API_BASE}/directory/servers`;
@@ -767,6 +768,14 @@ const Home: React.FC = () => {
                         href={pepshopUrl}
                         target="_blank"
                         rel="noopener"
+                        onClick={() => {
+                            void sendAnalyticsEvent({
+                                apiBase: BACKEND_API_BASE,
+                                token: sessionToken,
+                                event: "pepshop.store_opened",
+                                properties: { serverId: server.id },
+                            }).catch(() => undefined);
+                        }}
                         title="Open Pepshop store"
                         aria-label={`Open ${server.name} Pepshop store`}>
                         <span className="pepshop-mark">
