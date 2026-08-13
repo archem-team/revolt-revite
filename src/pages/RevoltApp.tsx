@@ -122,17 +122,17 @@ export default function App() {
 
     const alert = useSystemAlert();
     const [statusBar, setStatusBar] = useState(false);
+    // Touch capability does not imply a compact viewport. Wide tablets need
+    // the docked layout so the bottom navigation cannot cover the composer.
     const [compactLayout, setCompactLayout] = useState(
         () =>
-            isTouchscreenDevice ||
-            (typeof window !== "undefined" &&
-                window.matchMedia(COMPACT_LAYOUT_QUERY).matches),
+            typeof window !== "undefined" &&
+            window.matchMedia(COMPACT_LAYOUT_QUERY).matches,
     );
     useEffect(() => setStatusBar(true), [alert]);
     useEffect(() => {
         const media = window.matchMedia(COMPACT_LAYOUT_QUERY);
-        const updateLayout = () =>
-            setCompactLayout(isTouchscreenDevice || media.matches);
+        const updateLayout = () => setCompactLayout(media.matches);
 
         updateLayout();
         if (media.addEventListener) {
