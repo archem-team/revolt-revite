@@ -547,12 +547,12 @@ const Home: React.FC = () => {
         };
     }, []);
 
-    // On mobile the overlapping panels default to the sidebar; when landing on
-    // the Promos tab (e.g. after a refresh), keep trying until the grid has its
-    // final track widths. A single-frame attempt races slower phone layout and
-    // can leave the desktop/sidebar panel visible at a mobile screen size.
+    // On mobile the overlapping panels default to the sidebar; keep the active
+    // Home route in view for every tab until the grid has its final track
+    // widths. A single-frame attempt races slower phone layout and can leave an
+    // empty snap area visible at a mobile screen size.
     useEffect(() => {
-        if (!compactLayout || tab !== "promos") return;
+        if (!compactLayout) return;
         return keepRoutesPanelInView();
     }, [compactLayout, tab]);
 
