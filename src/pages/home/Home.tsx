@@ -378,14 +378,14 @@ const Home: React.FC = () => {
         if (tab === "catalog") setCatalogVisited(true);
     }, [tab]);
 
-    // Use the same iOS-safe positioning as deep-linked channel routes. WebKit
-    // may re-snap after async Promos/Catalog content changes the grid layout.
+    // Use the same iOS-safe positioning as deep-linked channel routes for every
+    // Home tab. WebKit may re-snap while async content changes the grid layout.
     useEffect(() => {
         const isCompact =
             isTouchscreenDevice ||
             (typeof window !== "undefined" &&
                 window.matchMedia(COMPACT_LAYOUT_QUERY).matches);
-        if (!isCompact || (tab !== "promos" && tab !== "catalog")) return;
+        if (!isCompact) return;
         return keepRoutesPanelInView();
     }, [tab]);
 

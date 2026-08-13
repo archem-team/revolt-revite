@@ -194,11 +194,26 @@ test("compact channel routes are brought into view after responsive layout", asy
     assert.match(errorBoundary, /isDynamicImportFailure\(error\)/);
     assert.match(errorBoundary, /__pepchatRecoverBoot/);
     assert.match(home, /return keepRoutesPanelInView\(\)/);
+    assert.match(home, /if \(!(?:compactLayout|isCompact)\) return;/);
+    assert.doesNotMatch(home, /tab !== ["']promos["']/);
     assert.match(compactPanels, /POSITION_DELAYS_MS/);
     assert.match(compactPanels, /routes\.scrollIntoView/);
     assert.match(compactPanels, /panels\.scrollLeft = routes\.offsetLeft/);
     assert.match(compactPanels, /window\.addEventListener\("pageshow"/);
     assert.match(compactPanels, /document\.addEventListener\("touchstart"/);
+});
+
+test("root route preserves authenticated and signed-out entry flows", async () => {
+    const app = await read("src/pages/app.tsx");
+
+    assert.match(
+        app,
+        /<Route path="\/">[\s\S]*<CheckAuth auth blockRender>[\s\S]*<RevoltApp \/>/,
+    );
+    assert.match(
+        app,
+        /<Route path="\/">[\s\S]*<CheckAuth blockRender>[\s\S]*<Login \/>/,
+    );
 });
 
 test("new chat-window copy is sourced from the locale dictionary", async () => {
