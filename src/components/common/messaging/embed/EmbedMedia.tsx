@@ -3,6 +3,8 @@ import { API } from "revolt.js";
 
 import styles from "./Embed.module.scss";
 
+import { proxyUnlessKlipy } from "../../../../lib/klipy";
+
 import { useClient } from "../../../../controllers/client/ClientController";
 import { modalController } from "../../../../controllers/modals/ModalController";
 
@@ -110,7 +112,7 @@ export default function EmbedMedia({ embed, width, height }: Props) {
                         loading="lazy"
                         className={styles.image}
                         style={{ width, height }}
-                        src={client.proxyFile(url)}
+                        src={proxyUnlessKlipy(url, client.proxyFile)}
                         loop={embed.special?.type === "GIF"}
                         controls={embed.special?.type !== "GIF"}
                         autoPlay={embed.special?.type === "GIF"}
@@ -130,7 +132,7 @@ export default function EmbedMedia({ embed, width, height }: Props) {
                 return (
                     <img
                         className={styles.image}
-                        src={client.proxyFile(url)}
+                        src={proxyUnlessKlipy(url, client.proxyFile)}
                         loading="lazy"
                         decoding="async"
                         style={

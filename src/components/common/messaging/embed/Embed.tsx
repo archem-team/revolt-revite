@@ -4,6 +4,8 @@ import styles from "./Embed.module.scss";
 import classNames from "classnames";
 import { useContext } from "preact/hooks";
 
+import { proxyUnlessKlipy } from "../../../../lib/klipy";
+
 import { useClient } from "../../../../controllers/client/ClientController";
 import { modalController } from "../../../../controllers/modals/ModalController";
 import { MessageAreaWidthContext } from "../../../../pages/channels/messaging/MessageArea";
@@ -197,7 +199,7 @@ export default function Embed({ embed }: Props) {
                 <img
                     className={classNames(styles.embed, styles.image)}
                     style={calculateSize(embed.width, embed.height)}
-                    src={client.proxyFile(embed.url)}
+                    src={proxyUnlessKlipy(embed.url, client.proxyFile)}
                     type="text/html"
                     frameBorder="0"
                     loading="lazy"
@@ -216,7 +218,7 @@ export default function Embed({ embed }: Props) {
                 <video
                     className={classNames(styles.embed, styles.image)}
                     style={calculateSize(embed.width, embed.height)}
-                    src={client.proxyFile(embed.url)}
+                    src={proxyUnlessKlipy(embed.url, client.proxyFile)}
                     frameBorder="0"
                     loading="lazy"
                     controls

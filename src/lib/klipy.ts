@@ -203,3 +203,22 @@ export function gifShare(kind: MediaKind, slug: string, query?: string) {
         body: JSON.stringify(query ? { q: query } : {}),
     }).catch(() => undefined);
 }
+
+/**
+ * KLIPY's integration rules require media to load directly from their
+ * CDN — routing it through our own proxy (or caching it) is not allowed.
+ * Everything else keeps going through january for privacy.
+ */
+export function proxyUnlessKlipy(
+    url: string | undefined,
+    proxy: (url: string) => string | undefined,
+): string | undefined {
+    if (!url) return undefined;
+    try {
+        const host = new URL(url).hostname;
+        if (host === "klipy.com" || host.endsWith(".klipy.com")) return url;
+    } catch {
+        // Not a URL january would have embedded anyway.
+    }
+    return proxy(url);
+}

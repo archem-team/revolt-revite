@@ -2,6 +2,8 @@ import styled from "styled-components";
 
 import { Modal } from "@revoltchat/ui";
 
+import { proxyUnlessKlipy } from "../../../lib/klipy";
+
 import AttachmentActions from "../../../components/common/messaging/attachments/AttachmentActions";
 import EmbedMediaActions from "../../../components/common/messaging/embed/EmbedMediaActions";
 import { useClient } from "../../client/ClientController";
@@ -60,7 +62,7 @@ export default function ImageViewer({
                     <>
                         <img
                             loading="eager"
-                            src={client.proxyFile(embed.url)}
+                            src={proxyUnlessKlipy(embed.url, client.proxyFile)}
                             width={embed.width}
                             height={embed.height}
                         />
