@@ -6,6 +6,7 @@ import classNames from "classnames";
 import { useContext } from "preact/hooks";
 
 import { useTranslation } from "../../../../lib/i18n";
+import { proxyUnlessKlipy } from "../../../../lib/klipy";
 
 import { useClient } from "../../../../controllers/client/ClientController";
 import { modalController } from "../../../../controllers/modals/ModalController";
@@ -311,7 +312,7 @@ export default function Embed({ embed }: Props) {
                     }>
                     <img
                         className={styles.image}
-                        src={client.proxyFile(embed.url)}
+                        src={proxyUnlessKlipy(embed.url, client.proxyFile)}
                         alt=""
                         loading="lazy"
                         decoding="async"
@@ -324,7 +325,7 @@ export default function Embed({ embed }: Props) {
                 <video
                     className={classNames(styles.embed, styles.image)}
                     style={calculateSize(embed.width, embed.height)}
-                    src={client.proxyFile(embed.url)}
+                    src={proxyUnlessKlipy(embed.url, client.proxyFile)}
                     frameBorder="0"
                     loading="lazy"
                     controls

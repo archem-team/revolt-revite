@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { Modal } from "@revoltchat/ui";
 
 import { useTranslation } from "../../../lib/i18n";
+import { proxyUnlessKlipy } from "../../../lib/klipy";
 
 import AttachmentActions from "../../../components/common/messaging/attachments/AttachmentActions";
 import EmbedMediaActions from "../../../components/common/messaging/embed/EmbedMediaActions";
@@ -209,7 +210,7 @@ export default function ImageViewer({
     const previewSource = currentAttachment
         ? client.generateFileURL(currentAttachment, { max_side: 1600 }, true)!
         : embed
-        ? client.proxyFile(embed.url) ?? ""
+        ? proxyUnlessKlipy(embed.url, client.proxyFile) ?? ""
         : "";
     const originalSource = currentAttachment
         ? client.generateFileURL(currentAttachment)!
