@@ -19,10 +19,13 @@ import Developer from "./developer/Developer";
 import Friends from "./friends/Friends";
 import Home from "./home/Home";
 import HomeNew from "./home/HomeNew";
+import NotificationCenterPage, { NotificationDrawer } from "./notifications/NotificationCenter";
 import InviteBot from "./invite/InviteBot";
 import ChannelSettings from "./settings/ChannelSettings";
 import ServerSettings from "./settings/ServerSettings";
 import Settings from "./settings/Settings";
+
+const COMPACT_LAYOUT_QUERY = "(max-width: 960px)";
 
 const AppContainer = styled.div`
     background-size: cover !important;
@@ -71,7 +74,10 @@ export const StatusBar = styled.div`
 const Routes = styled.div.attrs({ "data-component": "routes" })<{
     borders: boolean;
     panel: boolean;
+    compact: boolean;
 }>`
+    width: 100%;
+    max-width: 100%;
     min-width: 0;
     display: flex;
     position: relative;
@@ -84,7 +90,7 @@ const Routes = styled.div.attrs({ "data-component": "routes" })<{
         props.panel ? "var(--primary-background)" : "transparent"};
 
     ${(props) =>
-        !isTouchscreenDevice &&
+        !props.compact &&
         props.panel &&
         css`
             margin: var(--space-2);
@@ -102,7 +108,8 @@ export default function App() {
         path === "/home" ||
         path === "/settings" ||
         path.startsWith("/friends") ||
-        path.startsWith("/discover");
+        path.startsWith("/discover") ||
+        path.startsWith("/notifications");
     const inChannel = path.includes("/channel");
     const inServer = path.includes("/server");
     // Pages that draw their own header-on-canvas + rounded panel.
@@ -110,11 +117,35 @@ export default function App() {
     const inSpecial =
         (path.startsWith("/friends") && isTouchscreenDevice) ||
         path.startsWith("/invite") ||
-        path.includes("/settings");
+        path.includes("/settings") ||
+        path.startsWith("/notifications");
 
     const alert = useSystemAlert();
     const [statusBar, setStatusBar] = useState(false);
+    // Touch capability does not imply a compact viewport. Wide tablets need
+    // the docked layout so the bottom navigation cannot cover the composer.
+    const [compactLayout, setCompactLayout] = useState(
+        () =>
+            typeof window !== "undefined" &&
+            window.matchMedia(COMPACT_LAYOUT_QUERY).matches,
+    );
     useEffect(() => setStatusBar(true), [alert]);
+    useEffect(() => {
+        const media = window.matchMedia(COMPACT_LAYOUT_QUERY);
+        const updateLayout = () => setCompactLayout(media.matches);
+
+        updateLayout();
+        if (media.addEventListener) {
+            media.addEventListener("change", updateLayout);
+        } else {
+            media.addListener(updateLayout);
+        }
+        return () => {
+            if (media.removeEventListener)
+                media.removeEventListener("change", updateLayout);
+            else media.removeListener(updateLayout);
+        };
+    }, []);
 
     return (
         <>
@@ -149,7 +180,7 @@ export default function App() {
                     <Titlebar />
                 )}
                 <OverlappingPanels
-                    width="100vw"
+                    width="100%"
                     height={
                         (alert && statusBar ? "calc(" : "") +
                         (window.isNative && !window.native.getConfig().frame
@@ -172,9 +203,10 @@ export default function App() {
                         showIf: fixedBottomNav ? ShowIf.Always : ShowIf.Left,
                         height: 50,
                     }}
-                    docked={isTouchscreenDevice ? Docked.None : Docked.Left}>
+                    docked={compactLayout ? Docked.None : Docked.Left}>
                     <Routes
                         borders={inServer}
+                        compact={compactLayout}
                         panel={!(inChannel || inServer || inFriends)}>
                         <Switch>
                             <Route
@@ -240,11 +272,13 @@ export default function App() {
                             <Route path="/open/:id" component={Open} />
                             <Route path="/bot/:id" component={InviteBot} />
                             <Route path="/home" component={HomeNew} />
+                            <Route path="/notifications" component={NotificationCenterPage} />
                             <Route path="/" component={Home} />
                         </Switch>
                     </Routes>
                     <ContextMenus />
                 </OverlappingPanels>
+                {!isTouchscreenDevice && <NotificationDrawer />}
             </AppContainer>
         </>
     );

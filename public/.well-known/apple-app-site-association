@@ -4,10 +4,9 @@
             {
                 "appIDs": ["R8387T64JW.chat.zeko.app"],
                 "components": [
-                    {
-                        "/": "*",
-                        "comment": "Open all app.peptide.chat paths in the Zeko iOS app when installed."
-                    }
+                    { "/": "/invite/*", "comment": "Server invites" },
+                    { "/": "/channel/*", "comment": "DM and group channel messages" },
+                    { "/": "/server/*", "comment": "Servers, channels, and messages" }
                 ]
             }
         ]
