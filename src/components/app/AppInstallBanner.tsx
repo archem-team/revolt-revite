@@ -18,14 +18,13 @@ const DISMISS_DURATION = 24 * 60 * 60 * 1000; // 1 day
 const DISMISS_KEY = "appInstallBannerDismissedAt";
 
 /**
- * iOS uses a cross-origin HTTPS Universal Link so Safari offers it to the
- * installed app instead of keeping same-origin navigation in the browser. The
- * web endpoint redirects to the locale-neutral App Store URL when Zeko is not
- * installed. Android continues to use its store URL directly.
+ * Use the cross-origin HTTPS app-link route on both platforms so the installed
+ * app gets first chance to open it. The web endpoint selects the appropriate
+ * store fallback when Zeko is not installed.
  */
-const IOS_URL = "https://app.peptide.chat/open-app";
-const ANDROID_URL =
-    "https://play.google.com/store/apps/details?id=com.zekochat";
+const APP_LINK_URL = "https://app.peptide.chat/open-app";
+const IOS_URL = APP_LINK_URL;
+const ANDROID_URL = APP_LINK_URL;
 
 /**
  * iPadOS 13+ Safari reports a desktop (macOS) user-agent, so react-device-detect
