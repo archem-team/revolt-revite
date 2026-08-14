@@ -4,6 +4,7 @@
             {
                 "appIDs": ["R8387T64JW.chat.zeko.app"],
                 "components": [
+                    { "/": "/open-app", "comment": "Open Zeko from the web install banner" },
                     { "/": "/invite/*", "comment": "Server invites" },
                     { "/": "/channel/*", "comment": "DM and group channel messages" },
                     { "/": "/server/*", "comment": "Servers, channels, and messages" }

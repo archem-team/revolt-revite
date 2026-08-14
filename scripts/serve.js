@@ -23,9 +23,13 @@ const sirv = require("sirv");
 const dir = process.argv[2] || "dist";
 const port = Number(process.env.PORT) || 5000;
 const releaseId = process.env.RELEASE_ID || "unknown";
+const iosAppStoreUrl = "https://apps.apple.com/app/id6756353165";
 
 function setHeaders(res, pathname) {
-    if (pathname === "/sw.js") {
+    if (pathname === "/.well-known/apple-app-site-association") {
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Cache-Control", "no-cache");
+    } else if (pathname === "/sw.js") {
         const value = "no-store, no-cache, must-revalidate, max-age=0";
         res.setHeader("Cache-Control", value);
         res.setHeader("Cloudflare-CDN-Cache-Control", "no-store");
@@ -58,7 +62,15 @@ http.createServer((req, res) => {
         "Origin, Content-Type, Accept, Range",
     );
     const pathname = new URL(req.url, "http://localhost").pathname;
-    if (pathname.startsWith("/assets/")) {
+    if (pathname === "/open-app") {
+        // iOS intercepts this associated Universal Link when Zeko is installed.
+        // Reaching the web server means it was not intercepted, so fall back to
+        // the App Store without relying on a fragile client-side timer.
+        res.statusCode = 302;
+        res.setHeader("Location", iosAppStoreUrl);
+        res.setHeader("Cache-Control", "no-store");
+        res.end();
+    } else if (pathname.startsWith("/assets/")) {
         // Never return index.html with a 200 status for a missing JS/CSS file.
         serveStatic(req, res, () => {
             res.statusCode = 404;
