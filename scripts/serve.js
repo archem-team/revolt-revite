@@ -24,9 +24,14 @@ const dir = process.argv[2] || "dist";
 const port = Number(process.env.PORT) || 5000;
 const releaseId = process.env.RELEASE_ID || "unknown";
 const iosAppStoreUrl = "https://apps.apple.com/app/id6756353165";
+const androidPlayStoreUrl =
+    "https://play.google.com/store/apps/details?id=com.zekochat";
 
 function setHeaders(res, pathname) {
-    if (pathname === "/.well-known/apple-app-site-association") {
+    if (
+        pathname === "/.well-known/apple-app-site-association" ||
+        pathname === "/.well-known/assetlinks.json"
+    ) {
         res.setHeader("Content-Type", "application/json");
         res.setHeader("Cache-Control", "no-cache");
     } else if (pathname === "/sw.js") {
@@ -63,11 +68,15 @@ http.createServer((req, res) => {
     );
     const pathname = new URL(req.url, "http://localhost").pathname;
     if (pathname === "/open-app") {
-        // iOS intercepts this associated Universal Link when Zeko is installed.
-        // Reaching the web server means it was not intercepted, so fall back to
-        // the App Store without relying on a fragile client-side timer.
+        // iOS and Android intercept this associated link when Zeko is installed.
+        // Reaching the web server means it was not intercepted, so select the
+        // correct store without relying on a fragile client-side timer.
+        const isAndroid = /Android/i.test(req.headers["user-agent"] || "");
         res.statusCode = 302;
-        res.setHeader("Location", iosAppStoreUrl);
+        res.setHeader(
+            "Location",
+            isAndroid ? androidPlayStoreUrl : iosAppStoreUrl,
+        );
         res.setHeader("Cache-Control", "no-store");
         res.end();
     } else if (pathname.startsWith("/assets/")) {
