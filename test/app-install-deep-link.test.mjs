@@ -6,7 +6,7 @@ import test from "node:test";
 
 const APP_ID = "R8387T64JW.chat.zeko.app";
 const APP_STORE_URL = "https://apps.apple.com/app/id6756353165";
-const UNIVERSAL_LINK = "https://peptide.chat/open-app";
+const UNIVERSAL_LINK = "https://app.peptide.chat/open-app";
 
 function request(port, path) {
     return new Promise((resolve, reject) => {
