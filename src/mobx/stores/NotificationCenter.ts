@@ -1,6 +1,11 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import type { Client, ClientboundNotification } from "revolt.js";
-import type { NotificationCategory, NotificationItem, NotificationPage } from "../../types/notifications";
+import {
+    isNotificationItemSupported,
+    NotificationCategory,
+    NotificationItem,
+    NotificationPage,
+} from "../../types/notifications";
 
 type NotificationPacket =
     | ClientboundNotification
@@ -79,7 +84,7 @@ export default class NotificationCenter {
         try {
             const page = await this.fetchPage({ limit: 30, category });
             runInAction(() => {
-                this.items = page.items;
+                this.items = page.items.filter(isNotificationItemSupported);
                 this.nextCursor = page.nextCursor;
                 this.unreadCount = page.unreadCount;
             });
@@ -97,7 +102,11 @@ export default class NotificationCenter {
             const page = await this.fetchPage({ before: this.nextCursor, limit: 30 });
             runInAction(() => {
                 const known = new Set(this.items.map((item) => item._id));
-                this.items.push(...page.items.filter((item) => !known.has(item._id)));
+                this.items.push(
+                    ...page.items.filter(
+                        (item) => isNotificationItemSupported(item) && !known.has(item._id),
+                    ),
+                );
                 this.nextCursor = page.nextCursor;
                 this.unreadCount = page.unreadCount;
             });
@@ -109,6 +118,7 @@ export default class NotificationCenter {
     onPacket(packet: NotificationPacket) {
         switch (packet.type) {
             case "NotificationCreate":
+                if (!isNotificationItemSupported(packet.item)) break;
                 if (!this.items.some((item) => item._id === packet.item._id)) this.items.unshift(packet.item);
                 this.unreadCount = packet.unread_count;
                 break;

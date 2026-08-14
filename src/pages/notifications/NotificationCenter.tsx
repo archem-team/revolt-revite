@@ -1,6 +1,10 @@
 import { Bell, CheckCircle, X } from "@styled-icons/boxicons-regular";
 import { observer } from "mobx-react-lite";
-import type { NotificationItem, NotificationTarget } from "../../types/notifications";
+import {
+    isNotificationTargetSupported,
+    NotificationItem,
+    NotificationTarget,
+} from "../../types/notifications";
 import { useHistory } from "react-router-dom";
 import styled, { css, keyframes } from "styled-components/macro";
 
@@ -218,9 +222,10 @@ function groupLabel(value: Date, now = new Date()) {
 }
 
 function pathForTarget(target: NotificationTarget): string | undefined {
+    if (!isNotificationTargetSupported(target)) return undefined;
     switch (target.type) {
-        case "channel_message": return target.server_id ? `/server/${target.server_id}/channel/${target.channel_id}/${target.message_id}` : `/channel/${target.channel_id}/${target.message_id}`;
-        case "channel": return target.server_id ? `/server/${target.server_id}/channel/${target.channel_id}` : `/channel/${target.channel_id}`;
+        case "channel_message": return `/server/${target.server_id}/channel/${target.channel_id}/${target.message_id}`;
+        case "channel": return `/server/${target.server_id}/channel/${target.channel_id}`;
         case "friends": return "/friends";
         case "settings": return target.page ? `/settings/${target.page}` : "/settings";
         case "feature": return target.key === "notification_center" ? "/notifications" : `/home?feature=${encodeURIComponent(target.key)}`;
@@ -279,7 +284,7 @@ const ViewedCard = observer(({ item, onOpen }: { item: NotificationItem; onOpen:
                 if (block.type === "image") return <Media key={index} src={mediaUrl(block.file_id)} alt={block.alt} loading="lazy" />;
                 if (block.type === "video") return <Video key={index} src={mediaUrl(block.file_id)} controls preload="metadata" aria-label={block.title || "Notification video"} />;
                 if (block.type === "link_preview") return <LinkPreview key={index} onClick={(event) => { event.stopPropagation(); window.open(block.url, "_blank", "noopener,noreferrer"); }}><strong>{block.title}</strong>{block.description && <span>{block.description}</span>}</LinkPreview>;
-                if (block.type === "actions") return <Actions key={index}>{block.actions.map((action) => <button key={action.label} data-secondary={action.style === "secondary"} onClick={(event) => { event.stopPropagation(); onOpen(action.target); }}>{action.label}</button>)}</Actions>;
+                if (block.type === "actions") return <Actions key={index}>{block.actions.filter((action) => isNotificationTargetSupported(action.target)).map((action) => <button key={action.label} data-secondary={action.style === "secondary"} onClick={(event) => { event.stopPropagation(); onOpen(action.target); }}>{action.label}</button>)}</Actions>;
                 return null;
             })}
             <time dateTime={item.created_at}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.created_at))}</time>
