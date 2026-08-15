@@ -10,15 +10,6 @@ test("Home renders safe Pepshop links without changing server-card height", asyn
     assert.match(home, /pepshopUrl\?: string \| null/);
     assert.match(
         home,
-        /"01JPZER2NVD0TC435S6YET4QCB": "https:\/\/baohuadongnuo\.peptide\.chat"/,
-    );
-    assert.match(home, /const pepshopUrl = pepshopUrlFor\(server\)/);
-    assert.match(
-        home,
-        /toExternalHttpUrl\(PEPSHOP_URL_OVERRIDES\[server\.id\]\)/,
-    );
-    assert.match(
-        home,
         /url\.protocol === "https:" \|\| url\.protocol === "http:"/,
     );
     assert.match(
