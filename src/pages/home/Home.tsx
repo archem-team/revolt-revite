@@ -458,6 +458,12 @@ const LoaderWrapper = styled.div`
 const CACHE_KEY = "server_list_cache_v2";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
+// Keep newly launched storefronts visible while the directory record catches up.
+// Server ids are stable, unlike display names.
+const PEPSHOP_URL_OVERRIDES: Readonly<Record<string, string>> = {
+    "01JPZER2NVD0TC435S6YET4QCB": "https://baohuadongnuo.peptide.chat",
+};
+
 // Safe localStorage wrapper
 const safeStorage = {
     getItem: (key: string): string | null => {
@@ -488,6 +494,13 @@ function toExternalHttpUrl(value: unknown): string | null {
     } catch {
         return null;
     }
+}
+
+function pepshopUrlFor(server: Server): string | null {
+    return (
+        toExternalHttpUrl(server.pepshopUrl) ??
+        toExternalHttpUrl(PEPSHOP_URL_OVERRIDES[server.id])
+    );
 }
 
 const Home: React.FC = () => {
@@ -671,7 +684,7 @@ const Home: React.FC = () => {
 
     const renderServerButton = (server: Server) => {
         const isServerJoined = client.servers.get(server.id);
-        const pepshopUrl = toExternalHttpUrl(server.pepshopUrl);
+        const pepshopUrl = pepshopUrlFor(server);
         const linkTo = isServerJoined
             ? `/server/${server.id}`
             : `/invite/${server.inviteCode}`;
