@@ -131,8 +131,8 @@ export const MessageOverlayBar = observer(
                         setOpen={setReactionsOpen}
                         message={message}>
                         <Tooltip content="React">
-                            <Entry>
-                                <HappyBeaming size={18} />
+                            <Entry as="span">
+                                <HappyBeaming size={18} aria-hidden="true" />
                             </Entry>
                         </Tooltip>
                     </ReactionWrapper>
@@ -153,17 +153,17 @@ export const MessageOverlayBar = observer(
                     </Tooltip>
                 )}
                 {isAuthor ||
-                    (message.channel &&
-                        message.channel.havePermission("ManageMessages")) ? (
+                (message.channel &&
+                    message.channel.havePermission("ManageMessages")) ? (
                     <Tooltip content="Delete">
                         <Entry
                             onClick={(e) =>
                                 e.shiftKey
                                     ? message.delete()
                                     : modalController.push({
-                                        type: "delete_message",
-                                        target: message,
-                                    })
+                                          type: "delete_message",
+                                          target: message,
+                                      })
                             }>
                             <Trash size={18} color={"var(--error)"} />
                         </Entry>

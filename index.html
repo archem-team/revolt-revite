@@ -3,38 +3,112 @@
     <head>
         <meta charset="UTF-8" />
 
-        <!--Stale-release recovery: each release replaces every hashed file
-            under /assets, so a document restored from bfcache, an old PWA
-            service worker or a mid-session deploy can reference assets that
-            no longer exist. If any hashed asset fails to load, force one
-            fresh reload (index.html is served no-cache, so the reload gets
-            the current release). sessionStorage guards against loops.-->
+        <!--Stale-release and failed-boot recovery. A document restored from
+            bfcache, an old PWA worker, or a mid-session deploy can reference
+            assets that no longer exist. Mobile browsers can also surface a
+            failed dynamic import only as an unhandled rejection. Recover once
+            with a fresh document, then show a usable recovery screen instead
+            of leaving the user on an empty canvas.-->
         <script>
             (function () {
-                var KEY = "stale-asset-reload-at";
+                var KEY = "pepchat-boot-reload-at";
+                var RELOAD_GUARD_MS = 30000;
+                var dynamicImportFailure =
+                    /chunkloaderror|loading chunk|dynamically imported module|importing a module script failed/i;
+
+                function reloadOnce() {
+                    var last = 0;
+                    try {
+                        last = +sessionStorage.getItem(KEY) || 0;
+                    } catch (error) {}
+                    if (Date.now() - last < RELOAD_GUARD_MS) return false;
+                    try {
+                        sessionStorage.setItem(KEY, String(Date.now()));
+                    } catch (error) {}
+                    location.reload();
+                    return true;
+                }
+
+                function showRecovery() {
+                    var app = document.getElementById("app");
+                    var recovery = document.getElementById("boot-recovery");
+                    if (app) app.setAttribute("hidden", "");
+                    if (recovery) recovery.removeAttribute("hidden");
+                }
+
+                window.__pepchatRetryBoot = function () {
+                    location.reload();
+                };
+
+                window.__pepchatRecoverBoot = function () {
+                    if (!reloadOnce()) showRecovery();
+                };
+
+                window.__pepchatResetBoot = function () {
+                    var clearCaches = window.caches
+                        ? caches
+                              .keys()
+                              .then(function (keys) {
+                                  return Promise.all(
+                                      keys.map(function (key) {
+                                          return caches.delete(key);
+                                      }),
+                                  );
+                              })
+                              .catch(function () {})
+                        : Promise.resolve();
+                    var clearWorkers = navigator.serviceWorker
+                        ? navigator.serviceWorker
+                              .getRegistrations()
+                              .then(function (workers) {
+                                  return Promise.all(
+                                      workers.map(function (worker) {
+                                          return worker.unregister();
+                                      }),
+                                  );
+                              })
+                              .catch(function () {})
+                        : Promise.resolve();
+
+                    Promise.all([clearCaches, clearWorkers]).then(function () {
+                        location.reload();
+                    });
+                };
+
                 window.addEventListener(
                     "error",
                     function (event) {
                         var el = event.target;
-                        if (
-                            !el ||
-                            (el.tagName !== "SCRIPT" && el.tagName !== "LINK")
-                        )
-                            return;
-                        var url = el.src || el.href || "";
-                        if (url.indexOf("/assets/") === -1) return;
-                        var last = 0;
-                        try {
-                            last = +sessionStorage.getItem(KEY) || 0;
-                        } catch (e) {}
-                        if (Date.now() - last < 15000) return;
-                        try {
-                            sessionStorage.setItem(KEY, String(Date.now()));
-                        } catch (e) {}
-                        location.reload();
+                        var isAssetElement =
+                            el &&
+                            (el.tagName === "SCRIPT" ||
+                                el.tagName === "LINK") &&
+                            (el.src || el.href || "").indexOf("/assets/") !==
+                                -1;
+                        if (isAssetElement && !reloadOnce()) showRecovery();
                     },
                     true,
                 );
+
+                window.addEventListener("unhandledrejection", function (event) {
+                    var reason = event.reason;
+                    var message = String(
+                        (reason && (reason.message || reason.name)) ||
+                            reason ||
+                            "",
+                    );
+                    if (!dynamicImportFailure.test(message)) return;
+                    window.__pepchatRecoverBoot();
+                });
+
+                window.addEventListener("load", function () {
+                    setTimeout(function () {
+                        var app = document.getElementById("app");
+                        if (app && !app.firstElementChild && !reloadOnce()) {
+                            showRecovery();
+                        }
+                    }, 4000);
+                });
             })();
         </script>
 
@@ -193,10 +267,72 @@
             noscript > div > a:active {
                 background-color: #b64141;
             }
+            #boot-recovery {
+                box-sizing: border-box;
+                position: fixed;
+                inset: 0;
+                z-index: 2147483647;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                padding: 24px;
+                background: #100518;
+                color: #f6f1f8;
+                font: 16px/1.5 "Open Sans", sans-serif;
+                text-align: center;
+            }
+            #boot-recovery[hidden] {
+                display: none;
+            }
+            #boot-recovery h1,
+            #boot-recovery p {
+                margin: 0;
+            }
+            #boot-recovery h1 {
+                font-size: 22px;
+            }
+            #boot-recovery .actions {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+                margin-top: 8px;
+            }
+            #boot-recovery button {
+                min-height: 44px;
+                padding: 0 18px;
+                border: 0;
+                border-radius: 999px;
+                background: #c92a68;
+                color: white;
+                font: inherit;
+                font-weight: 600;
+            }
+            #boot-recovery button.secondary {
+                background: #352c3c;
+            }
         </style>
     </head>
     <body>
         <div id="app"></div>
+        <section id="boot-recovery" role="alert" hidden>
+            <h1>PepChat couldn’t finish loading</h1>
+            <p>Refresh the app, or clear its cached files if this continues.</p>
+            <div class="actions">
+                <button type="button" onclick="window.__pepchatRetryBoot()">
+                    Refresh PepChat
+                </button>
+                <button
+                    class="secondary"
+                    type="button"
+                    onclick="window.__pepchatResetBoot()"
+                >
+                    Clear cache and refresh
+                </button>
+            </div>
+        </section>
         <script type="module" src="/src/main.tsx"></script>
         <noscript>
             <div>

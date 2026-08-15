@@ -34,6 +34,7 @@ export interface QueuedMessage {
     data: QueuedMessageData;
     status: QueueStatus;
     error?: string;
+    retryAt?: number;
 }
 
 /**
@@ -76,10 +77,11 @@ export default class MessageQueue implements Store {
      * @param id Nonce value
      * @param error Error string
      */
-    @action fail(id: string, error: string) {
+    @action fail(id: string, error: string, retryAt?: number) {
         const entry = this.messages.find((x) => x.id === id)!;
         entry.status = QueueStatus.ERRORED;
         entry.error = error;
+        entry.retryAt = retryAt;
     }
 
     /**
@@ -89,6 +91,8 @@ export default class MessageQueue implements Store {
     @action start(id: string) {
         const entry = this.messages.find((x) => x.id === id)!;
         entry.status = QueueStatus.SENDING;
+        entry.error = undefined;
+        entry.retryAt = undefined;
     }
 
     /**

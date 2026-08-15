@@ -5,6 +5,7 @@ import styled, { css } from "styled-components/macro";
 import { useEffect, useState } from "preact/hooks";
 
 import ContextMenus from "../lib/ContextMenus";
+import { keepRoutesPanelInView } from "../lib/compactPanels";
 import { isTouchscreenDevice } from "../lib/isTouchscreenDevice";
 
 import { Titlebar } from "../components/native/Titlebar";
@@ -19,8 +20,10 @@ import Developer from "./developer/Developer";
 import Friends from "./friends/Friends";
 import Home from "./home/Home";
 import HomeNew from "./home/HomeNew";
-import NotificationCenterPage, { NotificationDrawer } from "./notifications/NotificationCenter";
 import InviteBot from "./invite/InviteBot";
+import NotificationCenterPage, {
+    NotificationDrawer,
+} from "./notifications/NotificationCenter";
 import ChannelSettings from "./settings/ChannelSettings";
 import ServerSettings from "./settings/ServerSettings";
 import Settings from "./settings/Settings";
@@ -146,6 +149,10 @@ export default function App() {
             else media.removeListener(updateLayout);
         };
     }, []);
+    useEffect(() => {
+        if (!compactLayout) return;
+        return keepRoutesPanelInView();
+    }, [compactLayout, path]);
 
     return (
         <>
@@ -272,7 +279,10 @@ export default function App() {
                             <Route path="/open/:id" component={Open} />
                             <Route path="/bot/:id" component={InviteBot} />
                             <Route path="/home" component={HomeNew} />
-                            <Route path="/notifications" component={NotificationCenterPage} />
+                            <Route
+                                path="/notifications"
+                                component={NotificationCenterPage}
+                            />
                             <Route path="/" component={Home} />
                         </Switch>
                     </Routes>

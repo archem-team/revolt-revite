@@ -1,5 +1,6 @@
 import { observer } from "mobx-react-lite";
 import { Message as MessageObject } from "revolt.js";
+import styled from "styled-components/macro";
 
 import { useTriggerEvents } from "preact-context-menu";
 import { memo } from "preact/compat";
@@ -7,14 +8,18 @@ import { useEffect, useState } from "preact/hooks";
 
 import { Category } from "@revoltchat/ui";
 
+import { getRetryAfterMs, retrySeconds } from "../../../lib/chatSendFailure";
 import { internalEmit } from "../../../lib/eventEmitter";
+import { useTranslation } from "../../../lib/i18n";
 import { isTouchscreenDevice } from "../../../lib/isTouchscreenDevice";
 
+import { useApplicationState } from "../../../mobx/State";
 import { QueuedMessage } from "../../../mobx/stores/MessageQueue";
 
 import { I18nError } from "../../../context/Locale";
 
 import { FILE_SERVER_ORIGIN } from "../../../config/branding";
+import { takeError } from "../../../controllers/client/jsx/error";
 import { modalController } from "../../../controllers/modals/ModalController";
 import Markdown from "../../markdown/Markdown";
 import UserIcon from "../user/UserIcon";
@@ -25,10 +30,11 @@ import MessageBase, {
     MessageInfo,
 } from "./MessageBase";
 import Attachment from "./attachments/Attachment";
+import ImageGallery from "./attachments/ImageGallery";
 import { MessageReply } from "./attachments/MessageReply";
 import { Reactions } from "./attachments/Reactions";
 import { MessageOverlayBar } from "./bars/MessageOverlayBar";
-import Embed from "./embed/Embed";
+import Embed, { isRenderableEmbed } from "./embed/Embed";
 import InviteList from "./embed/EmbedInvite";
 
 interface Props {
@@ -40,6 +46,153 @@ interface Props {
     content?: Children;
     head?: boolean;
     hideReply?: boolean;
+}
+
+const FailureActions = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    color: var(--error);
+    font-size: 12px;
+
+    button {
+        min-height: 30px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: var(--border-radius);
+        color: var(--foreground);
+        background: var(--secondary-background);
+        cursor: pointer;
+        font: inherit;
+
+        &:hover,
+        &:focus-visible {
+            background: var(--tertiary-background);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        &:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        &:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+    }
+`;
+
+const PreviewToggle = styled.button`
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    margin-top: var(--space-1);
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-md);
+    color: var(--secondary-foreground);
+    background: var(--secondary-background);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--font-size-body-4);
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+    }
+
+    &:active:not(:disabled) {
+        background: var(--tertiary-background);
+    }
+
+    &:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover:not(:disabled) {
+            background: var(--tertiary-background);
+        }
+    }
+`;
+
+const MessageFrame = styled.div`
+    &[data-has-attachments="true"]
+        + &[data-has-attachments="true"][data-message-head="false"] {
+        margin-top: var(--message-group-spacing, 12px);
+    }
+`;
+
+const MAX_INLINE_EMBEDS = 1;
+
+function QueuedFailureActions({
+    queued,
+    client,
+}: {
+    queued: QueuedMessage;
+    client: MessageObject["client"];
+}) {
+    const application = useApplicationState();
+    const translate = useTranslation();
+    const [now, setNow] = useState(Date.now());
+    const seconds = retrySeconds(queued.retryAt, now);
+    const isWaitingToRetry = seconds > 0;
+
+    useEffect(() => {
+        if (!isWaitingToRetry) return;
+        const timer = window.setInterval(() => setNow(Date.now()), 250);
+        return () => window.clearInterval(timer);
+    }, [isWaitingToRetry]);
+
+    const retry = async () => {
+        if (seconds > 0) return;
+        application.queue.start(queued.id);
+        try {
+            await client.channels.get(queued.channel)?.sendMessage({
+                nonce: queued.id,
+                content: queued.data.content,
+                replies: queued.data.replies,
+            });
+        } catch (error) {
+            const retryAfter = getRetryAfterMs(error);
+            application.queue.fail(
+                queued.id,
+                takeError(error),
+                retryAfter ? Date.now() + retryAfter : undefined,
+            );
+        }
+    };
+
+    return (
+        <FailureActions role="alert">
+            <span>
+                {seconds > 0
+                    ? translate("app.main.channel.send_status.rate_limited", {
+                          seconds: String(seconds),
+                      })
+                    : translate("app.main.channel.send_status.not_sent")}
+            </span>
+            <button type="button" disabled={seconds > 0} onClick={retry}>
+                {seconds > 0
+                    ? translate("app.main.channel.send_status.retry_in", {
+                          seconds: String(seconds),
+                      })
+                    : translate("app.main.channel.send_status.retry")}
+            </button>
+            <button
+                type="button"
+                onClick={() => application.queue.remove(queued.id)}>
+                {translate("app.main.channel.send_status.cancel")}
+            </button>
+        </FailureActions>
+    );
 }
 
 const Message = observer(
@@ -55,11 +208,22 @@ const Message = observer(
         type_msg,
     }: Props) => {
         const client = message.client;
+        const translate = useTranslation();
         const user = message.author;
 
         const content = message.content;
+        const imageAttachments =
+            message.attachments?.filter(
+                (attachment) => attachment.metadata.type === "Image",
+            ) ?? [];
+        const otherAttachments =
+            message.attachments?.filter(
+                (attachment) => attachment.metadata.type !== "Image",
+            ) ?? [];
         const head =
             preferHead || (message.reply_ids && message.reply_ids.length > 0);
+        const hasAttachments =
+            imageAttachments.length + otherAttachments.length > 0;
 
         const userContext = attachContext
             ? useTriggerEvents("Menu", {
@@ -92,10 +256,20 @@ const Message = observer(
         // ! FIXME(?): animate on hover
         const [mouseHovering, setAnimate] = useState(false);
         const [reactionsOpen, setReactionsOpen] = useState(false);
+        const [showAllEmbeds, setShowAllEmbeds] = useState(false);
+        const embeds = (message.embeds ?? []).filter(isRenderableEmbed);
+        const visibleEmbeds = showAllEmbeds
+            ? embeds
+            : embeds.slice(0, MAX_INLINE_EMBEDS);
+        const hiddenEmbedCount = Math.max(0, embeds.length - MAX_INLINE_EMBEDS);
         useEffect(() => setAnimate(false), [replacement]);
+        useEffect(() => setShowAllEmbeds(false), [message._id]);
 
         return (
-            <div id={message._id}>
+            <MessageFrame
+                id={message._id}
+                data-has-attachments={hasAttachments}
+                data-message-head={Boolean(head)}>
                 {!hideReply &&
                     message.reply_ids?.map((message_id, index) => (
                         <MessageReply
@@ -121,11 +295,11 @@ const Message = observer(
                     contrast={contrast}
                     sending={typeof queued !== "undefined"}
                     mention={
-                        client.user && (
-                            (message.mention_ids?.includes(client.user._id)) ||
-                            (message as any).mentionsEveryone ||
-                            (message as any).mentionsSelfRoles
-                        ) || undefined
+                        (client.user &&
+                            (message.mention_ids?.includes(client.user._id) ||
+                                (message as any).mentionsEveryone ||
+                                (message as any).mentionsSelfRoles)) ||
+                        undefined
                     }
                     failed={typeof queued?.error !== "undefined"}
                     {...(attachContext
@@ -184,23 +358,58 @@ const Message = observer(
                             (content && <Markdown content={content} />)}
                         {!queued && <InviteList message={message} />}
                         {queued?.error && (
-                            <Category>
-                                <I18nError error={queued.error} />
-                            </Category>
+                            <>
+                                <Category>
+                                    <I18nError error={queued.error} />
+                                </Category>
+                                <QueuedFailureActions
+                                    queued={queued}
+                                    client={client}
+                                />
+                            </>
                         )}
-                        {message.attachments?.map((attachment, index) => (
+                        {imageAttachments.length === 1 && (
                             <Attachment
-                                key={index}
+                                attachment={imageAttachments[0]}
+                                hasContent={
+                                    content ? content.length > 0 : false
+                                }
+                            />
+                        )}
+                        {imageAttachments.length > 1 && (
+                            <ImageGallery attachments={imageAttachments} />
+                        )}
+                        {otherAttachments.map((attachment, index) => (
+                            <Attachment
+                                key={attachment._id}
                                 attachment={attachment}
                                 hasContent={
                                     index > 0 ||
+                                    imageAttachments.length > 0 ||
                                     (content ? content.length > 0 : false)
                                 }
                             />
                         ))}
-                        {message.embeds?.map((embed, index) => (
+                        {visibleEmbeds.map((embed, index) => (
                             <Embed key={index} embed={embed} />
                         ))}
+                        {hiddenEmbedCount > 0 && (
+                            <PreviewToggle
+                                type="button"
+                                aria-expanded={showAllEmbeds}
+                                onClick={() =>
+                                    setShowAllEmbeds((value) => !value)
+                                }>
+                                {showAllEmbeds
+                                    ? translate(
+                                          "app.main.channel.media.show_fewer_previews",
+                                      )
+                                    : translate(
+                                          "app.main.channel.media.show_more_previews",
+                                          { count: String(hiddenEmbedCount) },
+                                      )}
+                            </PreviewToggle>
+                        )}
                         <Reactions message={message} />
                         {(mouseHovering || reactionsOpen) &&
                             !replacement &&
@@ -215,7 +424,7 @@ const Message = observer(
                             )}
                     </MessageContent>
                 </MessageBase>
-            </div>
+            </MessageFrame>
         );
     },
 );

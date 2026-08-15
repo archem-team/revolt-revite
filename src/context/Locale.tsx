@@ -13,7 +13,14 @@ import { Error } from "@revoltchat/ui";
 import { useApplicationState } from "../mobx/State";
 
 import { Languages } from "../../external/lang/Languages";
-import definition from "../../external/lang/en.json";
+import baseDefinition from "../../external/lang/en.json";
+import chatDefinition from "./chatLocale.en.json";
+
+const definition = defaultsDeep(
+    {},
+    chatDefinition,
+    baseDefinition,
+) as Dictionary;
 
 export const dayjs = dayJS;
 
