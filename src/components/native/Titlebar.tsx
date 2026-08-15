@@ -1,8 +1,6 @@
 import { Wrench } from "@styled-icons/boxicons-solid";
 import styled, { css } from "styled-components/macro";
 
-import UpdateIndicator from "../common/UpdateIndicator";
-
 interface Props {
     overlay?: boolean;
 }
@@ -131,7 +129,6 @@ export function Titlebar(props: Props) {
                 </Tooltip>
             </div>*/}
             <div className="drag" />
-            <UpdateIndicator style="titlebar" />
             <div className="actions">
                 <div onClick={window.native.min}>
                     <svg
