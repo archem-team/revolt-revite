@@ -214,8 +214,10 @@ test("compact channel routes are brought into view after responsive layout", asy
     assert.match(home, /if \(!(?:compactLayout|isCompact)\) return;/);
     assert.doesNotMatch(home, /tab !== ["']promos["']/);
     assert.match(compactPanels, /POSITION_DELAYS_MS/);
-    assert.match(compactPanels, /routes\.scrollIntoView/);
-    assert.match(compactPanels, /panels\.scrollLeft = routes\.offsetLeft/);
+    assert.match(compactPanels, /POSITION_TOLERANCE_PX/);
+    assert.match(compactPanels, /Math\.abs\(panels\.scrollLeft - target\)/);
+    assert.doesNotMatch(compactPanels, /routes\.scrollIntoView/);
+    assert.match(compactPanels, /panels\.scrollLeft = target/);
     assert.match(compactPanels, /window\.addEventListener\("pageshow"/);
     assert.match(compactPanels, /document\.addEventListener\("touchstart"/);
 });

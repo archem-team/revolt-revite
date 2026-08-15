@@ -1,4 +1,5 @@
 const POSITION_DELAYS_MS = [0, 100, 300, 750, 1500, 3000, 5000];
+const POSITION_TOLERANCE_PX = 1;
 
 /**
  * Keep the main routes track selected while OverlappingPanels and async page
@@ -20,14 +21,15 @@ export function keepRoutesPanelInView() {
         const panels = routes?.parentElement;
         if (!routes || !panels) return;
 
-        routes.scrollIntoView({
-            behavior: "auto",
-            block: "nearest",
-            inline: "center",
-        });
-        // scrollIntoView is the reliable WebKit path; the explicit assignment
-        // keeps Chromium and older browsers aligned to the exact grid track.
-        panels.scrollLeft = routes.offsetLeft;
+        const target = routes.offsetLeft;
+        if (Math.abs(panels.scrollLeft - target) <= POSITION_TOLERANCE_PX)
+            return;
+
+        // Only move the horizontal snap container. Element-level scrolling can
+        // also move ancestor containers and repeatedly re-layer the off-screen
+        // server rail; on iOS WebKit that can leave its virtualized list
+        // unpainted when the user swipes the rail back into view.
+        panels.scrollLeft = target;
     };
 
     const stopForGesture = () => {
