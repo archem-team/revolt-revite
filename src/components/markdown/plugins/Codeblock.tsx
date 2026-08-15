@@ -80,40 +80,44 @@ const Lang = styled.div`
 /**
  * Render a codeblock with copy text button
  */
-export const RenderCodeblock: React.FC<{ class: string; children?: Children }> =
-    ({ children, ...props }) => {
-        const ref = useRef<HTMLPreElement>(null);
-        const translate = useTranslation();
+export const RenderCodeblock: React.FC<{ class: string }> = ({
+    children,
+    ...props
+}) => {
+    const ref = useRef<HTMLPreElement>(null);
+    const translate = useTranslation();
 
-        let text = "text";
-        if (props.class) {
-            text = props.class.split("-")[1];
-        }
+    let text = "text";
+    if (props.class) {
+        text = props.class.split("-")[1];
+    }
 
-        const onCopy = useCallback(() => {
-            const text = ref.current?.querySelector("code")?.innerText;
-            text && modalController.writeText(text);
-        }, [ref]);
+    const onCopy = useCallback(() => {
+        const text = ref.current?.querySelector("code")?.innerText;
+        text && modalController.writeText(text);
+    }, [ref]);
 
-        return (
-            <Base ref={ref}>
-                <Lang>
-                    <Tooltip
-                        content={translate(
+    return (
+        <Base ref={ref}>
+            <Lang>
+                <Tooltip
+                    content={translate(
+                        "app.main.channel.accessibility.copy_code",
+                    )}
+                    placement="top">
+                    {/**
+                         // @ts-expect-error Preact-React */}
+                    <button
+                        type="button"
+                        aria-label={translate(
                             "app.main.channel.accessibility.copy_code",
                         )}
-                        placement="top">
-                        <button
-                            type="button"
-                            aria-label={translate(
-                                "app.main.channel.accessibility.copy_code",
-                            )}
-                            onClick={onCopy}>
-                            {text}
-                        </button>
-                    </Tooltip>
-                </Lang>
-                {children}
-            </Base>
-        );
-    };
+                        onClick={onCopy}>
+                        {text}
+                    </button>
+                </Tooltip>
+            </Lang>
+            {children}
+        </Base>
+    );
+};
