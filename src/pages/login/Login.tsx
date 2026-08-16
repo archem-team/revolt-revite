@@ -231,7 +231,7 @@ export default observer(() => {
                     <MarketplaceLogin
                         authentication={<AuthenticationCard marketplace />}
                         loggedIn={clientController.isLoggedIn()}
-                        pepchatSession={
+                        getPepchatSession={() =>
                             clientController.getAvailableClient().session
                         }
                         locale={<LocaleSelector />}

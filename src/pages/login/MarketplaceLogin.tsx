@@ -70,14 +70,14 @@ function readCart() {
 export default function MarketplaceLogin({
     authentication,
     loggedIn,
-    pepchatSession,
+    getPepchatSession,
     locale,
     legal,
     logoSrc,
 }: {
     authentication: ComponentChildren;
     loggedIn: boolean;
-    pepchatSession?: unknown;
+    getPepchatSession: () => unknown;
     locale: ComponentChildren;
     legal: ComponentChildren;
     logoSrc: string;
@@ -570,7 +570,7 @@ export default function MarketplaceLogin({
             if (loggedIn) {
                 const redirect = await requestCompoundBayRedirect({
                     apiBase: BACKEND_API_BASE,
-                    session: pepchatSession,
+                    session: getPepchatSession(),
                     returnUrl,
                 });
                 window.location.assign(redirect);
