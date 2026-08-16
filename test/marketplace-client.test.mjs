@@ -148,3 +148,62 @@ test("marketplace branch keeps signed-in visitors on the root homepage", async (
         "exact marketplace homepage route must precede the PepChat catch-all",
     );
 });
+
+test("marketplace uses one compact PepChat-only account flow", async () => {
+    const [login, page, loginStyles, pageStyles] = await Promise.all([
+        readFile(
+            new URL("../src/pages/login/Login.tsx", import.meta.url),
+            "utf8",
+        ),
+        readFile(
+            new URL("../src/pages/login/MarketplaceLogin.tsx", import.meta.url),
+            "utf8",
+        ),
+        readFile(
+            new URL("../src/pages/login/Login.module.scss", import.meta.url),
+            "utf8",
+        ),
+        readFile(
+            new URL(
+                "../src/pages/login/MarketplaceLogin.module.scss",
+                import.meta.url,
+            ),
+            "utf8",
+        ),
+    ]);
+
+    assert.match(login, /<AuthenticationCard marketplace \/>/);
+    assert.match(login, /loggedIn=\{clientController\.isLoggedIn\(\)\}/);
+    assert.match(
+        login,
+        /!marketplace \? \(\s*<div className=\{styles\.appLinks\}>/,
+    );
+    assert.match(page, /One account for the marketplace and PepChat/);
+    assert.match(page, /Signing in here signs you into PepChat/);
+    assert.match(page, /Go to PepChat/);
+    assert.match(page, /loggedIn \? styles\.shellAuthenticated/);
+    assert.match(page, /\{!loggedIn \? \(/);
+    assert.match(loginStyles, /\.marketplaceForm\s*\{/);
+    assert.doesNotMatch(
+        pageStyles,
+        /\.authentication\s*\{[^}]*min-height:\s*100dvh/s,
+    );
+});
+
+test("marketplace homepage suppresses the global app install banner", async () => {
+    const [app, banner] = await Promise.all([
+        readFile(new URL("../src/pages/app.tsx", import.meta.url), "utf8"),
+        readFile(
+            new URL(
+                "../src/components/app/AppInstallBanner.tsx",
+                import.meta.url,
+            ),
+            "utf8",
+        ),
+    ]);
+
+    assert.match(app, /<AppInstallBanner\s+hidden=\{/);
+    assert.match(app, /window\.location\.pathname === "\/"/);
+    assert.match(banner, /const shown = visible && !hidden/);
+    assert.match(banner, /if \(!shown\) return null/);
+});

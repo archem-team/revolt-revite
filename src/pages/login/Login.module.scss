@@ -212,6 +212,15 @@
     }
 }
 
+.marketplaceForm {
+    max-width: none;
+    margin: 0;
+    padding: 20px;
+    border: 1px solid var(--market-ink);
+    border-radius: var(--market-radius-card);
+    box-shadow: 4px 4px 0 var(--market-cyan-deep);
+}
+
 .appLinks {
     margin-top: 18px;
     padding-top: 14px;
@@ -340,6 +349,16 @@
         padding: 0;
         max-width: unset;
         border-radius: 0;
+    }
+
+    .marketplaceForm {
+        width: 100%;
+        max-width: 380px;
+        margin: 0 auto;
+        padding: 18px;
+        background: var(--primary-background);
+        border: 1px solid var(--market-ink);
+        border-radius: var(--market-radius-card);
     }
 
     .bottom {

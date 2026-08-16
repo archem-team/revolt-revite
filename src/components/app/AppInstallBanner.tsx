@@ -129,20 +129,25 @@ function shouldShow(): boolean {
 /**
  * Dismissible banner nudging mobile-web users towards the native apps.
  */
-export default function AppInstallBanner() {
+export default function AppInstallBanner({
+    hidden = false,
+}: {
+    hidden?: boolean;
+}) {
     const [visible, setVisible] = useState(shouldShow);
+    const shown = visible && !hidden;
 
     // Reserve / release vertical space for the fixed banner.
     useEffect(() => {
         const root = document.documentElement.style;
         root.setProperty(
             "--app-banner-height",
-            visible ? `${BANNER_HEIGHT}px` : "0px",
+            shown ? `${BANNER_HEIGHT}px` : "0px",
         );
         return () => root.setProperty("--app-banner-height", "0px");
-    }, [visible]);
+    }, [shown]);
 
-    if (!visible) return null;
+    if (!shown) return null;
 
     const url = isApple ? IOS_URL : ANDROID_URL;
 

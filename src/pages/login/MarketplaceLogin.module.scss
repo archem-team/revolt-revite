@@ -1,7 +1,7 @@
 /* Hallmark · macrostructure: Catalogue · tone: playful · anchor hue: yellow
  * theme: Hum · nav: N2 · footer: none · pre-emit critique: P5 H5 E5 S5 R5 V5
  * contrast: pass (40–41) · slop: pass (42–49) · mobile: pass (34, 49–57)
- * adaptation: Compound Bay marketplace + PepChat authentication rail
+ * adaptation: Compound Bay marketplace + compact PepChat authentication
  */
 .marketplace {
     width: 100%;
@@ -312,6 +312,7 @@
     background: var(--market-accent);
     box-shadow: 0 4px 0 var(--market-accent-deep);
     font-weight: 800;
+    text-decoration: none;
     white-space: nowrap;
     cursor: pointer;
     transition: transform 140ms var(--market-ease-snap),
@@ -363,6 +364,10 @@
     min-width: 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(340px, 390px);
+}
+
+.shellAuthenticated {
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .catalogue {
@@ -1219,27 +1224,48 @@
     justify-self: center;
 }
 
+/* Hallmark · component: PepChat sign-in · genre: playful · theme: Hum
+ * states: default · hover · focus · active · disabled · loading · error · success
+ * pre-emit critique: P5 H5 E5 S5 R5 V4 · contrast: pass (40–41)
+ */
 .authentication {
     position: sticky;
     inset-block-start: 74px;
-    height: calc(100dvh - 74px);
-    padding: clamp(24px, 4vw, 44px) 28px 24px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 28px;
+    align-self: start;
+    margin: 28px 24px 28px 0;
+    padding: 22px;
+    display: grid;
+    gap: 18px;
+    border: 1px solid var(--market-line);
+    border-radius: var(--market-radius-card);
     color: var(--color-text-primary);
-    background: var(--color-bg);
-    overflow-y: auto;
+    background: var(--market-paper);
+    box-shadow: 5px 5px 0 var(--market-cyan-deep);
 
-    > div:first-child {
-        display: grid;
-        gap: 16px;
+    h2 {
+        margin: 2px 0 0;
+        color: var(--market-ink);
+        font-family: var(--market-font-display);
+        font-size: 22px;
+        font-style: normal;
+        line-height: 1.15;
+    }
+}
+
+.authIntro {
+    display: grid;
+    gap: 10px;
+
+    > p:not(.authKicker, .checkoutNotice) {
+        margin: 0 0 4px;
+        color: var(--market-muted);
+        font-size: 14px;
+        line-height: 1.5;
     }
 }
 
 .authKicker {
-    color: var(--color-warning);
+    color: var(--market-muted);
 }
 
 .legal {
@@ -1265,8 +1291,9 @@
 
     .authentication {
         position: static;
-        height: auto;
-        min-height: 620px;
+        width: auto;
+        max-width: 430px;
+        margin: 0 auto 56px;
     }
 
     .intro {
@@ -1288,13 +1315,22 @@
         gap: 7px;
     }
 
+    .wordmark {
+        flex: none;
+    }
+
     .signInButton,
     .cartButton {
-        padding-inline: 11px;
+        padding-inline: 9px;
     }
 
     .logoPlate {
         height: 36px;
+        padding-inline: 8px;
+
+        img {
+            width: 92px;
+        }
     }
 
     .catalogue {
@@ -1353,8 +1389,10 @@
     }
 
     .authentication {
-        min-height: 100dvh;
-        padding: 32px 20px;
+        width: auto;
+        margin: 0 14px 44px;
+        padding: 18px;
+        gap: 14px;
     }
 
     .productDialog,
@@ -1406,6 +1444,17 @@
                 grid-column: 2;
                 grid-row: 1 / span 2;
             }
+        }
+    }
+}
+
+@media (max-width: 360px) {
+    .cartButton {
+        gap: 0;
+        font-size: 0;
+
+        span {
+            font-size: 11px;
         }
     }
 }

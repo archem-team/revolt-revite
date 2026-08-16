@@ -28,7 +28,12 @@ export function App() {
         <ErrorBoundary section="client">
             <Context>
                 <Masks />
-                <AppInstallBanner />
+                <AppInstallBanner
+                    hidden={
+                        window.location.pathname === "/" ||
+                        window.location.pathname === "/login"
+                    }
+                />
                 <Switch>
                     <Route path="/login/verify/:token">
                         <LoadSuspense>

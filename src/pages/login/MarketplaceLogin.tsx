@@ -55,11 +55,13 @@ function readCart() {
 
 export default function MarketplaceLogin({
     authentication,
+    loggedIn,
     locale,
     legal,
     logoSrc,
 }: {
     authentication: ComponentChildren;
+    loggedIn: boolean;
     locale: ComponentChildren;
     legal: ComponentChildren;
     logoSrc: string;
@@ -473,8 +475,12 @@ export default function MarketplaceLogin({
 
     function beginCheckout() {
         setCartOpen(false);
+        if (loggedIn) {
+            window.location.assign("/home");
+            return;
+        }
         setCheckoutNotice(
-            "Your marketplace cart is saved. Sign in to continue to checkout.",
+            "Your marketplace cart is saved. Sign in with PepChat to continue.",
         );
         focusAuthentication();
     }
@@ -505,16 +511,25 @@ export default function MarketplaceLogin({
                         aria-label={`Open cart with ${cartCount} items`}>
                         Cart <span>{cartCount}</span>
                     </button>
-                    <button
-                        className={styles.signInButton}
-                        type="button"
-                        onClick={focusAuthentication}>
-                        Sign in
-                    </button>
+                    {loggedIn ? (
+                        <a className={styles.signInButton} href="/home">
+                            Go to PepChat
+                        </a>
+                    ) : (
+                        <button
+                            className={styles.signInButton}
+                            type="button"
+                            onClick={focusAuthentication}>
+                            Sign in
+                        </button>
+                    )}
                 </div>
             </header>
 
-            <div className={styles.shell}>
+            <div
+                className={`${styles.shell} ${
+                    loggedIn ? styles.shellAuthenticated : ""
+                }`}>
                 <main className={styles.catalogue}>
                     <section className={styles.intro}>
                         <div>
@@ -1060,21 +1075,32 @@ export default function MarketplaceLogin({
                     </section>
                 </main>
 
-                <aside
-                    className={styles.authentication}
-                    ref={authRef}
-                    aria-label="PepChat sign in">
-                    <div>
-                        <p className={styles.authKicker}>PepChat account</p>
-                        {checkoutNotice ? (
-                            <p className={styles.checkoutNotice} role="status">
-                                {checkoutNotice}
+                {!loggedIn ? (
+                    <aside
+                        className={styles.authentication}
+                        ref={authRef}
+                        aria-labelledby="marketplace-auth-title">
+                        <div className={styles.authIntro}>
+                            <p className={styles.authKicker}>PepChat account</p>
+                            <h2 id="marketplace-auth-title">
+                                Sign in with PepChat
+                            </h2>
+                            <p>
+                                One account for the marketplace and PepChat.
+                                Signing in here signs you into PepChat.
                             </p>
-                        ) : null}
-                        {authentication}
-                    </div>
-                    <div className={styles.legal}>{legal}</div>
-                </aside>
+                            {checkoutNotice ? (
+                                <p
+                                    className={styles.checkoutNotice}
+                                    role="status">
+                                    {checkoutNotice}
+                                </p>
+                            ) : null}
+                            {authentication}
+                        </div>
+                        <div className={styles.legal}>{legal}</div>
+                    </aside>
+                ) : null}
             </div>
 
             {selectedProduct ? (
