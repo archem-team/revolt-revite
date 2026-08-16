@@ -7,6 +7,7 @@ import {
     MarketplaceProduct,
     MarketplaceProductDetail,
     MarketplaceSearchResponse,
+    MarketplaceSort,
     searchMarketplace,
 } from "../../lib/marketplace";
 
@@ -23,6 +24,14 @@ function money(value: number, currency: string) {
         style: "currency",
         currency,
     }).format(value / 100);
+}
+
+function priceToMinorUnits(value: string) {
+    if (!value.trim()) return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0
+        ? Math.round(parsed * 100)
+        : undefined;
 }
 
 function readCart() {
@@ -49,6 +58,12 @@ export default function MarketplaceLogin({
 }) {
     const [query, setQuery] = useState("");
     const [selectedVendor, setSelectedVendor] = useState("");
+    const [sort, setSort] = useState<MarketplaceSort>("recommended");
+    const [minPrice, setMinPrice] = useState("");
+    const [maxPrice, setMaxPrice] = useState("");
+    const [warehouse, setWarehouse] = useState("");
+    const [shipsTo, setShipsTo] = useState("");
+    const [hasLabReport, setHasLabReport] = useState(false);
     const [result, setResult] = useState<MarketplaceSearchResponse | null>(
         null,
     );
@@ -69,6 +84,18 @@ export default function MarketplaceLogin({
     const productDialogRef = useRef<HTMLDialogElement>(null);
     const cartDialogRef = useRef<HTMLDialogElement>(null);
     const cartHydratedRef = useRef(false);
+    const minPriceMinor = priceToMinorUnits(minPrice);
+    const maxPriceMinor = priceToMinorUnits(maxPrice);
+    const filterError =
+        minPrice && minPriceMinor === undefined
+            ? "Enter a valid minimum price."
+            : maxPrice && maxPriceMinor === undefined
+            ? "Enter a valid maximum price."
+            : minPriceMinor !== undefined &&
+              maxPriceMinor !== undefined &&
+              minPriceMinor > maxPriceMinor
+            ? "Minimum price cannot exceed maximum price."
+            : "";
 
     useEffect(() => {
         setCart(readCart());
@@ -81,6 +108,10 @@ export default function MarketplaceLogin({
     }, [cart]);
 
     useEffect(() => {
+        if (filterError) {
+            setPending(false);
+            return;
+        }
         const controller = new AbortController();
         const timeout = window.setTimeout(
             () => {
@@ -91,6 +122,12 @@ export default function MarketplaceLogin({
                         query: query.trim(),
                         vendor: selectedVendor,
                         limit: PAGE_SIZE,
+                        sort,
+                        minPrice: minPriceMinor,
+                        maxPrice: maxPriceMinor,
+                        warehouse,
+                        shipsTo,
+                        hasLabReport,
                     },
                     controller.signal,
                 )
@@ -114,7 +151,17 @@ export default function MarketplaceLogin({
             window.clearTimeout(timeout);
             controller.abort();
         };
-    }, [query, selectedVendor]);
+    }, [
+        query,
+        selectedVendor,
+        sort,
+        minPriceMinor,
+        maxPriceMinor,
+        warehouse,
+        shipsTo,
+        hasLabReport,
+        filterError,
+    ]);
 
     useEffect(() => {
         if (!selectedProduct) return;
@@ -196,12 +243,28 @@ export default function MarketplaceLogin({
         for (const product of result?.products ?? []) {
             const key = `${product.vendorCode}:${product.productId}`;
             const current = products.get(key);
-            if (!current || product.priceWithTax < current.priceWithTax) {
+            const preferProduct =
+                !current ||
+                (sort === "price-desc"
+                    ? product.priceWithTax > current.priceWithTax
+                    : sort === "delivery-asc"
+                    ? (product.deliveryMinDays ?? Number.POSITIVE_INFINITY) <
+                          (current.deliveryMinDays ??
+                              Number.POSITIVE_INFINITY) ||
+                      ((product.deliveryMinDays ?? Number.POSITIVE_INFINITY) ===
+                          (current.deliveryMinDays ??
+                              Number.POSITIVE_INFINITY) &&
+                          (product.deliveryMaxDays ??
+                              Number.POSITIVE_INFINITY) <
+                              (current.deliveryMaxDays ??
+                                  Number.POSITIVE_INFINITY))
+                    : product.priceWithTax < current.priceWithTax);
+            if (preferProduct) {
                 products.set(key, product);
             }
         }
         return [...products.values()];
-    }, [result?.products]);
+    }, [result?.products, sort]);
 
     const detailVariants = detail?.variants.length
         ? detail.variants
@@ -228,6 +291,12 @@ export default function MarketplaceLogin({
                 vendor: selectedVendor,
                 offset: result.pagination.offset + result.products.length,
                 limit: PAGE_SIZE,
+                sort,
+                minPrice: minPriceMinor,
+                maxPrice: maxPriceMinor,
+                warehouse,
+                shipsTo,
+                hasLabReport,
             });
             setResult({
                 ...next,
@@ -238,6 +307,15 @@ export default function MarketplaceLogin({
         } finally {
             setLoadingMore(false);
         }
+    }
+
+    function resetFilters() {
+        setSort("recommended");
+        setMinPrice("");
+        setMaxPrice("");
+        setWarehouse("");
+        setShipsTo("");
+        setHasLabReport(false);
     }
 
     function focusAuthentication() {
@@ -388,6 +466,146 @@ export default function MarketplaceLogin({
                         </p>
                     </section>
 
+                    <section
+                        className={styles.filters}
+                        aria-label="Sort and filter marketplace products">
+                        <label className={styles.filterField}>
+                            Sort by
+                            <select
+                                value={sort}
+                                onChange={(event) =>
+                                    setSort(
+                                        (
+                                            event.currentTarget as HTMLSelectElement
+                                        ).value as MarketplaceSort,
+                                    )
+                                }>
+                                <option value="recommended">Recommended</option>
+                                <option value="price-asc">
+                                    Price: low to high
+                                </option>
+                                <option value="price-desc">
+                                    Price: high to low
+                                </option>
+                                <option value="delivery-asc">
+                                    Fastest delivery
+                                </option>
+                                <option value="newest">Newest</option>
+                            </select>
+                        </label>
+                        <label className={styles.filterField}>
+                            Min price
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                inputMode="decimal"
+                                value={minPrice}
+                                placeholder="Any"
+                                onInput={(event) =>
+                                    setMinPrice(
+                                        (
+                                            event.currentTarget as HTMLInputElement
+                                        ).value,
+                                    )
+                                }
+                            />
+                        </label>
+                        <label className={styles.filterField}>
+                            Max price
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                inputMode="decimal"
+                                value={maxPrice}
+                                placeholder="Any"
+                                onInput={(event) =>
+                                    setMaxPrice(
+                                        (
+                                            event.currentTarget as HTMLInputElement
+                                        ).value,
+                                    )
+                                }
+                            />
+                        </label>
+                        <label className={styles.filterField}>
+                            Warehouse
+                            <select
+                                value={warehouse}
+                                onChange={(event) =>
+                                    setWarehouse(
+                                        (
+                                            event.currentTarget as HTMLSelectElement
+                                        ).value,
+                                    )
+                                }>
+                                <option value="">All warehouses</option>
+                                {result?.facets?.warehouses.map((value) => (
+                                    <option key={value} value={value}>
+                                        {value}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <label className={styles.filterField}>
+                            Ships to
+                            <input
+                                type="text"
+                                value={shipsTo}
+                                maxLength={2}
+                                autoComplete="country"
+                                placeholder="US"
+                                aria-describedby="ships-to-hint"
+                                onInput={(event) =>
+                                    setShipsTo(
+                                        (
+                                            event.currentTarget as HTMLInputElement
+                                        ).value
+                                            .replace(/[^a-z]/gi, "")
+                                            .toUpperCase(),
+                                    )
+                                }
+                            />
+                            <small id="ships-to-hint">
+                                Two-letter country code
+                            </small>
+                        </label>
+                        <label className={styles.checkFilter}>
+                            <input
+                                type="checkbox"
+                                checked={hasLabReport}
+                                onChange={(event) =>
+                                    setHasLabReport(
+                                        (
+                                            event.currentTarget as HTMLInputElement
+                                        ).checked,
+                                    )
+                                }
+                            />
+                            COA available
+                        </label>
+                        <button
+                            className={styles.resetFilters}
+                            type="button"
+                            disabled={
+                                sort === "recommended" &&
+                                !minPrice &&
+                                !maxPrice &&
+                                !warehouse &&
+                                !shipsTo &&
+                                !hasLabReport
+                            }
+                            onClick={resetFilters}>
+                            Reset filters
+                        </button>
+                        {filterError ? (
+                            <p className={styles.filterError} role="alert">
+                                {filterError}
+                            </p>
+                        ) : null}
+                    </section>
+
                     <nav
                         className={styles.sellers}
                         aria-label="Filter by seller">
@@ -473,6 +691,15 @@ export default function MarketplaceLogin({
                                                 {product.warehouse ||
                                                     "Warehouse confirmed at checkout"}
                                             </span>
+                                            {product.shippingEta ? (
+                                                <span>
+                                                    Est. delivery:{" "}
+                                                    {product.shippingEta}
+                                                </span>
+                                            ) : null}
+                                            {product.labReportUrl ? (
+                                                <span>COA available</span>
+                                            ) : null}
                                         </div>
                                         <button
                                             type="button"

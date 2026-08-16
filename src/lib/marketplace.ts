@@ -34,7 +34,16 @@ export type MarketplaceProduct = {
     warehouse: string | null;
     shippingFee: number | null;
     shippingEta: string | null;
+    deliveryMinDays: number | null;
+    deliveryMaxDays: number | null;
 };
+
+export type MarketplaceSort =
+    | "recommended"
+    | "price-asc"
+    | "price-desc"
+    | "delivery-asc"
+    | "newest";
 
 export type MarketplaceProductDetail = {
     generatedAt: string;
@@ -59,6 +68,11 @@ export type MarketplaceSearchResponse = {
         limit: number;
         totalItems: number;
         hasMore: boolean;
+    };
+    facets: {
+        warehouses: string[];
+        priceRange: { min: number; max: number } | null;
+        labReportCount: number;
     };
 };
 
@@ -93,12 +107,32 @@ export function getMarketplaceConfig(signal?: AbortSignal) {
 }
 
 export function searchMarketplace(
-    input: { query?: string; vendor?: string; offset?: number; limit?: number },
+    input: {
+        query?: string;
+        vendor?: string;
+        offset?: number;
+        limit?: number;
+        sort?: MarketplaceSort;
+        minPrice?: number;
+        maxPrice?: number;
+        warehouse?: string;
+        shipsTo?: string;
+        hasLabReport?: boolean;
+    },
     signal?: AbortSignal,
 ) {
     const params = new URLSearchParams();
     if (input.query) params.set("q", input.query);
     if (input.vendor) params.set("vendor", input.vendor);
+    if (input.sort && input.sort !== "recommended")
+        params.set("sort", input.sort);
+    if (input.minPrice !== undefined)
+        params.set("minPrice", String(input.minPrice));
+    if (input.maxPrice !== undefined)
+        params.set("maxPrice", String(input.maxPrice));
+    if (input.warehouse) params.set("warehouse", input.warehouse);
+    if (input.shipsTo) params.set("shipsTo", input.shipsTo);
+    if (input.hasLabReport) params.set("hasLabReport", "true");
     params.set("offset", String(input.offset ?? 0));
     params.set("limit", String(input.limit ?? 24));
     return marketplaceRequest<MarketplaceSearchResponse>(

@@ -17,7 +17,8 @@
     }
 
     button,
-    input {
+    input,
+    select {
         font: inherit;
     }
 
@@ -28,10 +29,94 @@
 
     button:focus-visible,
     a:focus-visible,
-    input:focus-visible {
+    input:focus-visible,
+    select:focus-visible {
         outline: 3px solid var(--market-focus);
         outline-offset: 3px;
     }
+}
+
+.filters {
+    margin: 18px 0 6px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(112px, 1fr));
+    align-items: end;
+    gap: 12px;
+    border: 1px solid var(--market-line);
+    border-radius: var(--market-radius-card);
+    background: var(--market-paper);
+}
+
+.filterField {
+    min-width: 0;
+    display: grid;
+    align-self: stretch;
+    align-content: end;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 800;
+
+    input,
+    select {
+        min-width: 0;
+        width: 100%;
+        min-height: 44px;
+        padding: 8px 10px;
+        border: 1px solid var(--market-ink);
+        border-radius: var(--market-radius-input);
+        color: var(--market-ink);
+        background: var(--market-paper-2);
+    }
+
+    small {
+        color: var(--market-muted);
+        font-size: 10px;
+        font-weight: 500;
+    }
+}
+
+.checkFilter {
+    min-height: 44px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--market-line);
+    border-radius: var(--market-radius-input);
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+
+    input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--market-ink);
+    }
+}
+
+.resetFilters {
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--market-ink);
+    border-radius: var(--market-radius-pill);
+    color: var(--market-ink);
+    background: var(--market-cyan);
+    font-weight: 800;
+    cursor: pointer;
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+}
+
+.filterError {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--color-error);
+    font-size: 12px;
+    font-weight: 800;
 }
 
 .header {
@@ -881,6 +966,10 @@
 }
 
 @media (max-width: 1180px) {
+    .filters {
+        grid-template-columns: repeat(3, minmax(112px, 1fr));
+    }
+
     .grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -943,6 +1032,16 @@
 
     .searchRow button {
         justify-self: start;
+    }
+
+    .filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filterField:first-child,
+    .filterField:nth-child(4),
+    .filterError {
+        grid-column: 1 / -1;
     }
 
     .grid {
