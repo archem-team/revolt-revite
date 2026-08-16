@@ -21,6 +21,7 @@ import {
 } from "../../lib/marketplace";
 import { requestCompoundBayRedirect } from "../../lib/compoundBaySso";
 import { normalizeMarketplaceCart } from "../../lib/marketplaceCart";
+import { normalizeCountryCode } from "../../lib/marketplaceFilters";
 import { formatExactAmount } from "../../lib/paymentAmount";
 import { BACKEND_API_BASE } from "../directory/types";
 
@@ -1093,17 +1094,16 @@ export default function MarketplaceLogin({
                                     <input
                                         type="text"
                                         value={shipsTo}
-                                        maxLength={2}
                                         autoComplete="country"
                                         placeholder="US"
                                         aria-describedby="ships-to-hint"
                                         onInput={(event) =>
                                             setShipsTo(
-                                                (
-                                                    event.currentTarget as HTMLInputElement
-                                                ).value
-                                                    .replace(/[^a-z]/gi, "")
-                                                    .toUpperCase(),
+                                                normalizeCountryCode(
+                                                    (
+                                                        event.currentTarget as HTMLInputElement
+                                                    ).value,
+                                                ),
                                             )
                                         }
                                     />
