@@ -20,6 +20,7 @@ const SEARCH_EXAMPLES = [
     "Try fastest Tirzepatide delivered to the UK",
 ];
 const SEARCH_EXAMPLE_INTERVAL_MS = 3_500;
+const MAX_AUTOCOMPLETE_SUGGESTIONS = 5;
 
 type CartLine = MarketplaceProduct & {
     quantity: number;
@@ -66,6 +67,8 @@ export default function MarketplaceLogin({
     const [query, setQuery] = useState("");
     const [searchRevision, setSearchRevision] = useState(0);
     const [searchFocused, setSearchFocused] = useState(false);
+    const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+    const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
     const [searchExampleIndex, setSearchExampleIndex] = useState(0);
     const [selectedVendor, setSelectedVendor] = useState("");
     const [sort, setSort] = useState<MarketplaceSort>("recommended");
@@ -147,40 +150,37 @@ export default function MarketplaceLogin({
         const controller = new AbortController();
         const delay = searchImmediatelyRef.current ? 0 : query ? 250 : 0;
         searchImmediatelyRef.current = false;
-        const timeout = window.setTimeout(
-            () => {
-                setPending(true);
-                setError("");
-                void searchMarketplace(
-                    {
-                        query: query.trim(),
-                        vendor: selectedVendor,
-                        limit: PAGE_SIZE,
-                        sort,
-                        minPrice: minPriceMinor,
-                        maxPrice: maxPriceMinor,
-                        warehouse,
-                        shipsTo,
-                        hasLabReport,
-                    },
-                    controller.signal,
-                )
-                    .then(setResult)
-                    .catch((caught) => {
-                        if (
-                            caught instanceof DOMException &&
-                            caught.name === "AbortError"
-                        ) {
-                            return;
-                        }
-                        setError("The marketplace is temporarily unavailable.");
-                    })
-                    .finally(() => {
-                        if (!controller.signal.aborted) setPending(false);
-                    });
-            },
-            delay,
-        );
+        const timeout = window.setTimeout(() => {
+            setPending(true);
+            setError("");
+            void searchMarketplace(
+                {
+                    query: query.trim(),
+                    vendor: selectedVendor,
+                    limit: PAGE_SIZE,
+                    sort,
+                    minPrice: minPriceMinor,
+                    maxPrice: maxPriceMinor,
+                    warehouse,
+                    shipsTo,
+                    hasLabReport,
+                },
+                controller.signal,
+            )
+                .then(setResult)
+                .catch((caught) => {
+                    if (
+                        caught instanceof DOMException &&
+                        caught.name === "AbortError"
+                    ) {
+                        return;
+                    }
+                    setError("The marketplace is temporarily unavailable.");
+                })
+                .finally(() => {
+                    if (!controller.signal.aborted) setPending(false);
+                });
+        }, delay);
         return () => {
             window.clearTimeout(timeout);
             controller.abort();
@@ -272,6 +272,26 @@ export default function MarketplaceLogin({
             ),
         [result?.vendors],
     );
+    const autocompleteSuggestions = useMemo(() => {
+        const normalizedQuery = query.trim().toLocaleLowerCase();
+        if (!normalizedQuery) return [];
+
+        return [...new Set(result?.autocomplete ?? [])]
+            .filter((suggestion) => {
+                const normalizedSuggestion = suggestion.toLocaleLowerCase();
+                return (
+                    normalizedSuggestion !== normalizedQuery &&
+                    normalizedSuggestion.includes(normalizedQuery)
+                );
+            })
+            .slice(0, MAX_AUTOCOMPLETE_SUGGESTIONS);
+    }, [query, result?.autocomplete]);
+    const autocompleteVisible =
+        suggestionsOpen && autocompleteSuggestions.length > 0;
+
+    useEffect(() => {
+        setActiveSuggestionIndex(-1);
+    }, [query, result?.autocomplete]);
 
     const listedProducts = useMemo(() => {
         const products = new Map<string, MarketplaceProduct>();
@@ -459,6 +479,15 @@ export default function MarketplaceLogin({
         focusAuthentication();
     }
 
+    function selectAutocompleteSuggestion(suggestion: string) {
+        setPending(true);
+        setQuery(suggestion);
+        setSuggestionsOpen(false);
+        setActiveSuggestionIndex(-1);
+        searchImmediatelyRef.current = true;
+        setSearchRevision((revision) => revision + 1);
+    }
+
     return (
         <div className={styles.marketplace} data-marketplace-state="enabled">
             <header className={styles.header}>
@@ -523,21 +552,77 @@ export default function MarketplaceLogin({
                                     id="marketplace-search"
                                     type="search"
                                     value={query}
-                                    list="marketplace-search-suggestions"
                                     placeholder={
                                         SEARCH_EXAMPLES[searchExampleIndex]
                                     }
                                     autoComplete="off"
+                                    role="combobox"
+                                    aria-autocomplete="list"
+                                    aria-expanded={autocompleteVisible}
+                                    aria-controls="marketplace-search-suggestions"
+                                    aria-activedescendant={
+                                        autocompleteVisible &&
+                                        activeSuggestionIndex >= 0
+                                            ? `marketplace-search-suggestion-${activeSuggestionIndex}`
+                                            : undefined
+                                    }
                                     aria-describedby="marketplace-search-status"
-                                    onFocus={() => setSearchFocused(true)}
-                                    onBlur={() => setSearchFocused(false)}
+                                    onFocus={() => {
+                                        setSearchFocused(true);
+                                        setSuggestionsOpen(true);
+                                    }}
+                                    onBlur={() => {
+                                        setSearchFocused(false);
+                                        setSuggestionsOpen(false);
+                                        setActiveSuggestionIndex(-1);
+                                    }}
                                     onInput={(event) => {
                                         setPending(true);
+                                        setSuggestionsOpen(true);
+                                        setActiveSuggestionIndex(-1);
                                         setQuery(
                                             (
                                                 event.currentTarget as HTMLInputElement
                                             ).value,
                                         );
+                                    }}
+                                    onKeyDown={(event) => {
+                                        if (event.key === "Escape") {
+                                            setSuggestionsOpen(false);
+                                            setActiveSuggestionIndex(-1);
+                                            return;
+                                        }
+                                        if (
+                                            event.key === "ArrowDown" ||
+                                            event.key === "ArrowUp"
+                                        ) {
+                                            if (!autocompleteSuggestions.length)
+                                                return;
+                                            event.preventDefault();
+                                            setSuggestionsOpen(true);
+                                            setActiveSuggestionIndex((index) =>
+                                                event.key === "ArrowDown"
+                                                    ? (index + 1) %
+                                                      autocompleteSuggestions.length
+                                                    : index <= 0
+                                                    ? autocompleteSuggestions.length -
+                                                      1
+                                                    : index - 1,
+                                            );
+                                            return;
+                                        }
+                                        if (
+                                            event.key === "Enter" &&
+                                            autocompleteVisible &&
+                                            activeSuggestionIndex >= 0
+                                        ) {
+                                            event.preventDefault();
+                                            selectAutocompleteSuggestion(
+                                                autocompleteSuggestions[
+                                                    activeSuggestionIndex
+                                                ],
+                                            );
+                                        }
                                     }}
                                 />
                                 {pending ? (
@@ -546,19 +631,57 @@ export default function MarketplaceLogin({
                                         aria-hidden="true"
                                     />
                                 ) : null}
+                                {autocompleteVisible ? (
+                                    <ul
+                                        className={styles.autocompleteList}
+                                        id="marketplace-search-suggestions"
+                                        role="listbox"
+                                        aria-label="Search suggestions"
+                                        aria-busy={pending}
+                                        data-state={
+                                            pending
+                                                ? "loading"
+                                                : error
+                                                ? "error"
+                                                : "success"
+                                        }>
+                                        {autocompleteSuggestions.map(
+                                            (suggestion, index) => (
+                                                <li
+                                                    className={
+                                                        styles.autocompleteOption
+                                                    }
+                                                    id={`marketplace-search-suggestion-${index}`}
+                                                    key={suggestion}
+                                                    role="option"
+                                                    aria-selected={
+                                                        index ===
+                                                        activeSuggestionIndex
+                                                    }
+                                                    onMouseDown={(event) =>
+                                                        event.preventDefault()
+                                                    }
+                                                    onClick={() =>
+                                                        selectAutocompleteSuggestion(
+                                                            suggestion,
+                                                        )
+                                                    }>
+                                                    <span>{suggestion}</span>
+                                                    <small>Search</small>
+                                                </li>
+                                            ),
+                                        )}
+                                    </ul>
+                                ) : null}
                             </div>
-                            <datalist id="marketplace-search-suggestions">
-                                {result?.autocomplete?.map((suggestion) => (
-                                    <option
-                                        key={suggestion}
-                                        value={suggestion}
-                                    />
-                                ))}
-                            </datalist>
                             {query ? (
                                 <button
                                     type="button"
-                                    onClick={() => setQuery("")}>
+                                    onClick={() => {
+                                        setQuery("");
+                                        setSuggestionsOpen(false);
+                                        setActiveSuggestionIndex(-1);
+                                    }}>
                                     Clear
                                 </button>
                             ) : null}

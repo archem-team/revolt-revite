@@ -90,6 +90,35 @@ test("marketplace search shows immediate progress for typing and Enter", async (
     assert.match(styles, /@keyframes marketplace-search-spin/);
 });
 
+test("marketplace search uses an accessible in-page autocomplete", async () => {
+    const [page, styles] = await Promise.all([
+        readFile(
+            new URL("../src/pages/login/MarketplaceLogin.tsx", import.meta.url),
+            "utf8",
+        ),
+        readFile(
+            new URL(
+                "../src/pages/login/MarketplaceLogin.module.scss",
+                import.meta.url,
+            ),
+            "utf8",
+        ),
+    ]);
+
+    assert.doesNotMatch(page, /<datalist/);
+    assert.doesNotMatch(page, /list="marketplace-search-suggestions"/);
+    assert.match(page, /role="combobox"/);
+    assert.match(page, /aria-autocomplete="list"/);
+    assert.match(page, /aria-expanded=\{autocompleteVisible\}/);
+    assert.match(page, /role="listbox"/);
+    assert.match(page, /role="option"/);
+    for (const key of ["ArrowDown", "ArrowUp", "Enter", "Escape"]) {
+        assert.match(page, new RegExp(`event\\.key === "${key}"`));
+    }
+    assert.match(styles, /\.autocompleteList\s*\{/);
+    assert.match(styles, /max-height: min\(248px, 42dvh\)/);
+});
+
 test("marketplace page owns its scroll container and keeps the hero compact", async () => {
     const styles = await readFile(
         new URL(
@@ -102,4 +131,20 @@ test("marketplace page owns its scroll container and keeps the hero compact", as
     assert.match(styles, /\.marketplace\s*\{[^}]*height: 100%/s);
     assert.match(styles, /\.marketplace\s*\{[^}]*overflow-y: auto/s);
     assert.match(styles, /font-size: clamp\(38px, 4\.6vw, 64px\)/);
+});
+
+test("marketplace branch keeps signed-in visitors on the root homepage", async () => {
+    const app = await readFile(
+        new URL("../src/pages/app.tsx", import.meta.url),
+        "utf8",
+    );
+
+    assert.match(app, /<Route exact path="\/">\s*<LoadSuspense>\s*<Login \/>/s);
+    assert.ok(
+        app.indexOf('<Route exact path="/">') <
+            app.indexOf(
+                '<Route path="/">\n                        {/* Authenticated',
+            ),
+        "exact marketplace homepage route must precede the PepChat catch-all",
+    );
 });

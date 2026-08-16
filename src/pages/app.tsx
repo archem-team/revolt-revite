@@ -70,6 +70,11 @@ export function App() {
                             </LoadSuspense>
                         </CheckAuth>
                     </Route>
+                    <Route exact path="/">
+                        <LoadSuspense>
+                            <Login />
+                        </LoadSuspense>
+                    </Route>
                     <Route path="/">
                         {/* Authenticated users see the chat app */}
                         <CheckAuth auth blockRender>

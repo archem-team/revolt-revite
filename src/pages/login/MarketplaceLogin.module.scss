@@ -442,6 +442,8 @@
         padding: 0 48px 0 18px;
         border: 1px solid var(--market-ink);
         border-radius: var(--market-radius-input);
+        outline: 3px solid transparent;
+        outline-offset: 3px;
         color: var(--market-ink);
         background: var(--market-paper);
         box-shadow: 4px 4px 0 var(--market-cyan-deep);
@@ -475,6 +477,82 @@
     min-width: 0;
 }
 
+/* Hallmark · component: autocomplete · genre: playful · theme: Hum
+ * states: default · hover · focus · active · loading · error · success
+ * pre-emit critique: P5 H5 E5 S5 R5 V4 · contrast: pass (40–41)
+ */
+.autocompleteList {
+    position: absolute;
+    inset-block-start: calc(100% + 8px);
+    inset-inline: 0;
+    z-index: 20;
+    max-height: min(248px, 42dvh);
+    margin: 0;
+    padding: 8px;
+    border: 1px solid var(--market-ink);
+    border-radius: var(--market-radius-input);
+    color: var(--market-ink);
+    background: var(--market-paper);
+    box-shadow: 5px 5px 0 var(--market-cyan-deep);
+    list-style: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    animation: marketplace-autocomplete-enter 180ms var(--market-ease-snap);
+
+    &[data-state="loading"] {
+        cursor: progress;
+    }
+
+    &[data-state="error"] {
+        border-color: var(--color-error);
+    }
+}
+
+.autocompleteOption {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    border-radius: calc(var(--market-radius-input) - 4px);
+    cursor: pointer;
+
+    span {
+        min-width: 0;
+        overflow: hidden;
+        font-weight: 750;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    small {
+        color: var(--market-muted);
+        font-family: var(--market-font-mono);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    &[aria-selected="true"] {
+        color: var(--market-ink);
+        background: var(--market-cyan);
+    }
+
+    &:active {
+        transform: translateY(1px);
+    }
+
+    &[aria-disabled="true"] {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+}
+
 .searchSpinner {
     position: absolute;
     inset-block-start: 50%;
@@ -496,6 +574,18 @@
 @keyframes marketplace-search-spin {
     to {
         transform: translateY(-50%) rotate(360deg);
+    }
+}
+
+@keyframes marketplace-autocomplete-enter {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
@@ -1324,6 +1414,11 @@
     .filterToggle:hover,
     .resetFilters:not(:disabled):hover,
     .activeFilters button:hover {
+        background: var(--market-cyan);
+    }
+
+    .autocompleteOption:hover {
+        color: var(--market-ink);
         background: var(--market-cyan);
     }
 }
