@@ -13,6 +13,13 @@ import {
 
 const PAGE_SIZE = 24;
 const CART_STORAGE_KEY = "compound-bay-marketplace-cart-v1";
+const SEARCH_EXAMPLES = [
+    "Try Reta 15",
+    "Try Reta 15 in Australia",
+    "Try cheapest BPC-157 with COA",
+    "Try fastest Tirzepatide delivered to the UK",
+];
+const SEARCH_EXAMPLE_INTERVAL_MS = 3_500;
 
 type CartLine = MarketplaceProduct & {
     quantity: number;
@@ -57,6 +64,8 @@ export default function MarketplaceLogin({
     logoSrc: string;
 }) {
     const [query, setQuery] = useState("");
+    const [searchFocused, setSearchFocused] = useState(false);
+    const [searchExampleIndex, setSearchExampleIndex] = useState(0);
     const [selectedVendor, setSelectedVendor] = useState("");
     const [sort, setSort] = useState<MarketplaceSort>("recommended");
     const [minPrice, setMinPrice] = useState("");
@@ -101,6 +110,18 @@ export default function MarketplaceLogin({
         setCart(readCart());
         cartHydratedRef.current = true;
     }, []);
+
+    useEffect(() => {
+        if (query || searchFocused) return;
+        const interval = window.setInterval(
+            () =>
+                setSearchExampleIndex(
+                    (index) => (index + 1) % SEARCH_EXAMPLES.length,
+                ),
+            SEARCH_EXAMPLE_INTERVAL_MS,
+        );
+        return () => window.clearInterval(interval);
+    }, [query, searchFocused]);
 
     useEffect(() => {
         if (!cartHydratedRef.current) return;
@@ -276,9 +297,9 @@ export default function MarketplaceLogin({
                   ? `${interpretation.strength.value} ${interpretation.strength.unit}`
                   : null,
               interpretation.package
-                  ? `${interpretation.package.value} ${interpretation.package.unit}${
-                        interpretation.package.value === 1 ? "" : "s"
-                    }`
+                  ? `${interpretation.package.value} ${
+                        interpretation.package.unit
+                    }${interpretation.package.value === 1 ? "" : "s"}`
                   : null,
               interpretation.destination
                   ? `Deliver to ${interpretation.destination}`
@@ -286,9 +307,7 @@ export default function MarketplaceLogin({
               interpretation.warehouse
                   ? `Ships from ${interpretation.warehouse}`
                   : null,
-              interpretation.vendor
-                  ? `Seller ${interpretation.vendor}`
-                  : null,
+              interpretation.vendor ? `Seller ${interpretation.vendor}` : null,
               interpretation.hasLabReport ? "COA available" : null,
               interpretation.maxPrice != null
                   ? `Up to ${money(interpretation.maxPrice, "USD")}`
@@ -481,8 +500,12 @@ export default function MarketplaceLogin({
                                 type="search"
                                 value={query}
                                 list="marketplace-search-suggestions"
-                                placeholder="Try Reta 15 in Australia or fastest BPC-157 with COA"
+                                placeholder={
+                                    SEARCH_EXAMPLES[searchExampleIndex]
+                                }
                                 autoComplete="off"
+                                onFocus={() => setSearchFocused(true)}
+                                onBlur={() => setSearchFocused(false)}
                                 onInput={(event) =>
                                     setQuery(
                                         (
@@ -493,7 +516,10 @@ export default function MarketplaceLogin({
                             />
                             <datalist id="marketplace-search-suggestions">
                                 {result?.autocomplete?.map((suggestion) => (
-                                    <option key={suggestion} value={suggestion} />
+                                    <option
+                                        key={suggestion}
+                                        value={suggestion}
+                                    />
                                 ))}
                             </datalist>
                             {query ? (
@@ -522,7 +548,9 @@ export default function MarketplaceLogin({
                             </div>
                         ) : null}
                         {interpretation?.assumptions.map((assumption) => (
-                            <small className={styles.assumption} key={assumption}>
+                            <small
+                                className={styles.assumption}
+                                key={assumption}>
                                 {assumption}
                             </small>
                         ))}
@@ -700,7 +728,9 @@ export default function MarketplaceLogin({
                                 <span>{error}</span>
                             </div>
                         ) : null}
-                        {!pending && !error && displayedProducts.length === 0 ? (
+                        {!pending &&
+                        !error &&
+                        displayedProducts.length === 0 ? (
                             <div className={styles.notice}>
                                 <strong>No matching packages.</strong>
                                 <span>
@@ -709,7 +739,9 @@ export default function MarketplaceLogin({
                             </div>
                         ) : null}
                         {!pending && result?.suggestions?.length ? (
-                            <div className={styles.searchSuggestion} role="status">
+                            <div
+                                className={styles.searchSuggestion}
+                                role="status">
                                 {result.suggestions[0].message}
                             </div>
                         ) : null}
@@ -770,7 +802,9 @@ export default function MarketplaceLogin({
                                         </div>
                                         {product.matchReasons?.length ? (
                                             <p className={styles.matchReasons}>
-                                                {product.matchReasons.join(" · ")}
+                                                {product.matchReasons.join(
+                                                    " · ",
+                                                )}
                                             </p>
                                         ) : null}
                                         <button

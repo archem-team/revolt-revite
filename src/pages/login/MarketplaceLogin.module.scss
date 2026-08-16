@@ -5,11 +5,15 @@
  */
 .marketplace {
     width: 100%;
-    min-height: 100%;
+    height: 100%;
+    min-height: 0;
     color: var(--market-ink);
     background: var(--market-paper-2);
     font-family: var(--market-font-body);
     line-height: 1.5;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
     user-select: text;
 
     * {
@@ -243,32 +247,32 @@
 
 .catalogue {
     min-width: 0;
-    padding: clamp(28px, 5vw, 64px) clamp(16px, 4vw, 48px) 96px;
+    padding: clamp(24px, 3vw, 40px) clamp(16px, 4vw, 48px) 96px;
 }
 
 .intro {
     display: grid;
     grid-template-columns: minmax(0, 1.35fr) minmax(16rem, 0.65fr);
     align-items: end;
-    gap: clamp(24px, 5vw, 72px);
-    padding-bottom: clamp(28px, 5vw, 56px);
+    gap: clamp(24px, 4vw, 52px);
+    padding-bottom: clamp(24px, 3vw, 36px);
 
     h1 {
         min-width: 0;
-        max-width: 13ch;
+        max-width: 17ch;
         margin: 8px 0 0;
         font-family: var(--market-font-display);
-        font-size: clamp(42px, 6.5vw, 88px);
+        font-size: clamp(38px, 4.6vw, 64px);
         font-style: normal;
-        line-height: 0.98;
-        letter-spacing: -0.04em;
+        line-height: 1;
+        letter-spacing: -0.035em;
         overflow-wrap: anywhere;
     }
 
     > p {
         max-width: 50ch;
         color: var(--market-muted);
-        font-size: 16px;
+        font-size: 15px;
     }
 }
 
@@ -286,7 +290,6 @@
     position: sticky;
     inset-block-start: 74px;
     z-index: 20;
-    max-width: 760px;
     padding: 12px 0 10px;
     display: grid;
     gap: 6px;
@@ -307,6 +310,7 @@
 }
 
 .searchRow {
+    max-width: 760px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
@@ -942,6 +946,7 @@
 .productMeta {
     display: grid;
     gap: 2px;
+    font-variant-numeric: tabular-nums;
 
     strong {
         font-size: 17px;
@@ -1057,7 +1062,8 @@
     }
 
     .intro h1 {
-        font-size: clamp(40px, 14vw, 58px);
+        max-width: 15ch;
+        font-size: clamp(36px, 11vw, 48px);
     }
 
     .searchArea {
