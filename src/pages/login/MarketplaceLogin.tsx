@@ -168,12 +168,11 @@ export default function MarketplaceLogin({
         setCart(storedCart);
         const storedBuyerToken =
             window.sessionStorage.getItem(BUYER_STORAGE_KEY) ?? "";
-        if (
-            storedBuyerToken &&
+        const quoteMatchesCart =
             window.sessionStorage.getItem(QUOTE_CART_STORAGE_KEY) ===
-                cartSignature(storedCart)
-        ) {
-            setBuyerToken(storedBuyerToken);
+            cartSignature(storedCart);
+        if (quoteMatchesCart) {
+            if (storedBuyerToken) setBuyerToken(storedBuyerToken);
         } else {
             window.sessionStorage.removeItem(BUYER_STORAGE_KEY);
             window.sessionStorage.removeItem(QUOTE_STORAGE_KEY);

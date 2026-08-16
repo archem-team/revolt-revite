@@ -214,6 +214,7 @@ test("marketplace uses one compact PepChat-only account flow", async () => {
     assert.match(page, /function invalidateCheckoutForCartChange\(\)/);
     assert.match(page, /window\.sessionStorage\.removeItem\(QUOTE_CART_STORAGE_KEY\)/);
     assert.match(page, /QUOTE_CART_STORAGE_KEY,\s*cartSignature\(cart\)/);
+    assert.match(page, /if \(quoteMatchesCart\) \{\s*if \(storedBuyerToken\)/s);
     assert.match(page, /setShippingQuote\(null\);\s*setAcceptLegal\(false\)/);
     assert.match(
         login,
