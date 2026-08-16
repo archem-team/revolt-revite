@@ -63,7 +63,7 @@ export type MarketplaceSearchResponse = {
 };
 
 const marketplaceApiUrl = (
-    import.meta.env.VITE_COMPOUND_BAY_API_URL || "https://vendors.peptide.chat"
+    import.meta.env.VITE_COMPOUND_BAY_API_URL || "https://market.peptide.chat"
 ).replace(/\/$/, "");
 
 async function marketplaceRequest<T>(
