@@ -83,6 +83,29 @@ test("Compound Bay SSO uses the authenticated post-MFA session", async () => {
     );
 });
 
+test("Compound Bay SSO reads MobX-proxied PepChat sessions", async () => {
+    const session = new Proxy({}, {
+        has: () => false,
+        get: (_target, property) => property === "token" ? "proxied-session" : undefined,
+    });
+    let sentToken;
+    await requestCompoundBayRedirect({
+        apiBase: "https://api.peptide.chat",
+        session,
+        returnUrl: "https://market.peptide.chat/",
+        fetchImpl: async (_url, init) => {
+            sentToken = init.headers["x-session-token"];
+            return {
+                ok: true,
+                json: async () => ({
+                    redirect_url: "https://market.peptide.chat/?code=one-use-code",
+                }),
+            };
+        },
+    });
+    assert.equal(sentToken, "proxied-session");
+});
+
 test("Compound Bay SSO rejects missing sessions and untrusted redirects", async () => {
     await assert.rejects(
         requestCompoundBayRedirect({

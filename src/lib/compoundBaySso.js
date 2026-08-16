@@ -1,6 +1,6 @@
 function sessionToken(session) {
     if (typeof session === "string") return session.trim();
-    if (session && typeof session === "object" && "token" in session) {
+    if (session && typeof session === "object") {
         const token = session.token;
         return typeof token === "string" ? token.trim() : "";
     }
