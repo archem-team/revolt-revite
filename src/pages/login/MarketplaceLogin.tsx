@@ -25,6 +25,7 @@ import { BACKEND_API_BASE } from "../directory/types";
 const PAGE_SIZE = 24;
 const CART_STORAGE_KEY = "compound-bay-marketplace-cart-v1";
 const QUOTE_STORAGE_KEY = "compound-bay-marketplace-quote-v1";
+const QUOTE_CART_STORAGE_KEY = "compound-bay-marketplace-quote-cart-v1";
 const BUYER_STORAGE_KEY = "compound-bay-marketplace-buyer-v1";
 const PAYMENT_STORAGE_KEY = "compound-bay-marketplace-payment-v1";
 const SEARCH_EXAMPLES = [
@@ -40,6 +41,12 @@ type CartLine = MarketplaceProduct & {
     quantity: number;
     sellerName: string;
 };
+
+function cartSignature(lines: CartLine[]) {
+    return JSON.stringify(
+        lines.map(({ vendorCode, id, quantity }) => ({ vendorCode, id, quantity })),
+    );
+}
 
 function money(value: number, currency: string) {
     return new Intl.NumberFormat(undefined, {
@@ -157,8 +164,21 @@ export default function MarketplaceLogin({
     const filtersChanged = sort !== "recommended" || activeFilterCount > 0;
 
     useEffect(() => {
-        setCart(readCart());
-        setBuyerToken(window.sessionStorage.getItem(BUYER_STORAGE_KEY) ?? "");
+        const storedCart = readCart();
+        setCart(storedCart);
+        const storedBuyerToken =
+            window.sessionStorage.getItem(BUYER_STORAGE_KEY) ?? "";
+        if (
+            storedBuyerToken &&
+            window.sessionStorage.getItem(QUOTE_CART_STORAGE_KEY) ===
+                cartSignature(storedCart)
+        ) {
+            setBuyerToken(storedBuyerToken);
+        } else {
+            window.sessionStorage.removeItem(BUYER_STORAGE_KEY);
+            window.sessionStorage.removeItem(QUOTE_STORAGE_KEY);
+            window.sessionStorage.removeItem(QUOTE_CART_STORAGE_KEY);
+        }
         try {
             const saved = JSON.parse(
                 window.sessionStorage.getItem(PAYMENT_STORAGE_KEY) ?? "null",
@@ -197,6 +217,7 @@ export default function MarketplaceLogin({
             .catch(() => {
                 setCheckoutNotice("PepChat sign-in expired. Please try checkout again.");
                 window.sessionStorage.removeItem(QUOTE_STORAGE_KEY);
+                window.sessionStorage.removeItem(QUOTE_CART_STORAGE_KEY);
             })
             .finally(() => setCheckoutPending(false));
         return () => controller.abort();
@@ -504,8 +525,19 @@ export default function MarketplaceLogin({
         setDetail(null);
     }
 
+    function invalidateCheckoutForCartChange() {
+        window.sessionStorage.removeItem(QUOTE_STORAGE_KEY);
+        window.sessionStorage.removeItem(QUOTE_CART_STORAGE_KEY);
+        window.sessionStorage.removeItem(BUYER_STORAGE_KEY);
+        setBuyerToken("");
+        setShippingQuote(null);
+        setAcceptLegal(false);
+        setCheckoutNotice("");
+    }
+
     function addToCart(openCart = false) {
         if (!selectedVariant) return;
+        invalidateCheckoutForCartChange();
         const sellerName =
             detail?.vendor.name ??
             vendorName.get(selectedVariant.vendorCode) ??
@@ -533,6 +565,7 @@ export default function MarketplaceLogin({
     }
 
     function updateCartLine(index: number, nextQuantity: number) {
+        invalidateCheckoutForCartChange();
         if (nextQuantity < 1) {
             setCart((lines) =>
                 lines.filter((_, lineIndex) => lineIndex !== index),
@@ -566,6 +599,10 @@ export default function MarketplaceLogin({
                 })),
             );
             window.sessionStorage.setItem(QUOTE_STORAGE_KEY, quote.quoteToken);
+            window.sessionStorage.setItem(
+                QUOTE_CART_STORAGE_KEY,
+                cartSignature(cart),
+            );
             const returnUrl = `${window.location.origin}${window.location.pathname}`;
             if (loggedIn) {
                 const redirect = await requestCompoundBayRedirect({
@@ -595,6 +632,7 @@ export default function MarketplaceLogin({
             [field]: field === "countryCode" ? value.toUpperCase() : value,
         }));
         setShippingQuote(null);
+        setAcceptLegal(false);
     }
 
     async function quoteShipping(event: Event) {
@@ -603,6 +641,8 @@ export default function MarketplaceLogin({
         if (!quoteToken) {
             setCheckoutNotice("Your price quote expired. Start checkout again.");
             setBuyerToken("");
+            window.sessionStorage.removeItem(BUYER_STORAGE_KEY);
+            window.sessionStorage.removeItem(QUOTE_CART_STORAGE_KEY);
             return;
         }
         setCheckoutPending(true);
@@ -646,9 +686,13 @@ export default function MarketplaceLogin({
             setOrderCode(checkout.orderCode);
             setPayment(next.payment);
             setCheckoutNotice("Order created. Send the exact amount shown below.");
-        } catch {
+        } catch (caught) {
             setCheckoutNotice(
-                "The order could not be created. No payment was requested; please try again.",
+                `${
+                    caught instanceof Error
+                        ? caught.message
+                        : "The order could not be created"
+                }. No payment was requested; please try again.`,
             );
         } finally {
             setCheckoutPending(false);

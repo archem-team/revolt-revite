@@ -123,8 +123,13 @@ async function marketplaceRequest<T>(
         cache,
     });
     if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+            message?: unknown;
+        } | null;
+        const detail =
+            typeof payload?.message === "string" ? payload.message.trim() : "";
         throw new Error(
-            `Marketplace request failed with HTTP ${response.status}`,
+            detail || `Marketplace request failed with HTTP ${response.status}`,
         );
     }
     return (await response.json()) as T;
