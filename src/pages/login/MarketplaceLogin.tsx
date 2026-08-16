@@ -265,6 +265,47 @@ export default function MarketplaceLogin({
         }
         return [...products.values()];
     }, [result?.products, sort]);
+    const displayedProducts = listedProducts.length
+        ? listedProducts
+        : result?.alternativeProducts ?? [];
+    const interpretation = result?.interpretedQuery;
+    const interpretationChips = interpretation
+        ? [
+              interpretation.compound,
+              interpretation.strength
+                  ? `${interpretation.strength.value} ${interpretation.strength.unit}`
+                  : null,
+              interpretation.package
+                  ? `${interpretation.package.value} ${interpretation.package.unit}${
+                        interpretation.package.value === 1 ? "" : "s"
+                    }`
+                  : null,
+              interpretation.destination
+                  ? `Deliver to ${interpretation.destination}`
+                  : null,
+              interpretation.warehouse
+                  ? `Ships from ${interpretation.warehouse}`
+                  : null,
+              interpretation.vendor
+                  ? `Seller ${interpretation.vendor}`
+                  : null,
+              interpretation.hasLabReport ? "COA available" : null,
+              interpretation.maxPrice != null
+                  ? `Up to ${money(interpretation.maxPrice, "USD")}`
+                  : null,
+              interpretation.minPrice != null
+                  ? `From ${money(interpretation.minPrice, "USD")}`
+                  : null,
+              interpretation.deliveryMaxDays != null
+                  ? `Delivery within ${interpretation.deliveryMaxDays} days`
+                  : null,
+              interpretation.sort === "price-asc"
+                  ? "Cheapest first"
+                  : interpretation.sort === "delivery-asc"
+                  ? "Fastest first"
+                  : null,
+          ].filter((value): value is string => Boolean(value))
+        : [];
 
     const detailVariants = detail?.variants.length
         ? detail.variants
@@ -439,7 +480,7 @@ export default function MarketplaceLogin({
                                 id="marketplace-search"
                                 type="search"
                                 value={query}
-                                placeholder="Try semaglutide, BPC-157, or a SKU"
+                                placeholder="Try Reta 15 in Australia or fastest BPC-157 with COA"
                                 autoComplete="off"
                                 onInput={(event) =>
                                     setQuery(
@@ -464,6 +505,21 @@ export default function MarketplaceLogin({
                                       result?.pagination.totalItems ?? 0
                                   } available packages`}
                         </p>
+                        {interpretationChips.length ? (
+                            <div
+                                className={styles.interpretation}
+                                aria-label="Search interpreted as">
+                                <span>Searching for</span>
+                                {interpretationChips.map((chip) => (
+                                    <strong key={chip}>{chip}</strong>
+                                ))}
+                            </div>
+                        ) : null}
+                        {interpretation?.assumptions.map((assumption) => (
+                            <small className={styles.assumption} key={assumption}>
+                                {assumption}
+                            </small>
+                        ))}
                     </section>
 
                     <section
@@ -638,7 +694,7 @@ export default function MarketplaceLogin({
                                 <span>{error}</span>
                             </div>
                         ) : null}
-                        {!pending && !error && listedProducts.length === 0 ? (
+                        {!pending && !error && displayedProducts.length === 0 ? (
                             <div className={styles.notice}>
                                 <strong>No matching packages.</strong>
                                 <span>
@@ -646,8 +702,13 @@ export default function MarketplaceLogin({
                                 </span>
                             </div>
                         ) : null}
+                        {!pending && result?.suggestions?.length ? (
+                            <div className={styles.searchSuggestion} role="status">
+                                {result.suggestions[0].message}
+                            </div>
+                        ) : null}
                         <div className={styles.grid}>
-                            {listedProducts.map((product) => (
+                            {displayedProducts.map((product) => (
                                 <article
                                     className={styles.productCard}
                                     key={`${product.vendorCode}:${product.productId}`}>
@@ -701,6 +762,11 @@ export default function MarketplaceLogin({
                                                 <span>COA available</span>
                                             ) : null}
                                         </div>
+                                        {product.matchReasons?.length ? (
+                                            <p className={styles.matchReasons}>
+                                                {product.matchReasons.join(" · ")}
+                                            </p>
+                                        ) : null}
                                         <button
                                             type="button"
                                             onClick={() =>

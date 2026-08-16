@@ -345,6 +345,37 @@
     }
 }
 
+.interpretation {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: var(--market-muted);
+    font-size: 11px;
+
+    strong {
+        padding: 4px 9px;
+        border: 1px solid var(--market-line);
+        border-radius: var(--market-radius-pill);
+        color: var(--market-ink);
+        background: var(--market-cyan);
+        font-size: 11px;
+    }
+}
+
+.assumption {
+    color: var(--market-muted);
+    font-size: 11px;
+}
+
+.searchSuggestion {
+    padding: 12px 14px;
+    border: 1px solid var(--market-line);
+    border-radius: var(--market-radius-input);
+    background: var(--market-accent);
+    font-weight: 700;
+}
+
 .sellers {
     margin: 22px 0 28px;
     display: flex;
@@ -502,6 +533,13 @@
             box-shadow: 0 1px 0 var(--market-cyan-deep);
         }
     }
+}
+
+.matchReasons {
+    margin: 0;
+    color: var(--market-muted);
+    font-size: 11px;
+    line-height: 1.35;
 }
 
 .checkoutNotice {

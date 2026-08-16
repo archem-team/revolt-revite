@@ -31,11 +31,17 @@ export type MarketplaceProduct = {
     currencyCode: string;
     imageUrl: string | null;
     labReportUrl: string | null;
+    canonicalName: string | null;
+    dosage: string | null;
+    format: string | null;
+    packageQuantity: number | null;
+    packageUnit: string | null;
     warehouse: string | null;
     shippingFee: number | null;
     shippingEta: string | null;
     deliveryMinDays: number | null;
     deliveryMaxDays: number | null;
+    matchReasons: string[];
 };
 
 export type MarketplaceSort =
@@ -61,8 +67,27 @@ export type MarketplaceProductDetail = {
 
 export type MarketplaceSearchResponse = {
     generatedAt: string;
+    interpretedQuery: {
+        original: string;
+        normalized: string;
+        compound: string | null;
+        strength: { value: number; unit: string } | null;
+        package: { value: number; unit: string } | null;
+        destination: string | null;
+        warehouse: string | null;
+        vendor: string | null;
+        minPrice: number | null;
+        maxPrice: number | null;
+        deliveryMaxDays: number | null;
+        hasLabReport: boolean | null;
+        sort: MarketplaceSort;
+        assumptions: string[];
+        unresolvedTokens: string[];
+    };
     vendors: MarketplaceVendor[];
     products: MarketplaceProduct[];
+    alternativeProducts: MarketplaceProduct[];
+    suggestions: Array<{ type: string; message: string }>;
     pagination: {
         offset: number;
         limit: number;
