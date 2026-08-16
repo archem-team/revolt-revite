@@ -61,6 +61,30 @@ test("marketplace search cycles useful examples until the field is active", asyn
     );
 });
 
+test("marketplace search shows immediate progress for typing and Enter", async () => {
+    const [page, styles] = await Promise.all([
+        readFile(
+            new URL("../src/pages/login/MarketplaceLogin.tsx", import.meta.url),
+            "utf8",
+        ),
+        readFile(
+            new URL(
+                "../src/pages/login/MarketplaceLogin.module.scss",
+                import.meta.url,
+            ),
+            "utf8",
+        ),
+    ]);
+
+    assert.match(page, /aria-busy=\{pending\}/);
+    assert.match(page, /setSearchRevision\(\(revision\) => revision \+ 1\)/);
+    assert.match(page, /setPending\(true\);\s*setQuery/s);
+    assert.match(page, /className=\{styles\.searchSpinner\}/);
+    assert.match(page, /Searching seller catalogues…/);
+    assert.match(page, /aria-live="polite"/);
+    assert.match(styles, /@keyframes marketplace-search-spin/);
+});
+
 test("marketplace page owns its scroll container and keeps the hero compact", async () => {
     const styles = await readFile(
         new URL(

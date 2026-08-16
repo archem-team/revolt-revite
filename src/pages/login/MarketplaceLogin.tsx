@@ -64,6 +64,7 @@ export default function MarketplaceLogin({
     logoSrc: string;
 }) {
     const [query, setQuery] = useState("");
+    const [searchRevision, setSearchRevision] = useState(0);
     const [searchFocused, setSearchFocused] = useState(false);
     const [searchExampleIndex, setSearchExampleIndex] = useState(0);
     const [selectedVendor, setSelectedVendor] = useState("");
@@ -191,6 +192,7 @@ export default function MarketplaceLogin({
         shipsTo,
         hasLabReport,
         filterError,
+        searchRevision,
     ]);
 
     useEffect(() => {
@@ -503,26 +505,44 @@ export default function MarketplaceLogin({
                             htmlFor="marketplace-search">
                             Search every catalogue
                         </label>
-                        <div className={styles.searchRow}>
-                            <input
-                                id="marketplace-search"
-                                type="search"
-                                value={query}
-                                list="marketplace-search-suggestions"
-                                placeholder={
-                                    SEARCH_EXAMPLES[searchExampleIndex]
-                                }
-                                autoComplete="off"
-                                onFocus={() => setSearchFocused(true)}
-                                onBlur={() => setSearchFocused(false)}
-                                onInput={(event) =>
-                                    setQuery(
-                                        (
-                                            event.currentTarget as HTMLInputElement
-                                        ).value,
-                                    )
-                                }
-                            />
+                        <form
+                            className={styles.searchRow}
+                            role="search"
+                            aria-busy={pending}
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                setPending(true);
+                                setSearchRevision((revision) => revision + 1);
+                            }}>
+                            <div className={styles.searchControl}>
+                                <input
+                                    id="marketplace-search"
+                                    type="search"
+                                    value={query}
+                                    list="marketplace-search-suggestions"
+                                    placeholder={
+                                        SEARCH_EXAMPLES[searchExampleIndex]
+                                    }
+                                    autoComplete="off"
+                                    aria-describedby="marketplace-search-status"
+                                    onFocus={() => setSearchFocused(true)}
+                                    onBlur={() => setSearchFocused(false)}
+                                    onInput={(event) => {
+                                        setPending(true);
+                                        setQuery(
+                                            (
+                                                event.currentTarget as HTMLInputElement
+                                            ).value,
+                                        );
+                                    }}
+                                />
+                                {pending ? (
+                                    <span
+                                        className={styles.searchSpinner}
+                                        aria-hidden="true"
+                                    />
+                                ) : null}
+                            </div>
                             <datalist id="marketplace-search-suggestions">
                                 {result?.autocomplete?.map((suggestion) => (
                                     <option
@@ -538,10 +558,14 @@ export default function MarketplaceLogin({
                                     Clear
                                 </button>
                             ) : null}
-                        </div>
-                        <p role="status">
+                        </form>
+                        <p
+                            className={styles.searchStatus}
+                            id="marketplace-search-status"
+                            role="status"
+                            aria-live="polite">
                             {pending
-                                ? "Searching approved sellers…"
+                                ? "Searching seller catalogues…"
                                 : `${
                                       result?.pagination.totalItems ?? 0
                                   } available packages`}
