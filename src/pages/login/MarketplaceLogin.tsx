@@ -95,6 +95,7 @@ export default function MarketplaceLogin({
     const productDialogRef = useRef<HTMLDialogElement>(null);
     const cartDialogRef = useRef<HTMLDialogElement>(null);
     const cartHydratedRef = useRef(false);
+    const searchImmediatelyRef = useRef(false);
     const minPriceMinor = priceToMinorUnits(minPrice);
     const maxPriceMinor = priceToMinorUnits(maxPrice);
     const filterError =
@@ -144,6 +145,8 @@ export default function MarketplaceLogin({
             return;
         }
         const controller = new AbortController();
+        const delay = searchImmediatelyRef.current ? 0 : query ? 250 : 0;
+        searchImmediatelyRef.current = false;
         const timeout = window.setTimeout(
             () => {
                 setPending(true);
@@ -176,7 +179,7 @@ export default function MarketplaceLogin({
                         if (!controller.signal.aborted) setPending(false);
                     });
             },
-            query ? 250 : 0,
+            delay,
         );
         return () => {
             window.clearTimeout(timeout);
@@ -512,6 +515,7 @@ export default function MarketplaceLogin({
                             onSubmit={(event) => {
                                 event.preventDefault();
                                 setPending(true);
+                                searchImmediatelyRef.current = true;
                                 setSearchRevision((revision) => revision + 1);
                             }}>
                             <div className={styles.searchControl}>

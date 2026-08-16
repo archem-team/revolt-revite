@@ -78,6 +78,11 @@ test("marketplace search shows immediate progress for typing and Enter", async (
 
     assert.match(page, /aria-busy=\{pending\}/);
     assert.match(page, /setSearchRevision\(\(revision\) => revision \+ 1\)/);
+    assert.match(page, /searchImmediatelyRef\.current = true/);
+    assert.match(
+        page,
+        /const delay = searchImmediatelyRef\.current \? 0 : query \? 250 : 0/,
+    );
     assert.match(page, /setPending\(true\);\s*setQuery/s);
     assert.match(page, /className=\{styles\.searchSpinner\}/);
     assert.match(page, /Searching seller catalogues…/);
