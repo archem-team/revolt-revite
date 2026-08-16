@@ -41,6 +41,7 @@ export default class Session {
     state: State = window.navigator.onLine ? "Ready" : "Offline";
     user_id: string | null = null;
     client: Client | null = null;
+    sessionToken: string | null = null;
 
     /**
      * Create a new Session
@@ -61,6 +62,7 @@ export default class Session {
      * Initiate logout and destroy client
      */
     @action destroy() {
+        this.sessionToken = null;
         if (this.client) {
             this.client.logout(false);
             this.state = "Ready";
@@ -127,6 +129,7 @@ export default class Session {
     private destroyClient() {
         this.client!.removeAllListeners();
         this.client!.logout();
+        this.sessionToken = null;
         this.user_id = null;
         this.client = null;
     }
@@ -155,10 +158,12 @@ export default class Session {
      */
     private async continueLogin(data: Transition & { action: "LOGIN" }) {
         try {
+            this.sessionToken = data.session.token;
             await this.client!.useExistingSession(data.session);
             this.user_id = this.client!.user!._id;
             state.auth.setSession(data.session);
         } catch (err) {
+            this.sessionToken = null;
             this.state = "Ready";
             throw err;
         }

@@ -232,7 +232,7 @@ export default observer(() => {
                         authentication={<AuthenticationCard marketplace />}
                         loggedIn={clientController.isLoggedIn()}
                         getPepchatSession={() =>
-                            clientController.getAvailableClient().session
+                            clientController.getActiveSessionToken()
                         }
                         locale={<LocaleSelector />}
                         legal={<LegalLinks />}

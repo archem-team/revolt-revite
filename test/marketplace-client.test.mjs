@@ -211,6 +211,10 @@ test("marketplace uses one compact PepChat-only account flow", async () => {
     assert.match(page, /createMarketplaceQuote/);
     assert.match(page, /requestCompoundBayRedirect/);
     assert.match(page, /session: getPepchatSession\(\)/);
+    assert.match(
+        login,
+        /getPepchatSession=\{\(\) =>\s*clientController\.getActiveSessionToken\(\)/,
+    );
     assert.match(page, /exchangeMarketplaceIdentity/);
     assert.match(loginStyles, /\.marketplaceForm\s*\{/);
     assert.match(loginStyles, /\.marketplaceForm\s*\{[^}]*padding:\s*0/s);

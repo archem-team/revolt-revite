@@ -88,6 +88,15 @@ class ClientController {
     }
 
     /**
+     * Get the bearer token for the currently selected session.
+     * The Revolt client deliberately does not expose the original session
+     * object, so marketplace SSO must read it from the lifecycle wrapper.
+     */
+    @computed getActiveSessionToken() {
+        return this.getActiveSession()?.sessionToken;
+    }
+
+    /**
      * Get the currently ready client
      * @returns Ready Client
      */
