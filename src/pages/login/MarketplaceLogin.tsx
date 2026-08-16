@@ -3,16 +3,30 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 
 import {
+    createMarketplaceCheckout,
+    createMarketplacePayment,
+    createMarketplaceQuote,
+    createMarketplaceShippingQuote,
+    exchangeMarketplaceIdentity,
+    getMarketplacePaymentStatus,
     getMarketplaceProduct,
+    MarketplaceAddress,
+    MarketplacePayment,
+    MarketplaceShippingQuote,
     MarketplaceProduct,
     MarketplaceProductDetail,
     MarketplaceSearchResponse,
     MarketplaceSort,
     searchMarketplace,
 } from "../../lib/marketplace";
+import { requestCompoundBayRedirect } from "../../lib/compoundBaySso";
+import { BACKEND_API_BASE } from "../directory/types";
 
 const PAGE_SIZE = 24;
 const CART_STORAGE_KEY = "compound-bay-marketplace-cart-v1";
+const QUOTE_STORAGE_KEY = "compound-bay-marketplace-quote-v1";
+const BUYER_STORAGE_KEY = "compound-bay-marketplace-buyer-v1";
+const PAYMENT_STORAGE_KEY = "compound-bay-marketplace-payment-v1";
 const SEARCH_EXAMPLES = [
     "Try Reta 15",
     "Try Reta 15 in Australia",
@@ -56,12 +70,14 @@ function readCart() {
 export default function MarketplaceLogin({
     authentication,
     loggedIn,
+    pepchatSession,
     locale,
     legal,
     logoSrc,
 }: {
     authentication: ComponentChildren;
     loggedIn: boolean;
+    pepchatSession?: unknown;
     locale: ComponentChildren;
     legal: ComponentChildren;
     logoSrc: string;
@@ -96,6 +112,24 @@ export default function MarketplaceLogin({
     const [cart, setCart] = useState<CartLine[]>([]);
     const [cartOpen, setCartOpen] = useState(false);
     const [checkoutNotice, setCheckoutNotice] = useState("");
+    const [checkoutPending, setCheckoutPending] = useState(false);
+    const [buyerToken, setBuyerToken] = useState("");
+    const [shippingQuote, setShippingQuote] =
+        useState<MarketplaceShippingQuote | null>(null);
+    const [acceptLegal, setAcceptLegal] = useState(false);
+    const [checkoutId, setCheckoutId] = useState("");
+    const [orderCode, setOrderCode] = useState("");
+    const [payment, setPayment] = useState<MarketplacePayment | null>(null);
+    const [address, setAddress] = useState<MarketplaceAddress>({
+        fullName: "",
+        streetLine1: "",
+        streetLine2: "",
+        city: "",
+        province: "",
+        postalCode: "",
+        countryCode: "US",
+        phoneNumber: "",
+    });
     const authRef = useRef<HTMLElement>(null);
     const productDialogRef = useRef<HTMLDialogElement>(null);
     const cartDialogRef = useRef<HTMLDialogElement>(null);
@@ -124,7 +158,48 @@ export default function MarketplaceLogin({
 
     useEffect(() => {
         setCart(readCart());
+        setBuyerToken(window.sessionStorage.getItem(BUYER_STORAGE_KEY) ?? "");
+        try {
+            const saved = JSON.parse(
+                window.sessionStorage.getItem(PAYMENT_STORAGE_KEY) ?? "null",
+            ) as {
+                checkoutId?: string;
+                orderCode?: string;
+                payment?: MarketplacePayment;
+            } | null;
+            if (saved?.checkoutId && saved.payment) {
+                setCheckoutId(saved.checkoutId);
+                setOrderCode(saved.orderCode ?? "");
+                setPayment(saved.payment);
+            }
+        } catch {
+            window.sessionStorage.removeItem(PAYMENT_STORAGE_KEY);
+        }
         cartHydratedRef.current = true;
+    }, []);
+
+    useEffect(() => {
+        const code = new URLSearchParams(window.location.search).get("code");
+        const quoteToken = window.sessionStorage.getItem(QUOTE_STORAGE_KEY);
+        if (!code || !quoteToken) return;
+        const controller = new AbortController();
+        setCheckoutPending(true);
+        void exchangeMarketplaceIdentity(code, quoteToken, controller.signal)
+            .then(({ buyerToken: token }) => {
+                window.sessionStorage.setItem(BUYER_STORAGE_KEY, token);
+                setBuyerToken(token);
+                const clean = new URL(window.location.href);
+                clean.searchParams.delete("code");
+                window.history.replaceState(null, "", clean.toString());
+                setCheckoutNotice("PepChat identity confirmed. Continue checkout below.");
+                setCartOpen(true);
+            })
+            .catch(() => {
+                setCheckoutNotice("PepChat sign-in expired. Please try checkout again.");
+                window.sessionStorage.removeItem(QUOTE_STORAGE_KEY);
+            })
+            .finally(() => setCheckoutPending(false));
+        return () => controller.abort();
     }, []);
 
     useEffect(() => {
@@ -325,7 +400,7 @@ export default function MarketplaceLogin({
     const displayedProducts = listedProducts.length
         ? listedProducts
         : result?.alternativeProducts ?? [];
-    const interpretation = result?.interpretedQuery;
+    const interpretation = pending ? undefined : result?.interpretedQuery;
     const interpretationChips = interpretation
         ? [
               interpretation.compound,
@@ -473,16 +548,136 @@ export default function MarketplaceLogin({
         );
     }
 
-    function beginCheckout() {
-        setCartOpen(false);
-        if (loggedIn) {
-            window.location.assign("/home");
+    async function beginCheckout() {
+        if (checkoutPending || !cart.length) return;
+        if (buyerToken) {
+            setCheckoutNotice("PepChat identity confirmed. Delivery details are next.");
             return;
         }
-        setCheckoutNotice(
-            "Your marketplace cart is saved. Sign in with PepChat to continue.",
-        );
-        focusAuthentication();
+        setCheckoutPending(true);
+        setCheckoutNotice("Securing current prices…");
+        try {
+            const quote = await createMarketplaceQuote(
+                cart.map((line) => ({
+                    vendorCode: line.vendorCode,
+                    productId: line.productId,
+                    variantId: line.id,
+                    quantity: line.quantity,
+                })),
+            );
+            window.sessionStorage.setItem(QUOTE_STORAGE_KEY, quote.quoteToken);
+            const returnUrl = `${window.location.origin}${window.location.pathname}`;
+            if (loggedIn) {
+                const redirect = await requestCompoundBayRedirect({
+                    apiBase: BACKEND_API_BASE,
+                    session: pepchatSession,
+                    returnUrl,
+                });
+                window.location.assign(redirect);
+            } else {
+                const handoff = new URL("https://peptide.chat/compound-bay");
+                handoff.searchParams.set("return_to", returnUrl);
+                window.location.assign(handoff.toString());
+            }
+        } catch (caught) {
+            setCheckoutNotice(
+                caught instanceof Error
+                    ? caught.message
+                    : "Checkout could not be started. Please try again.",
+            );
+            setCheckoutPending(false);
+        }
+    }
+
+    function updateAddress(field: keyof MarketplaceAddress, value: string) {
+        setAddress((current) => ({
+            ...current,
+            [field]: field === "countryCode" ? value.toUpperCase() : value,
+        }));
+        setShippingQuote(null);
+    }
+
+    async function quoteShipping(event: Event) {
+        event.preventDefault();
+        const quoteToken = window.sessionStorage.getItem(QUOTE_STORAGE_KEY);
+        if (!quoteToken) {
+            setCheckoutNotice("Your price quote expired. Start checkout again.");
+            setBuyerToken("");
+            return;
+        }
+        setCheckoutPending(true);
+        setCheckoutNotice("Checking every seller's shipping options…");
+        try {
+            const next = await createMarketplaceShippingQuote(quoteToken, address);
+            setShippingQuote(next);
+            setCheckoutNotice("Shipping confirmed for every seller.");
+        } catch {
+            setCheckoutNotice(
+                "This address is incomplete or one seller cannot ship there. Check the details and try again.",
+            );
+        } finally {
+            setCheckoutPending(false);
+        }
+    }
+
+    async function placeOrder() {
+        if (!shippingQuote || !acceptLegal || checkoutPending) return;
+        setCheckoutPending(true);
+        setCheckoutNotice("Creating your order…");
+        try {
+            const checkout = await createMarketplaceCheckout({
+                buyerToken,
+                shippingQuoteToken: shippingQuote.shippingQuoteToken,
+                deliveryAddress: address,
+                idempotencyKey: crypto.randomUUID(),
+            });
+            const next = await createMarketplacePayment(checkout.id, buyerToken);
+            window.sessionStorage.setItem(
+                PAYMENT_STORAGE_KEY,
+                JSON.stringify({
+                    checkoutId: checkout.id,
+                    orderCode: checkout.orderCode,
+                    paymentId: next.payment.id,
+                    accessToken: next.payment.accessToken,
+                    payment: next.payment,
+                }),
+            );
+            setCheckoutId(checkout.id);
+            setOrderCode(checkout.orderCode);
+            setPayment(next.payment);
+            setCheckoutNotice("Order created. Send the exact amount shown below.");
+        } catch {
+            setCheckoutNotice(
+                "The order could not be created. No payment was requested; please try again.",
+            );
+        } finally {
+            setCheckoutPending(false);
+        }
+    }
+
+    async function refreshPayment() {
+        if (!payment || !checkoutId || checkoutPending) return;
+        setCheckoutPending(true);
+        try {
+            const saved = JSON.parse(
+                window.sessionStorage.getItem(PAYMENT_STORAGE_KEY) ?? "{}",
+            ) as { accessToken?: string };
+            if (!saved.accessToken) throw new Error("Missing payment recovery token");
+            const next = await getMarketplacePaymentStatus(
+                checkoutId,
+                payment.id,
+                saved.accessToken,
+            );
+            setPayment(next.payment);
+            setCheckoutNotice(`Payment status: ${next.payment.status}.`);
+            if (["settled", "completed"].includes(next.payment.status)) {
+                setCart([]);
+            }
+        } catch {
+            setCheckoutNotice("Payment status could not be refreshed. Try again shortly.");
+        } finally {
+            setCheckoutPending(false);
+        }
     }
 
     function selectAutocompleteSuggestion(suggestion: string) {
@@ -528,7 +723,7 @@ export default function MarketplaceLogin({
 
             <div
                 className={`${styles.shell} ${
-                    loggedIn ? styles.shellAuthenticated : ""
+                    loggedIn || buyerToken ? styles.shellAuthenticated : ""
                 }`}>
                 <main className={styles.catalogue}>
                     <section className={styles.intro}>
@@ -1075,20 +1270,15 @@ export default function MarketplaceLogin({
                     </section>
                 </main>
 
-                {!loggedIn ? (
+                {!loggedIn && !buyerToken ? (
                     <aside
                         className={styles.authentication}
                         ref={authRef}
                         aria-labelledby="marketplace-auth-title">
                         <div className={styles.authIntro}>
-                            <p className={styles.authKicker}>PepChat account</p>
                             <h2 id="marketplace-auth-title">
                                 Sign in with PepChat
                             </h2>
-                            <p>
-                                One account for the marketplace and PepChat.
-                                Signing in here signs you into PepChat.
-                            </p>
                             {checkoutNotice ? (
                                 <p
                                     className={styles.checkoutNotice}
@@ -1331,13 +1521,129 @@ export default function MarketplaceLogin({
                             <strong>{money(cartSubtotal, cartCurrency)}</strong>
                             <small>Shipping is calculated at checkout.</small>
                         </div>
-                        <button
-                            className={styles.checkoutButton}
-                            type="button"
-                            autoFocus
-                            onClick={beginCheckout}>
-                            Sign in to checkout
-                        </button>
+                        {!buyerToken ? (
+                            <button
+                                className={styles.checkoutButton}
+                                type="button"
+                                autoFocus
+                                disabled={checkoutPending}
+                                onClick={beginCheckout}>
+                                {checkoutPending
+                                    ? "Preparing checkout…"
+                                    : "Continue securely"}
+                            </button>
+                        ) : payment ? (
+                            <section
+                                className={styles.paymentInstructions}
+                                aria-labelledby="marketplace-payment-title">
+                                <p className={styles.kicker}>Order {orderCode}</p>
+                                <h3 id="marketplace-payment-title">
+                                    Pay {payment.payAmount} {payment.payCurrency}
+                                </h3>
+                                <dl>
+                                    <dt>Network</dt>
+                                    <dd>{payment.network.toUpperCase()}</dd>
+                                    <dt>Address</dt>
+                                    <dd>{payment.payAddress}</dd>
+                                    <dt>Status</dt>
+                                    <dd>{payment.status}</dd>
+                                    <dt>Confirmations</dt>
+                                    <dd>
+                                        {payment.confirmations} / {payment.requiredConfirmations}
+                                    </dd>
+                                </dl>
+                                <p>
+                                    Send only {payment.payCurrency} on the stated
+                                    network. A different asset or network may be lost.
+                                </p>
+                                <button
+                                    type="button"
+                                    disabled={checkoutPending}
+                                    onClick={() => void refreshPayment()}>
+                                    {checkoutPending ? "Checking…" : "Refresh payment status"}
+                                </button>
+                            </section>
+                        ) : (
+                            <form
+                                className={styles.checkoutForm}
+                                onSubmit={(event) => void quoteShipping(event)}>
+                                <h3>Delivery details</h3>
+                                {(
+                                    [
+                                        ["fullName", "Full name", "name"],
+                                        ["streetLine1", "Street address", "address-line1"],
+                                        ["streetLine2", "Apartment, suite, etc. (optional)", "address-line2"],
+                                        ["city", "City", "address-level2"],
+                                        ["province", "State / province", "address-level1"],
+                                        ["postalCode", "Postal code", "postal-code"],
+                                        ["countryCode", "Country code", "country"],
+                                        ["phoneNumber", "Phone number", "tel"],
+                                    ] as const
+                                ).map(([field, label, autoComplete]) => (
+                                    <label key={field}>
+                                        {label}
+                                        <input
+                                            required={field !== "streetLine2"}
+                                            value={address[field] ?? ""}
+                                            autoComplete={autoComplete}
+                                            maxLength={field === "countryCode" ? 2 : 120}
+                                            onInput={(event) =>
+                                                updateAddress(
+                                                    field,
+                                                    (event.currentTarget as HTMLInputElement).value,
+                                                )
+                                            }
+                                        />
+                                    </label>
+                                ))}
+                                <button type="submit" disabled={checkoutPending}>
+                                    {checkoutPending ? "Checking shipping…" : "Calculate shipping"}
+                                </button>
+                                {shippingQuote ? (
+                                    <div className={styles.shippingReview}>
+                                        <span>Shipping</span>
+                                        <strong>
+                                            {money(
+                                                shippingQuote.shippingWithTax,
+                                                shippingQuote.currencyCode,
+                                            )}
+                                        </strong>
+                                        <span>Order total</span>
+                                        <strong>
+                                            {money(
+                                                shippingQuote.totalWithTax,
+                                                shippingQuote.currencyCode,
+                                            )}
+                                        </strong>
+                                        <label>
+                                            <input
+                                                type="checkbox"
+                                                checked={acceptLegal}
+                                                onChange={(event) =>
+                                                    setAcceptLegal(
+                                                        (event.currentTarget as HTMLInputElement).checked,
+                                                    )
+                                                }
+                                            />
+                                            I accept the marketplace terms and seller policies.
+                                        </label>
+                                        <button
+                                            type="button"
+                                            disabled={!acceptLegal || checkoutPending}
+                                            onClick={() => void placeOrder()}>
+                                            {checkoutPending
+                                                ? "Creating order…"
+                                                : "Place order and show payment instructions"}
+                                        </button>
+                                    </div>
+                                ) : null}
+                            </form>
+                        )}
+                        {checkoutNotice ? (
+                            <p className={styles.checkoutNotice} role="status">
+                                {checkoutNotice}
+                            </p>
+                        ) : null}
                     </div>
                 ) : (
                     <div className={styles.emptyCart}>

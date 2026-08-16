@@ -4,6 +4,7 @@ import { API, Client } from "revolt.js";
 import { state } from "../../mobx/State";
 
 import { resetMemberSidebarFetched } from "../../components/navigation/right/MemberSidebar";
+import { API_URL } from "../../lib/apiUrl";
 import { modalController } from "../modals/ModalController";
 
 /**
@@ -113,7 +114,7 @@ export default class Session {
             unreads: true,
             autoReconnect: false,
             onPongTimeout: "EXIT",
-            apiURL: apiUrl ?? import.meta.env.VITE_API_URL,
+            apiURL: apiUrl ?? API_URL,
         });
 
         this.client.addListener("dropped", this.onDropped);

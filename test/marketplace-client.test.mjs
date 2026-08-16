@@ -87,7 +87,33 @@ test("marketplace search shows immediate progress for typing and Enter", async (
     assert.match(page, /className=\{styles\.searchSpinner\}/);
     assert.match(page, /Searching seller catalogues…/);
     assert.match(page, /aria-live="polite"/);
+    assert.match(page, /const interpretation = pending \? undefined/);
     assert.match(styles, /@keyframes marketplace-search-spin/);
+});
+
+test("marketplace checkout follows the complete signed PepShop contract", async () => {
+    const [client, page] = await Promise.all([
+        readFile(new URL("../src/lib/marketplace.ts", import.meta.url), "utf8"),
+        readFile(
+            new URL("../src/pages/login/MarketplaceLogin.tsx", import.meta.url),
+            "utf8",
+        ),
+    ]);
+    for (const endpoint of [
+        "/marketplace/v1/quotes",
+        "/marketplace/v1/shipping-quotes",
+        "/marketplace/v1/identity/exchange",
+        "/marketplace/v1/checkouts",
+        "/payments",
+    ]) {
+        assert.match(client, new RegExp(endpoint.replaceAll("/", "\\/")));
+    }
+    assert.match(client, /"Idempotency-Key"/);
+    assert.match(client, /acceptLegalTerms: true/);
+    assert.match(client, /escrowRequested: false/);
+    assert.match(page, /PAYMENT_STORAGE_KEY/);
+    assert.match(page, /Refresh payment status/);
+    assert.doesNotMatch(page, /cancel order|open dispute|request refund/i);
 });
 
 test("marketplace search uses an accessible in-page autocomplete", async () => {
@@ -178,12 +204,16 @@ test("marketplace uses one compact PepChat-only account flow", async () => {
         login,
         /!marketplace \? \(\s*<div className=\{styles\.appLinks\}>/,
     );
-    assert.match(page, /One account for the marketplace and PepChat/);
-    assert.match(page, /Signing in here signs you into PepChat/);
+    assert.match(page, /Sign in with PepChat/);
     assert.match(page, /Go to PepChat/);
-    assert.match(page, /loggedIn \? styles\.shellAuthenticated/);
-    assert.match(page, /\{!loggedIn \? \(/);
+    assert.match(page, /loggedIn \|\| buyerToken \? styles\.shellAuthenticated/);
+    assert.match(page, /\{!loggedIn && !buyerToken \? \(/);
+    assert.match(page, /createMarketplaceQuote/);
+    assert.match(page, /requestCompoundBayRedirect/);
+    assert.match(page, /exchangeMarketplaceIdentity/);
     assert.match(loginStyles, /\.marketplaceForm\s*\{/);
+    assert.match(loginStyles, /\.marketplaceForm\s*\{[^}]*padding:\s*0/s);
+    assert.match(pageStyles, /minmax\(280px, 310px\)/);
     assert.doesNotMatch(
         pageStyles,
         /\.authentication\s*\{[^}]*min-height:\s*100dvh/s,

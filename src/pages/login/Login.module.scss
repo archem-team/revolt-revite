@@ -215,10 +215,36 @@
 .marketplaceForm {
     max-width: none;
     margin: 0;
-    padding: 20px;
-    border: 1px solid var(--market-ink);
-    border-radius: var(--market-radius-card);
-    box-shadow: 4px 4px 0 var(--market-cyan-deep);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+
+    .welcome {
+        display: none;
+    }
+
+    .formModal {
+        gap: 6px;
+
+        form {
+            margin-bottom: 4px;
+            gap: 4px;
+
+            > div {
+                margin-top: 6px;
+            }
+
+            button {
+                margin-top: 8px;
+            }
+        }
+
+        > span {
+            font-size: 11px;
+            line-height: 1.25;
+        }
+    }
 }
 
 .appLinks {
@@ -355,10 +381,10 @@
         width: 100%;
         max-width: 380px;
         margin: 0 auto;
-        padding: 18px;
-        background: var(--primary-background);
-        border: 1px solid var(--market-ink);
-        border-radius: var(--market-radius-card);
+        padding: 0;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
     }
 
     .bottom {

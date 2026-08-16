@@ -2,6 +2,7 @@ import { action, computed, makeAutoObservable } from "mobx";
 import { API, Client, Nullable } from "revolt.js";
 
 import { isDebug } from "../../revision";
+import { API_URL } from "../../lib/apiUrl";
 import Persistent from "../interfaces/Persistent";
 import Store from "../interfaces/Store";
 
@@ -42,7 +43,7 @@ export default class ServerConfig
         const client = new Client({
             unreads: true,
             autoReconnect: true,
-            apiURL: import.meta.env.VITE_API_URL,
+            apiURL: API_URL,
             debug: isDebug(),
             onPongTimeout: "RECONNECT",
         });

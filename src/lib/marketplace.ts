@@ -110,9 +110,15 @@ async function marketplaceRequest<T>(
     path: string,
     signal?: AbortSignal,
     cache: RequestCache = "default",
+    init: RequestInit = {},
 ) {
     const response = await fetch(`${marketplaceApiUrl}${path}`, {
-        headers: { accept: "application/json" },
+        ...init,
+        headers: {
+            accept: "application/json",
+            ...(init.body ? { "content-type": "application/json" } : {}),
+            ...init.headers,
+        },
         signal,
         cache,
     });
@@ -122,6 +128,162 @@ async function marketplaceRequest<T>(
         );
     }
     return (await response.json()) as T;
+}
+
+export type MarketplaceQuote = {
+    quoteId: string;
+    expiresAt: string;
+    currencyCode: string;
+    subtotal: number;
+    estimatedTotal: number;
+    quoteToken: string;
+};
+
+export type MarketplaceAddress = {
+    fullName: string;
+    streetLine1: string;
+    streetLine2?: string;
+    city: string;
+    province: string;
+    postalCode: string;
+    countryCode: string;
+    phoneNumber: string;
+};
+
+export type MarketplaceShippingQuote = {
+    subtotal: number;
+    tax: number;
+    shippingWithTax: number;
+    totalWithTax: number;
+    currencyCode: string;
+    shippingQuoteToken: string;
+};
+
+export type MarketplaceCheckout = {
+    id: string;
+    orderCode: string;
+    state: string;
+    totalWithTax: number;
+    currencyCode: string;
+};
+
+export type MarketplacePayment = {
+    id: string;
+    accessToken: string;
+    status: string;
+    asset: string;
+    network: string;
+    payAddress: string;
+    payAmount: string;
+    payCurrency: string;
+    amountReceived: string;
+    confirmations: number;
+    requiredConfirmations: number;
+    expiresAt: string;
+    transactionHash: string | null;
+};
+
+export function createMarketplaceQuote(
+    lines: Array<{
+        vendorCode: string;
+        productId: string;
+        variantId: string;
+        quantity: number;
+    }>,
+    signal?: AbortSignal,
+) {
+    return marketplaceRequest<MarketplaceQuote>(
+        "/marketplace/v1/quotes",
+        signal,
+        "no-store",
+        { method: "POST", body: JSON.stringify({ lines }) },
+    );
+}
+
+export function exchangeMarketplaceIdentity(
+    code: string,
+    quoteToken: string,
+    signal?: AbortSignal,
+) {
+    return marketplaceRequest<{ buyerToken: string; expiresAt: string }>(
+        "/marketplace/v1/identity/exchange",
+        signal,
+        "no-store",
+        { method: "POST", body: JSON.stringify({ code, quoteToken }) },
+    );
+}
+
+export function createMarketplaceShippingQuote(
+    quoteToken: string,
+    deliveryAddress: MarketplaceAddress,
+    signal?: AbortSignal,
+) {
+    return marketplaceRequest<MarketplaceShippingQuote>(
+        "/marketplace/v1/shipping-quotes",
+        signal,
+        "no-store",
+        { method: "POST", body: JSON.stringify({ quoteToken, deliveryAddress }) },
+    );
+}
+
+export function createMarketplaceCheckout(input: {
+    buyerToken: string;
+    shippingQuoteToken: string;
+    deliveryAddress: MarketplaceAddress;
+    idempotencyKey: string;
+}) {
+    return marketplaceRequest<MarketplaceCheckout>(
+        "/marketplace/v1/checkouts",
+        undefined,
+        "no-store",
+        {
+            method: "POST",
+            headers: { "Idempotency-Key": input.idempotencyKey },
+            body: JSON.stringify({
+                buyerToken: input.buyerToken,
+                shippingQuoteToken: input.shippingQuoteToken,
+                deliveryAddress: input.deliveryAddress,
+                acceptLegalTerms: true,
+                escrowRequested: false,
+            }),
+        },
+    );
+}
+
+export function createMarketplacePayment(
+    checkoutId: string,
+    buyerToken: string,
+) {
+    return marketplaceRequest<{
+        checkout: MarketplaceCheckout;
+        payment: MarketplacePayment;
+    }>(
+        `/marketplace/v1/checkouts/${encodeURIComponent(checkoutId)}/payments`,
+        undefined,
+        "no-store",
+        {
+            method: "POST",
+            body: JSON.stringify({ buyerToken, asset: "usdt", network: "tron" }),
+        },
+    );
+}
+
+export function getMarketplacePaymentStatus(
+    checkoutId: string,
+    paymentId: string,
+    accessToken: string,
+) {
+    const params = new URLSearchParams({ accessToken });
+    return marketplaceRequest<{
+        checkout: MarketplaceCheckout;
+        payment: MarketplacePayment;
+    }>(
+        `/marketplace/v1/checkouts/${encodeURIComponent(
+            checkoutId,
+        )}/payments/${encodeURIComponent(paymentId)}?${params}`,
+        undefined,
+        "no-store",
+    );
 }
 
 export function getMarketplaceConfig(signal?: AbortSignal) {

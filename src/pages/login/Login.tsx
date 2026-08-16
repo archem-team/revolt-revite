@@ -231,6 +231,9 @@ export default observer(() => {
                     <MarketplaceLogin
                         authentication={<AuthenticationCard marketplace />}
                         loggedIn={clientController.isLoggedIn()}
+                        pepchatSession={
+                            clientController.getAvailableClient().session
+                        }
                         locale={<LocaleSelector />}
                         legal={<LegalLinks />}
                         logoSrc={wideSVG}

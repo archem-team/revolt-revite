@@ -3,6 +3,7 @@ import { action, computed, makeAutoObservable, ObservableMap } from "mobx";
 import { API, Client, Nullable } from "revolt.js";
 
 import { submitMfaChallenge } from "../../lib/authFlows";
+import { API_URL } from "../../lib/apiUrl";
 import { injectController } from "../../lib/window";
 
 import { state } from "../../mobx/State";
@@ -39,7 +40,7 @@ class ClientController {
 
     constructor() {
         this.apiClient = new Client({
-            apiURL: import.meta.env.VITE_API_URL,
+            apiURL: API_URL,
         });
 
         // ! FIXME: loop until success infinitely

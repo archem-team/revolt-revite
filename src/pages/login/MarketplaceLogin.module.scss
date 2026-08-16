@@ -363,7 +363,7 @@
 .shell {
     min-width: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 390px);
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 310px);
 }
 
 .shellAuthenticated {
@@ -704,11 +704,9 @@
     background: var(--market-paper);
     box-shadow: var(--market-shadow-card);
     overflow: clip;
-    transition: transform 180ms var(--market-ease-snap),
-        box-shadow 180ms var(--market-ease-snap);
+    transition: box-shadow 180ms var(--market-ease-snap);
 
     &:hover {
-        transform: translateY(-3px);
         box-shadow: var(--market-shadow-lift);
     }
 }
@@ -1140,6 +1138,111 @@
     width: 100%;
 }
 
+.checkoutForm,
+.paymentInstructions {
+    padding-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    border-top: 1px solid var(--market-line);
+
+    h3,
+    > button,
+    .shippingReview,
+    > p,
+    > dl {
+        grid-column: 1 / -1;
+    }
+
+    h3 {
+        margin: 0;
+        font-family: var(--market-font-display);
+        font-size: 22px;
+    }
+
+    label {
+        min-width: 0;
+        display: grid;
+        gap: 4px;
+        color: var(--market-muted);
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    input {
+        min-width: 0;
+        width: 100%;
+        min-height: 44px;
+        padding: 8px 10px;
+        border: 1px solid var(--market-line);
+        border-radius: var(--market-radius-input);
+        color: var(--market-ink);
+        background: var(--market-paper);
+    }
+
+    button {
+        min-height: 46px;
+        padding: 8px 14px;
+        border: 1px solid var(--market-ink);
+        border-radius: var(--market-radius-input);
+        color: var(--market-ink);
+        background: var(--market-accent);
+        font-weight: 800;
+        cursor: pointer;
+
+        &:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+    }
+}
+
+.shippingReview {
+    padding-top: 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 16px;
+    border-top: 1px solid var(--market-line);
+
+    > label,
+    > button {
+        grid-column: 1 / -1;
+    }
+
+    > label {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        input {
+            width: 20px;
+            min-height: 20px;
+        }
+    }
+}
+
+.paymentInstructions {
+    grid-template-columns: minmax(0, 1fr);
+
+    dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 6px 14px;
+    }
+
+    dt {
+        color: var(--market-muted);
+    }
+
+    dd {
+        margin: 0;
+        font-family: var(--market-font-mono);
+        overflow-wrap: anywhere;
+    }
+}
+
 .emptyCart {
     min-height: 300px;
     padding: 36px 28px;
@@ -1224,29 +1327,25 @@
     justify-self: center;
 }
 
-/* Hallmark · component: PepChat sign-in · genre: playful · theme: Hum
- * states: default · hover · focus · active · disabled · loading · error · success
- * pre-emit critique: P5 H5 E5 S5 R5 V4 · contrast: pass (40–41)
- */
 .authentication {
     position: sticky;
     inset-block-start: 74px;
     align-self: start;
-    margin: 28px 24px 28px 0;
-    padding: 22px;
+    margin: 28px 16px 28px 0;
+    padding: 16px;
     display: grid;
-    gap: 18px;
+    gap: 12px;
     border: 1px solid var(--market-line);
     border-radius: var(--market-radius-card);
     color: var(--color-text-primary);
     background: var(--market-paper);
-    box-shadow: 5px 5px 0 var(--market-cyan-deep);
+    box-shadow: 3px 3px 0 var(--market-cyan-deep);
 
     h2 {
         margin: 2px 0 0;
         color: var(--market-ink);
         font-family: var(--market-font-display);
-        font-size: 22px;
+        font-size: 18px;
         font-style: normal;
         line-height: 1.15;
     }
@@ -1254,7 +1353,7 @@
 
 .authIntro {
     display: grid;
-    gap: 10px;
+    gap: 8px;
 
     > p:not(.authKicker, .checkoutNotice) {
         margin: 0 0 4px;
@@ -1270,7 +1369,12 @@
 
 .legal {
     :global(a) {
-        color: var(--color-text-secondary);
+        color: var(--market-muted);
+
+        &:focus-visible {
+            outline: 2px solid var(--market-cyan-deep);
+            outline-offset: 2px;
+        }
     }
 }
 
@@ -1393,6 +1497,16 @@
         margin: 0 14px 44px;
         padding: 18px;
         gap: 14px;
+    }
+
+    .checkoutForm {
+        grid-template-columns: minmax(0, 1fr);
+
+        h3,
+        > button,
+        .shippingReview {
+            grid-column: 1;
+        }
     }
 
     .productDialog,

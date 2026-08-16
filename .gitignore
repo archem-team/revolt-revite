@@ -13,3 +13,4 @@ dist-ssr
 .yarn/install-state.gz
 
 .vscode/chrome_data
+.gstack/
