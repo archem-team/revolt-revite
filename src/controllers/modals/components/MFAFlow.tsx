@@ -1,6 +1,7 @@
-import { Archive } from "@styled-icons/boxicons-regular";
+import { Archive, ChevronRight } from "@styled-icons/boxicons-regular";
 import { Key, Keyboard } from "@styled-icons/boxicons-solid";
 import { API } from "revolt.js";
+import styled from "styled-components/macro";
 
 import { Text } from "preact-i18n";
 import {
@@ -10,15 +11,10 @@ import {
     useState,
 } from "preact/hooks";
 
-import {
-    Category,
-    CategoryButton,
-    InputBox,
-    Modal,
-    Preloader,
-} from "@revoltchat/ui";
+import { Category, InputBox, Modal, Preloader } from "@revoltchat/ui";
 
 import { hasMfaResponseValue } from "../../../lib/authFlows";
+
 import { ModalProps } from "../types";
 
 /**
@@ -29,6 +25,42 @@ const ICONS: Record<API.MFAMethod, React.FC<any>> = {
     Totp: Key,
     Recovery: Archive,
 };
+
+const MethodButton = styled.button`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    border: 0;
+    border-radius: var(--border-radius);
+    background: var(--secondary-header);
+    color: var(--foreground);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+        filter: brightness(1.08);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+`;
+
+const MethodLabel = styled.span`
+    flex: 1;
+    font-size: 0.875rem;
+    font-weight: 600;
+`;
+
+const ChallengeBody = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
 
 /**
  * Component for handling challenge entry
@@ -133,7 +165,11 @@ export default function MFAFlow({
 
     return (
         <Modal
-            title={<Text id="app.special.modals.confirm" />}
+            title={
+                <span id="mfa-flow-title">
+                    <Text id="app.special.modals.confirm" />
+                </span>
+            }
             description={
                 <Text
                     id={`app.special.modals.mfa.${
@@ -200,30 +236,40 @@ export default function MFAFlow({
                 props.callback();
                 onClose();
             }}>
-            {methods ? (
-                selectedMethod ? (
-                    <ResponseEntry
-                        type={selectedMethod}
-                        value={response}
-                        onChange={setResponse}
-                    />
+            <ChallengeBody
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="mfa-flow-title">
+                {methods ? (
+                    selectedMethod ? (
+                        <ResponseEntry
+                            type={selectedMethod}
+                            value={response}
+                            onChange={setResponse}
+                        />
+                    ) : (
+                        methods.map((method) => {
+                            const Icon = ICONS[method];
+                            return (
+                                <MethodButton
+                                    type="button"
+                                    key={method}
+                                    onClick={() => setSelected(method)}>
+                                    <Icon size={24} />
+                                    <MethodLabel>
+                                        <Text
+                                            id={`login.${method.toLowerCase()}`}
+                                        />
+                                    </MethodLabel>
+                                    <ChevronRight aria-hidden size={20} />
+                                </MethodButton>
+                            );
+                        })
+                    )
                 ) : (
-                    methods.map((method) => {
-                        const Icon = ICONS[method];
-                        return (
-                            <CategoryButton
-                                key={method}
-                                action="chevron"
-                                icon={<Icon size={24} />}
-                                onClick={() => setSelected(method)}>
-                                <Text id={`login.${method.toLowerCase()}`} />
-                            </CategoryButton>
-                        );
-                    })
-                )
-            ) : (
-                <Preloader type="ring" />
-            )}
+                    <Preloader type="ring" />
+                )}
+            </ChallengeBody>
         </Modal>
     );
 }
