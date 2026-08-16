@@ -1697,11 +1697,6 @@ export default function MarketplaceLogin({
                                 ) : null}
                             </form>
                         )}
-                        {checkoutNotice ? (
-                            <p className={styles.checkoutNotice} role="status">
-                                {checkoutNotice}
-                            </p>
-                        ) : null}
                     </div>
                 ) : (
                     <div className={styles.emptyCart}>
@@ -1715,6 +1710,11 @@ export default function MarketplaceLogin({
                         </button>
                     </div>
                 )}
+                {checkoutNotice ? (
+                    <p className={styles.checkoutNotice} role="status">
+                        {checkoutNotice}
+                    </p>
+                ) : null}
             </dialog>
         </div>
     );
