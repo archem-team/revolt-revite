@@ -146,12 +146,20 @@ export const Form = observer(({ page, callback }: Props) => {
         <div className={styles.formModal}>
             <div className={styles.welcome}>
                 <div className={styles.title}>
-                    <img src={WaveSVG} draggable={false} />
+                    {(page === "login" || page === "create") && (
+                        <img src={WaveSVG} draggable={false} />
+                    )}
                     <Text
                         id={
                             page === "create"
                                 ? "login.welcome2"
-                                : "login.welcome"
+                                : page === "login"
+                                ? "login.welcome"
+                                : page === "reset"
+                                ? "login.set_password"
+                                : page === "resend"
+                                ? "login.resend"
+                                : "login.reset"
                         }
                     />
                 </div>
@@ -160,7 +168,11 @@ export const Form = observer(({ page, callback }: Props) => {
                         id={
                             page === "create"
                                 ? "login.subtitle2"
-                                : "login.subtitle"
+                                : page === "login"
+                                ? "login.subtitle"
+                                : page === "resend"
+                                ? "login.missing_verification"
+                                : "login.forgot"
                         }
                     />
                 </div>

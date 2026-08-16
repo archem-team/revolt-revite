@@ -220,6 +220,16 @@ test("marketplace uses one compact PepChat-only account flow", async () => {
     );
 });
 
+test("linked account tasks use task-specific headings", async () => {
+    const form = await readFile(
+        new URL("../src/pages/login/forms/Form.tsx", import.meta.url),
+        "utf8",
+    );
+    assert.match(form, /page === "reset"\s*\? "login\.set_password"/);
+    assert.match(form, /page === "resend"\s*\? "login\.resend"/);
+    assert.match(form, /page === "login" \|\| page === "create"/);
+});
+
 test("marketplace homepage suppresses the global app install banner", async () => {
     const [app, banner] = await Promise.all([
         readFile(new URL("../src/pages/app.tsx", import.meta.url), "utf8"),
