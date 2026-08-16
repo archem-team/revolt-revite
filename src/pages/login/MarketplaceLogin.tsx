@@ -480,6 +480,7 @@ export default function MarketplaceLogin({
                                 id="marketplace-search"
                                 type="search"
                                 value={query}
+                                list="marketplace-search-suggestions"
                                 placeholder="Try Reta 15 in Australia or fastest BPC-157 with COA"
                                 autoComplete="off"
                                 onInput={(event) =>
@@ -490,6 +491,11 @@ export default function MarketplaceLogin({
                                     )
                                 }
                             />
+                            <datalist id="marketplace-search-suggestions">
+                                {result?.autocomplete?.map((suggestion) => (
+                                    <option key={suggestion} value={suggestion} />
+                                ))}
+                            </datalist>
                             {query ? (
                                 <button
                                     type="button"

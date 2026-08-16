@@ -87,6 +87,7 @@ export type MarketplaceSearchResponse = {
     vendors: MarketplaceVendor[];
     products: MarketplaceProduct[];
     alternativeProducts: MarketplaceProduct[];
+    autocomplete: string[];
     suggestions: Array<{ type: string; message: string }>;
     pagination: {
         offset: number;
