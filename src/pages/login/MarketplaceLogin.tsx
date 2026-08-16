@@ -2,7 +2,6 @@ import styles from "./MarketplaceLogin.module.scss";
 import type { ComponentChildren } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 
-import { requestCompoundBayRedirect } from "../../lib/compoundBaySso";
 import {
     createMarketplaceCheckout,
     createMarketplacePayment,
@@ -20,10 +19,10 @@ import {
     MarketplaceSort,
     searchMarketplace,
 } from "../../lib/marketplace";
+import { requestCompoundBayRedirect } from "../../lib/compoundBaySso";
 import { normalizeMarketplaceCart } from "../../lib/marketplaceCart";
 import { normalizeCountryCode } from "../../lib/marketplaceFilters";
 import { formatExactAmount } from "../../lib/paymentAmount";
-
 import { BACKEND_API_BASE } from "../directory/types";
 
 const PAGE_SIZE = 24;
@@ -73,11 +72,7 @@ function ProductVisual({
 
 function cartSignature(lines: CartLine[]) {
     return JSON.stringify(
-        lines.map(({ vendorCode, id, quantity }) => ({
-            vendorCode,
-            id,
-            quantity,
-        })),
+        lines.map(({ vendorCode, id, quantity }) => ({ vendorCode, id, quantity })),
     );
 }
 
@@ -242,15 +237,11 @@ export default function MarketplaceLogin({
                 const clean = new URL(window.location.href);
                 clean.searchParams.delete("code");
                 window.history.replaceState(null, "", clean.toString());
-                setCheckoutNotice(
-                    "PepChat identity confirmed. Continue checkout below.",
-                );
+                setCheckoutNotice("PepChat identity confirmed. Continue checkout below.");
                 setCartOpen(true);
             })
             .catch(() => {
-                setCheckoutNotice(
-                    "PepChat sign-in expired. Please try checkout again.",
-                );
+                setCheckoutNotice("PepChat sign-in expired. Please try checkout again.");
                 window.sessionStorage.removeItem(QUOTE_STORAGE_KEY);
                 window.sessionStorage.removeItem(QUOTE_CART_STORAGE_KEY);
             })
@@ -619,9 +610,7 @@ export default function MarketplaceLogin({
     async function beginCheckout() {
         if (checkoutPending || !cart.length) return;
         if (buyerToken) {
-            setCheckoutNotice(
-                "PepChat identity confirmed. Delivery details are next.",
-            );
+            setCheckoutNotice("PepChat identity confirmed. Delivery details are next.");
             return;
         }
         setCheckoutPending(true);
@@ -666,8 +655,7 @@ export default function MarketplaceLogin({
     function updateAddress(field: keyof MarketplaceAddress, value: string) {
         setAddress((current) => ({
             ...current,
-            [field]:
-                field === "countryCode" ? normalizeCountryCode(value) : value,
+            [field]: field === "countryCode" ? value.toUpperCase() : value,
         }));
         setShippingQuote(null);
         setAcceptLegal(false);
@@ -677,9 +665,7 @@ export default function MarketplaceLogin({
         event.preventDefault();
         const quoteToken = window.sessionStorage.getItem(QUOTE_STORAGE_KEY);
         if (!quoteToken) {
-            setCheckoutNotice(
-                "Your price quote expired. Start checkout again.",
-            );
+            setCheckoutNotice("Your price quote expired. Start checkout again.");
             setBuyerToken("");
             window.sessionStorage.removeItem(BUYER_STORAGE_KEY);
             window.sessionStorage.removeItem(QUOTE_CART_STORAGE_KEY);
@@ -688,10 +674,7 @@ export default function MarketplaceLogin({
         setCheckoutPending(true);
         setCheckoutNotice("Checking every seller's shipping options…");
         try {
-            const next = await createMarketplaceShippingQuote(
-                quoteToken,
-                address,
-            );
+            const next = await createMarketplaceShippingQuote(quoteToken, address);
             setShippingQuote(next);
             setCheckoutNotice("Shipping confirmed for every seller.");
         } catch {
@@ -714,10 +697,7 @@ export default function MarketplaceLogin({
                 deliveryAddress: address,
                 idempotencyKey: crypto.randomUUID(),
             });
-            const next = await createMarketplacePayment(
-                checkout.id,
-                buyerToken,
-            );
+            const next = await createMarketplacePayment(checkout.id, buyerToken);
             window.sessionStorage.setItem(
                 PAYMENT_STORAGE_KEY,
                 JSON.stringify({
@@ -731,9 +711,7 @@ export default function MarketplaceLogin({
             setCheckoutId(checkout.id);
             setOrderCode(checkout.orderCode);
             setPayment(next.payment);
-            setCheckoutNotice(
-                "Order created. Send the exact amount shown below.",
-            );
+            setCheckoutNotice("Order created. Send the exact amount shown below.");
         } catch (caught) {
             setCheckoutNotice(
                 `${
@@ -754,8 +732,7 @@ export default function MarketplaceLogin({
             const saved = JSON.parse(
                 window.sessionStorage.getItem(PAYMENT_STORAGE_KEY) ?? "{}",
             ) as { accessToken?: string };
-            if (!saved.accessToken)
-                throw new Error("Missing payment recovery token");
+            if (!saved.accessToken) throw new Error("Missing payment recovery token");
             const next = await getMarketplacePaymentStatus(
                 checkoutId,
                 payment.id,
@@ -767,9 +744,7 @@ export default function MarketplaceLogin({
                 setCart([]);
             }
         } catch {
-            setCheckoutNotice(
-                "Payment status could not be refreshed. Try again shortly.",
-            );
+            setCheckoutNotice("Payment status could not be refreshed. Try again shortly.");
         } finally {
             setCheckoutPending(false);
         }
@@ -1613,9 +1588,7 @@ export default function MarketplaceLogin({
                             <section
                                 className={styles.paymentInstructions}
                                 aria-labelledby="marketplace-payment-title">
-                                <p className={styles.kicker}>
-                                    Order {orderCode}
-                                </p>
+                                <p className={styles.kicker}>Order {orderCode}</p>
                                 <h3 id="marketplace-payment-title">
                                     Pay {formatExactAmount(payment.payAmount)}{" "}
                                     {payment.payCurrency}
@@ -1629,22 +1602,18 @@ export default function MarketplaceLogin({
                                     <dd>{payment.status}</dd>
                                     <dt>Confirmations</dt>
                                     <dd>
-                                        {payment.confirmations} /{" "}
-                                        {payment.requiredConfirmations}
+                                        {payment.confirmations} / {payment.requiredConfirmations}
                                     </dd>
                                 </dl>
                                 <p>
-                                    Send only {payment.payCurrency} on the
-                                    stated network. A different asset or network
-                                    may be lost.
+                                    Send only {payment.payCurrency} on the stated
+                                    network. A different asset or network may be lost.
                                 </p>
                                 <button
                                     type="button"
                                     disabled={checkoutPending}
                                     onClick={() => void refreshPayment()}>
-                                    {checkoutPending
-                                        ? "Checking…"
-                                        : "Refresh payment status"}
+                                    {checkoutPending ? "Checking…" : "Refresh payment status"}
                                 </button>
                             </section>
                         ) : (
@@ -1655,32 +1624,12 @@ export default function MarketplaceLogin({
                                 {(
                                     [
                                         ["fullName", "Full name", "name"],
-                                        [
-                                            "streetLine1",
-                                            "Street address",
-                                            "address-line1",
-                                        ],
-                                        [
-                                            "streetLine2",
-                                            "Apartment, suite, etc. (optional)",
-                                            "address-line2",
-                                        ],
+                                        ["streetLine1", "Street address", "address-line1"],
+                                        ["streetLine2", "Apartment, suite, etc. (optional)", "address-line2"],
                                         ["city", "City", "address-level2"],
-                                        [
-                                            "province",
-                                            "State / province",
-                                            "address-level1",
-                                        ],
-                                        [
-                                            "postalCode",
-                                            "Postal code",
-                                            "postal-code",
-                                        ],
-                                        [
-                                            "countryCode",
-                                            "Country code",
-                                            "country",
-                                        ],
+                                        ["province", "State / province", "address-level1"],
+                                        ["postalCode", "Postal code", "postal-code"],
+                                        ["countryCode", "Country code", "country"],
                                         ["phoneNumber", "Phone number", "tel"],
                                     ] as const
                                 ).map(([field, label, autoComplete]) => (
@@ -1690,28 +1639,18 @@ export default function MarketplaceLogin({
                                             required={field !== "streetLine2"}
                                             value={address[field] ?? ""}
                                             autoComplete={autoComplete}
-                                            maxLength={
-                                                field === "countryCode"
-                                                    ? undefined
-                                                    : 120
-                                            }
+                                            maxLength={field === "countryCode" ? 2 : 120}
                                             onInput={(event) =>
                                                 updateAddress(
                                                     field,
-                                                    (
-                                                        event.currentTarget as HTMLInputElement
-                                                    ).value,
+                                                    (event.currentTarget as HTMLInputElement).value,
                                                 )
                                             }
                                         />
                                     </label>
                                 ))}
-                                <button
-                                    type="submit"
-                                    disabled={checkoutPending}>
-                                    {checkoutPending
-                                        ? "Checking shipping…"
-                                        : "Calculate shipping"}
+                                <button type="submit" disabled={checkoutPending}>
+                                    {checkoutPending ? "Checking shipping…" : "Calculate shipping"}
                                 </button>
                                 {shippingQuote ? (
                                     <div className={styles.shippingReview}>
@@ -1735,20 +1674,15 @@ export default function MarketplaceLogin({
                                                 checked={acceptLegal}
                                                 onChange={(event) =>
                                                     setAcceptLegal(
-                                                        (
-                                                            event.currentTarget as HTMLInputElement
-                                                        ).checked,
+                                                        (event.currentTarget as HTMLInputElement).checked,
                                                     )
                                                 }
                                             />
-                                            I accept the marketplace terms and
-                                            seller policies.
+                                            I accept the marketplace terms and seller policies.
                                         </label>
                                         <button
                                             type="button"
-                                            disabled={
-                                                !acceptLegal || checkoutPending
-                                            }
+                                            disabled={!acceptLegal || checkoutPending}
                                             onClick={() => void placeOrder()}>
                                             {checkoutPending
                                                 ? "Creating order…"
