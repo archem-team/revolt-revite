@@ -21,6 +21,41 @@ const uiContext = {
     emitAction: () => void {},
 };
 
+export function isMarketplaceHost() {
+    return (
+        document.documentElement.dataset.marketplaceHost === "true" ||
+        window.location.hostname === "market.peptide.chat"
+    );
+}
+
+export function MarketplaceBoot() {
+    return (
+        <div
+            className="marketplace-boot"
+            data-marketplace-boot="true"
+            role="status"
+            aria-live="polite"
+            aria-label="Loading marketplace">
+            <header className="marketplace-boot__header">
+                <span className="marketplace-boot__brand">{"PepChat"}</span>
+            </header>
+            <main className="marketplace-boot__main">
+                <p className="marketplace-boot__eyebrow">
+                    {"Verified seller marketplace"}
+                </p>
+                <h1>
+                    {"Find the compound."}
+                    <br />
+                    {"Choose the seller."}
+                </h1>
+                <p className="marketplace-boot__status">
+                    {"Loading seller catalogues…"}
+                </p>
+            </main>
+        </div>
+    );
+}
+
 /**
  * This component provides all of the application's context layers.
  * @param param0 Provided children
@@ -32,7 +67,13 @@ export default function Context({ children }: { children: Children }) {
         state.hydrate().then(() => setReady(true));
     }, []);
 
-    if (!ready) return <Preloader type="spinner" />;
+    if (!ready) {
+        return isMarketplaceHost() ? (
+            <MarketplaceBoot />
+        ) : (
+            <Preloader type="spinner" />
+        );
+    }
 
     return (
         <Router history={history}>

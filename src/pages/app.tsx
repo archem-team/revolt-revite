@@ -6,7 +6,7 @@ import { Masks, Preloader } from "@revoltchat/ui";
 
 import ErrorBoundary from "../lib/ErrorBoundary";
 
-import Context from "../context";
+import Context, { isMarketplaceHost, MarketplaceBoot } from "../context";
 
 import AppInstallBanner from "../components/app/AppInstallBanner";
 import { CheckAuth } from "../controllers/client/jsx/CheckAuth";
@@ -18,9 +18,23 @@ const RevoltApp = lazy(() => import("./RevoltApp"));
 const Directory = lazy(() => import("./directory/Directory"));
 const Ranking = lazy(() => import("./ranking/Ranking"));
 
+if (isMarketplaceHost()) {
+    void import("./login/Login");
+    void import("./login/MarketplaceLogin");
+}
+
 const LoadSuspense: React.FC = ({ children }) => (
     // @ts-expect-error Typing issue between Preact and Preact.
-    <Suspense fallback={<Preloader type="ring" />}>{children}</Suspense>
+    <Suspense
+        fallback={
+            isMarketplaceHost() ? (
+                <MarketplaceBoot />
+            ) : (
+                <Preloader type="ring" />
+            )
+        }>
+        {children}
+    </Suspense>
 );
 
 export function App() {

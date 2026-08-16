@@ -184,6 +184,35 @@ test("marketplace branch keeps signed-in visitors on the root homepage", async (
     );
 });
 
+test("marketplace host never paints the PepChat login during boot", async () => {
+    const [document, context, app, login] = await Promise.all([
+        readFile(new URL("../index.html", import.meta.url), "utf8"),
+        readFile(new URL("../src/context/index.tsx", import.meta.url), "utf8"),
+        readFile(new URL("../src/pages/app.tsx", import.meta.url), "utf8"),
+        readFile(
+            new URL("../src/pages/login/Login.tsx", import.meta.url),
+            "utf8",
+        ),
+    ]);
+
+    assert.match(document, /hostname === "market\.peptide\.chat"/);
+    assert.match(document, /data-marketplace-host/);
+    assert.match(document, /\.marketplace-boot\s*\{/);
+    assert.match(context, /data-marketplace-boot="true"/);
+    assert.match(context, /isMarketplaceHost\(\) \? \(/);
+    assert.match(app, /void import\("\.\/login\/MarketplaceLogin"\)/);
+    assert.match(app, /isMarketplaceHost\(\) \? \(/);
+    assert.match(login, /useState\(marketplaceHost\)/);
+    assert.match(
+        login,
+        /if \(marketplaceHost\) \{\s*setMarketplaceEnabled\(true\)/s,
+    );
+    assert.match(
+        login,
+        /marketplaceHost \? <MarketplaceBoot \/> : <LegacyLogin \/>/,
+    );
+});
+
 test("marketplace uses one compact PepChat-only account flow", async () => {
     const [login, page, loginStyles, pageStyles] = await Promise.all([
         readFile(
@@ -215,13 +244,19 @@ test("marketplace uses one compact PepChat-only account flow", async () => {
     );
     assert.match(page, /Sign in with PepChat/);
     assert.match(page, /Go to PepChat/);
-    assert.match(page, /loggedIn \|\| buyerToken \? styles\.shellAuthenticated/);
+    assert.match(
+        page,
+        /loggedIn \|\| buyerToken \? styles\.shellAuthenticated/,
+    );
     assert.match(page, /\{!loggedIn && !buyerToken \? \(/);
     assert.match(page, /createMarketplaceQuote/);
     assert.match(page, /requestCompoundBayRedirect/);
     assert.match(page, /session: getPepchatSession\(\)/);
     assert.match(page, /function invalidateCheckoutForCartChange\(\)/);
-    assert.match(page, /window\.sessionStorage\.removeItem\(QUOTE_CART_STORAGE_KEY\)/);
+    assert.match(
+        page,
+        /window\.sessionStorage\.removeItem\(QUOTE_CART_STORAGE_KEY\)/,
+    );
     assert.match(page, /QUOTE_CART_STORAGE_KEY,\s*cartSignature\(cart\)/);
     assert.match(page, /if \(quoteMatchesCart\) \{\s*if \(storedBuyerToken\)/s);
     assert.match(page, /setShippingQuote\(null\);\s*setAcceptLegal\(false\)/);

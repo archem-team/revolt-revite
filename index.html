@@ -3,6 +3,120 @@
     <head>
         <meta charset="UTF-8" />
 
+        <!-- The marketplace shares the PepChat bundle, but its first paint must
+            match the marketplace instead of flashing the chat theme. This runs
+            before application CSS and JavaScript so even a cold load starts on
+            the correct canvas. -->
+        <script>
+            if (window.location.hostname === "market.peptide.chat") {
+                document.documentElement.setAttribute(
+                    "data-marketplace-host",
+                    "true",
+                );
+            }
+        </script>
+        <style>
+            html[data-marketplace-host="true"],
+            html[data-marketplace-host="true"] body {
+                --market-boot-paper: oklch(94% 0.016 95);
+                --market-boot-surface: oklch(97% 0.012 95);
+                --market-boot-ink: oklch(20% 0.012 250);
+                --market-boot-font-display: "Arial Rounded MT Bold",
+                    "Trebuchet MS", system-ui, sans-serif;
+                --market-boot-font-body: "Trebuchet MS", system-ui, sans-serif;
+                background: var(--market-boot-paper) !important;
+            }
+
+            .marketplace-boot {
+                box-sizing: border-box;
+                width: 100%;
+                height: 100%;
+                min-height: 100dvh;
+                overflow: hidden;
+                background: var(--market-boot-paper);
+                color: var(--market-boot-ink);
+                font-family: var(--market-boot-font-body);
+            }
+
+            .marketplace-boot *,
+            .marketplace-boot *::before,
+            .marketplace-boot *::after {
+                box-sizing: border-box;
+            }
+
+            .marketplace-boot__header {
+                height: 74px;
+                padding: 0 48px;
+                display: flex;
+                align-items: center;
+                border-bottom: 1px solid currentColor;
+            }
+
+            .marketplace-boot__brand {
+                min-width: 124px;
+                min-height: 38px;
+                padding: 8px 16px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 12px;
+                background: var(--market-boot-ink);
+                color: var(--market-boot-surface);
+                font-weight: 800;
+                letter-spacing: 0.02em;
+            }
+
+            .marketplace-boot__main {
+                width: min(100%, 1280px);
+                margin: 0 auto;
+                padding: 40px 48px;
+            }
+
+            .marketplace-boot__eyebrow {
+                margin: 0 0 12px;
+                font: 700 11px/1.3 ui-monospace, "SFMono-Regular", Consolas,
+                    monospace;
+                letter-spacing: 0.16em;
+                text-transform: uppercase;
+            }
+
+            .marketplace-boot h1 {
+                max-width: 720px;
+                margin: 0;
+                font-family: var(--market-boot-font-display);
+                font-size: clamp(38px, 4.6vw, 64px);
+                line-height: 0.94;
+                letter-spacing: -0.045em;
+                overflow-wrap: anywhere;
+            }
+
+            .marketplace-boot__status {
+                width: fit-content;
+                margin: 48px 0 0;
+                padding: 10px 14px;
+                border: 1px solid currentColor;
+                border-radius: 999px;
+                background: var(--market-boot-surface);
+                font-size: 14px;
+                font-weight: 700;
+            }
+
+            @media (max-width: 640px) {
+                .marketplace-boot__header {
+                    height: 64px;
+                    padding: 0 20px;
+                }
+
+                .marketplace-boot__main {
+                    padding: 32px 20px;
+                }
+
+                .marketplace-boot__status {
+                    margin-top: 36px;
+                }
+            }
+        </style>
+
         <!--Stale-release and failed-boot recovery. A document restored from
             bfcache, an old PWA worker, or a mid-session deploy can reference
             assets that no longer exist. Mobile browsers can also surface a

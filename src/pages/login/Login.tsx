@@ -11,6 +11,8 @@ import { getMarketplaceConfig } from "../../lib/marketplace";
 
 import { useApplicationState } from "../../mobx/State";
 
+import { isMarketplaceHost, MarketplaceBoot } from "../../context";
+
 import wideSVG from "/assets/wide.svg";
 import zekoIcon from "/assets/zeko-icon.png";
 
@@ -150,7 +152,9 @@ export default observer(() => {
     const state = useApplicationState();
     const theme = state.settings.theme;
     const location = useLocation();
-    const [marketplaceEnabled, setMarketplaceEnabled] = useState(false);
+    const marketplaceHost = isMarketplaceHost();
+    const [marketplaceEnabled, setMarketplaceEnabled] =
+        useState(marketplaceHost);
 
     const alert = useSystemAlert();
 
@@ -161,12 +165,16 @@ export default observer(() => {
             setMarketplaceEnabled(false);
             return;
         }
+        if (marketplaceHost) {
+            setMarketplaceEnabled(true);
+            return;
+        }
         const controller = new AbortController();
         void getMarketplaceConfig(controller.signal)
             .then((config) => setMarketplaceEnabled(config.enabled))
             .catch(() => setMarketplaceEnabled(false));
         return () => controller.abort();
-    }, [primaryLogin]);
+    }, [marketplaceHost, primaryLogin]);
 
     return (
         <>
@@ -227,7 +235,10 @@ export default observer(() => {
                 />
             </Helmet>
             {marketplaceEnabled && primaryLogin ? (
-                <Suspense fallback={<LegacyLogin />}>
+                <Suspense
+                    fallback={
+                        marketplaceHost ? <MarketplaceBoot /> : <LegacyLogin />
+                    }>
                     <MarketplaceLogin
                         authentication={<AuthenticationCard marketplace />}
                         loggedIn={clientController.isLoggedIn()}
