@@ -655,7 +655,8 @@ export default function MarketplaceLogin({
     function updateAddress(field: keyof MarketplaceAddress, value: string) {
         setAddress((current) => ({
             ...current,
-            [field]: field === "countryCode" ? value.toUpperCase() : value,
+            [field]:
+                field === "countryCode" ? normalizeCountryCode(value) : value,
         }));
         setShippingQuote(null);
         setAcceptLegal(false);
@@ -1639,7 +1640,11 @@ export default function MarketplaceLogin({
                                             required={field !== "streetLine2"}
                                             value={address[field] ?? ""}
                                             autoComplete={autoComplete}
-                                            maxLength={field === "countryCode" ? 2 : 120}
+                                            maxLength={
+                                                field === "countryCode"
+                                                    ? undefined
+                                                    : 120
+                                            }
                                             onInput={(event) =>
                                                 updateAddress(
                                                     field,
