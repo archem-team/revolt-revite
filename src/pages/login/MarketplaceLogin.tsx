@@ -45,6 +45,31 @@ type CartLine = MarketplaceProduct & {
     sellerName: string;
 };
 
+function ProductVisual({
+    imageUrl,
+    productName,
+    loading,
+}: {
+    imageUrl?: string | null;
+    productName: string;
+    loading?: "eager" | "lazy";
+}) {
+    const [failed, setFailed] = useState(false);
+
+    useEffect(() => setFailed(false), [imageUrl]);
+
+    return imageUrl && !failed ? (
+        <img
+            src={imageUrl}
+            alt=""
+            loading={loading}
+            onError={() => setFailed(true)}
+        />
+    ) : (
+        <span>{productName.slice(0, 2).toUpperCase()}</span>
+    );
+}
+
 function cartSignature(lines: CartLine[]) {
     return JSON.stringify(
         lines.map(({ vendorCode, id, quantity }) => ({ vendorCode, id, quantity })),
@@ -1237,19 +1262,11 @@ export default function MarketplaceLogin({
                                     <div
                                         className={styles.productVisual}
                                         aria-hidden="true">
-                                        {product.imageUrl ? (
-                                            <img
-                                                src={product.imageUrl}
-                                                alt=""
-                                                loading="lazy"
-                                            />
-                                        ) : (
-                                            <span>
-                                                {product.productName
-                                                    .slice(0, 2)
-                                                    .toUpperCase()}
-                                            </span>
-                                        )}
+                                        <ProductVisual
+                                            imageUrl={product.imageUrl}
+                                            productName={product.productName}
+                                            loading="lazy"
+                                        />
                                     </div>
                                     <div className={styles.productCopy}>
                                         <p className={styles.vendorBadge}>
@@ -1355,23 +1372,14 @@ export default function MarketplaceLogin({
                     </button>
                     <div className={styles.detailLayout}>
                         <div className={styles.detailVisual} aria-hidden="true">
-                            {detail?.product.imageUrl ??
-                            selectedProduct.imageUrl ? (
-                                <img
-                                    src={
-                                        detail?.product.imageUrl ??
-                                        selectedProduct.imageUrl ??
-                                        ""
-                                    }
-                                    alt=""
-                                />
-                            ) : (
-                                <span>
-                                    {selectedProduct.productName
-                                        .slice(0, 2)
-                                        .toUpperCase()}
-                                </span>
-                            )}
+                            <ProductVisual
+                                imageUrl={
+                                    detail?.product.imageUrl ??
+                                    selectedProduct.imageUrl
+                                }
+                                productName={selectedProduct.productName}
+                                loading="eager"
+                            />
                         </div>
                         <div className={styles.detailCopy}>
                             <p className={styles.vendorBadge}>
