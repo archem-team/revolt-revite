@@ -35,6 +35,9 @@ test("marketplace search exposes server-backed sorting and filters", async () =>
     assert.match(page, /Fastest delivery/);
     assert.match(page, /COA available/);
     assert.match(page, /Two-letter country code/);
+    assert.match(page, /aria-expanded=\{filtersOpen\}/);
+    assert.match(page, /aria-controls="marketplace-filter-tray"/);
+    assert.match(page, /aria-label="Active filters"/);
 });
 
 test("marketplace search cycles useful examples until the field is active", async () => {
@@ -52,7 +55,10 @@ test("marketplace search cycles useful examples until the field is active", asyn
         assert.match(page, new RegExp(example));
     }
     assert.match(page, /if \(query \|\| searchFocused\) return/);
-    assert.match(page, /placeholder=\{SEARCH_EXAMPLES\[searchExampleIndex\]\}/);
+    assert.match(
+        page,
+        /placeholder=\{\s*SEARCH_EXAMPLES\[searchExampleIndex\]\s*\}/,
+    );
 });
 
 test("marketplace page owns its scroll container and keeps the hero compact", async () => {

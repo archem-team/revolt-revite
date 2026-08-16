@@ -73,6 +73,7 @@ export default function MarketplaceLogin({
     const [warehouse, setWarehouse] = useState("");
     const [shipsTo, setShipsTo] = useState("");
     const [hasLabReport, setHasLabReport] = useState(false);
+    const [filtersOpen, setFiltersOpen] = useState(false);
     const [result, setResult] = useState<MarketplaceSearchResponse | null>(
         null,
     );
@@ -105,6 +106,14 @@ export default function MarketplaceLogin({
               minPriceMinor > maxPriceMinor
             ? "Minimum price cannot exceed maximum price."
             : "";
+    const activeFilterCount = [
+        minPrice,
+        maxPrice,
+        warehouse,
+        shipsTo,
+        hasLabReport,
+    ].filter(Boolean).length;
+    const filtersChanged = sort !== "recommended" || activeFilterCount > 0;
 
     useEffect(() => {
         setCart(readCart());
@@ -558,137 +567,207 @@ export default function MarketplaceLogin({
 
                     <section
                         className={styles.filters}
+                        data-loading={pending || undefined}
+                        data-error={Boolean(filterError) || undefined}
                         aria-label="Sort and filter marketplace products">
-                        <label className={styles.filterField}>
-                            Sort by
-                            <select
-                                value={sort}
-                                onChange={(event) =>
-                                    setSort(
-                                        (
-                                            event.currentTarget as HTMLSelectElement
-                                        ).value as MarketplaceSort,
-                                    )
-                                }>
-                                <option value="recommended">Recommended</option>
-                                <option value="price-asc">
-                                    Price: low to high
-                                </option>
-                                <option value="price-desc">
-                                    Price: high to low
-                                </option>
-                                <option value="delivery-asc">
-                                    Fastest delivery
-                                </option>
-                                <option value="newest">Newest</option>
-                            </select>
-                        </label>
-                        <label className={styles.filterField}>
-                            Min price
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                inputMode="decimal"
-                                value={minPrice}
-                                placeholder="Any"
-                                onInput={(event) =>
-                                    setMinPrice(
-                                        (
-                                            event.currentTarget as HTMLInputElement
-                                        ).value,
-                                    )
-                                }
-                            />
-                        </label>
-                        <label className={styles.filterField}>
-                            Max price
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                inputMode="decimal"
-                                value={maxPrice}
-                                placeholder="Any"
-                                onInput={(event) =>
-                                    setMaxPrice(
-                                        (
-                                            event.currentTarget as HTMLInputElement
-                                        ).value,
-                                    )
-                                }
-                            />
-                        </label>
-                        <label className={styles.filterField}>
-                            Warehouse
-                            <select
-                                value={warehouse}
-                                onChange={(event) =>
-                                    setWarehouse(
-                                        (
-                                            event.currentTarget as HTMLSelectElement
-                                        ).value,
-                                    )
-                                }>
-                                <option value="">All warehouses</option>
-                                {result?.facets?.warehouses.map((value) => (
-                                    <option key={value} value={value}>
-                                        {value}
+                        <div className={styles.filterBar}>
+                            <label
+                                className={`${styles.filterField} ${styles.sortField}`}>
+                                Sort by
+                                <select
+                                    value={sort}
+                                    onChange={(event) =>
+                                        setSort(
+                                            (
+                                                event.currentTarget as HTMLSelectElement
+                                            ).value as MarketplaceSort,
+                                        )
+                                    }>
+                                    <option value="recommended">
+                                        Recommended
                                     </option>
-                                ))}
-                            </select>
-                        </label>
-                        <label className={styles.filterField}>
-                            Ships to
-                            <input
-                                type="text"
-                                value={shipsTo}
-                                maxLength={2}
-                                autoComplete="country"
-                                placeholder="US"
-                                aria-describedby="ships-to-hint"
-                                onInput={(event) =>
-                                    setShipsTo(
-                                        (
-                                            event.currentTarget as HTMLInputElement
-                                        ).value
-                                            .replace(/[^a-z]/gi, "")
-                                            .toUpperCase(),
-                                    )
-                                }
-                            />
-                            <small id="ships-to-hint">
-                                Two-letter country code
-                            </small>
-                        </label>
-                        <label className={styles.checkFilter}>
-                            <input
-                                type="checkbox"
-                                checked={hasLabReport}
-                                onChange={(event) =>
-                                    setHasLabReport(
-                                        (
-                                            event.currentTarget as HTMLInputElement
-                                        ).checked,
-                                    )
-                                }
-                            />
-                            COA available
-                        </label>
-                        <button
-                            className={styles.resetFilters}
-                            type="button"
-                            disabled={
-                                sort === "recommended" &&
-                                !minPrice &&
-                                !maxPrice &&
-                                !warehouse &&
-                                !shipsTo &&
-                                !hasLabReport
-                            }
-                            onClick={resetFilters}>
-                            Reset filters
-                        </button>
+                                    <option value="price-asc">
+                                        Price: low to high
+                                    </option>
+                                    <option value="price-desc">
+                                        Price: high to low
+                                    </option>
+                                    <option value="delivery-asc">
+                                        Fastest delivery
+                                    </option>
+                                    <option value="newest">Newest</option>
+                                </select>
+                            </label>
+                            <button
+                                className={styles.filterToggle}
+                                type="button"
+                                aria-expanded={filtersOpen}
+                                aria-controls="marketplace-filter-tray"
+                                onClick={() => setFiltersOpen((open) => !open)}>
+                                <span>Filters</span>
+                                {activeFilterCount ? (
+                                    <strong>{activeFilterCount}</strong>
+                                ) : (
+                                    <small>Price, location, COA</small>
+                                )}
+                                <i aria-hidden="true" />
+                            </button>
+                            <button
+                                className={styles.resetFilters}
+                                type="button"
+                                disabled={!filtersChanged}
+                                onClick={resetFilters}>
+                                Reset
+                            </button>
+                        </div>
+                        {filtersOpen ? (
+                            <div
+                                className={styles.filterTray}
+                                id="marketplace-filter-tray">
+                                <label className={styles.filterField}>
+                                    Min price
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        inputMode="decimal"
+                                        value={minPrice}
+                                        placeholder="Any"
+                                        onInput={(event) =>
+                                            setMinPrice(
+                                                (
+                                                    event.currentTarget as HTMLInputElement
+                                                ).value,
+                                            )
+                                        }
+                                    />
+                                </label>
+                                <label className={styles.filterField}>
+                                    Max price
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        inputMode="decimal"
+                                        value={maxPrice}
+                                        placeholder="Any"
+                                        onInput={(event) =>
+                                            setMaxPrice(
+                                                (
+                                                    event.currentTarget as HTMLInputElement
+                                                ).value,
+                                            )
+                                        }
+                                    />
+                                </label>
+                                <label className={styles.filterField}>
+                                    Warehouse
+                                    <select
+                                        value={warehouse}
+                                        onChange={(event) =>
+                                            setWarehouse(
+                                                (
+                                                    event.currentTarget as HTMLSelectElement
+                                                ).value,
+                                            )
+                                        }>
+                                        <option value="">All warehouses</option>
+                                        {result?.facets?.warehouses.map(
+                                            (value) => (
+                                                <option
+                                                    key={value}
+                                                    value={value}>
+                                                    {value}
+                                                </option>
+                                            ),
+                                        )}
+                                    </select>
+                                </label>
+                                <label className={styles.filterField}>
+                                    Ships to
+                                    <input
+                                        type="text"
+                                        value={shipsTo}
+                                        maxLength={2}
+                                        autoComplete="country"
+                                        placeholder="US"
+                                        aria-describedby="ships-to-hint"
+                                        onInput={(event) =>
+                                            setShipsTo(
+                                                (
+                                                    event.currentTarget as HTMLInputElement
+                                                ).value
+                                                    .replace(/[^a-z]/gi, "")
+                                                    .toUpperCase(),
+                                            )
+                                        }
+                                    />
+                                    <small id="ships-to-hint">
+                                        Two-letter country code
+                                    </small>
+                                </label>
+                                <label className={styles.checkFilter}>
+                                    <input
+                                        type="checkbox"
+                                        checked={hasLabReport}
+                                        onChange={(event) =>
+                                            setHasLabReport(
+                                                (
+                                                    event.currentTarget as HTMLInputElement
+                                                ).checked,
+                                            )
+                                        }
+                                    />
+                                    COA available
+                                </label>
+                            </div>
+                        ) : null}
+                        {activeFilterCount && !filtersOpen ? (
+                            <div
+                                className={styles.activeFilters}
+                                aria-label="Active filters">
+                                {minPrice ? (
+                                    <button
+                                        type="button"
+                                        aria-label={`Remove minimum price ${minPrice}`}
+                                        onClick={() => setMinPrice("")}>
+                                        Min ${minPrice} <span>×</span>
+                                    </button>
+                                ) : null}
+                                {maxPrice ? (
+                                    <button
+                                        type="button"
+                                        aria-label={`Remove maximum price ${maxPrice}`}
+                                        onClick={() => setMaxPrice("")}>
+                                        Max ${maxPrice} <span>×</span>
+                                    </button>
+                                ) : null}
+                                {warehouse ? (
+                                    <button
+                                        type="button"
+                                        aria-label={`Remove warehouse ${warehouse}`}
+                                        onClick={() => setWarehouse("")}>
+                                        From {warehouse} <span>×</span>
+                                    </button>
+                                ) : null}
+                                {shipsTo ? (
+                                    <button
+                                        type="button"
+                                        aria-label={`Remove destination ${shipsTo}`}
+                                        onClick={() => setShipsTo("")}>
+                                        To {shipsTo} <span>×</span>
+                                    </button>
+                                ) : null}
+                                {hasLabReport ? (
+                                    <button
+                                        type="button"
+                                        aria-label="Remove COA filter"
+                                        onClick={() => setHasLabReport(false)}>
+                                        COA <span>×</span>
+                                    </button>
+                                ) : null}
+                            </div>
+                        ) : null}
                         {filterError ? (
                             <p className={styles.filterError} role="alert">
                                 {filterError}
