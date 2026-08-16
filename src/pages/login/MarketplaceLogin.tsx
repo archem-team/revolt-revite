@@ -20,6 +20,7 @@ import {
     searchMarketplace,
 } from "../../lib/marketplace";
 import { requestCompoundBayRedirect } from "../../lib/compoundBaySso";
+import { normalizeMarketplaceCart } from "../../lib/marketplaceCart";
 import { formatExactAmount } from "../../lib/paymentAmount";
 import { BACKEND_API_BASE } from "../directory/types";
 
@@ -68,8 +69,7 @@ function readCart() {
     try {
         const saved = window.localStorage.getItem(CART_STORAGE_KEY);
         if (!saved) return [];
-        const lines = JSON.parse(saved) as CartLine[];
-        return Array.isArray(lines) ? lines : [];
+        return normalizeMarketplaceCart(JSON.parse(saved)) as CartLine[];
     } catch {
         return [];
     }
