@@ -20,6 +20,7 @@ import {
     searchMarketplace,
 } from "../../lib/marketplace";
 import { requestCompoundBayRedirect } from "../../lib/compoundBaySso";
+import { formatExactAmount } from "../../lib/paymentAmount";
 import { BACKEND_API_BASE } from "../directory/types";
 
 const PAGE_SIZE = 24;
@@ -1581,7 +1582,8 @@ export default function MarketplaceLogin({
                                 aria-labelledby="marketplace-payment-title">
                                 <p className={styles.kicker}>Order {orderCode}</p>
                                 <h3 id="marketplace-payment-title">
-                                    Pay {payment.payAmount} {payment.payCurrency}
+                                    Pay {formatExactAmount(payment.payAmount)}{" "}
+                                    {payment.payCurrency}
                                 </h3>
                                 <dl>
                                     <dt>Network</dt>

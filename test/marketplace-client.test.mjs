@@ -2,6 +2,15 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+import { formatExactAmount } from "../src/lib/paymentAmount.js";
+
+test("payment amounts retain exact digits without insignificant zeroes", () => {
+    assert.equal(formatExactAmount("183.400000000000000000"), "183.4");
+    assert.equal(formatExactAmount("0.00123000"), "0.00123");
+    assert.equal(formatExactAmount("12.000"), "12");
+    assert.equal(formatExactAmount("100"), "100");
+});
+
 test("marketplace client uses the dedicated production API host", async () => {
     const source = await readFile(
         new URL("../src/lib/marketplace.ts", import.meta.url),
