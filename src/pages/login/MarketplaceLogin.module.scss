@@ -1126,6 +1126,7 @@
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 4px 16px;
     font-size: 18px;
+    font-variant-numeric: tabular-nums;
 
     small {
         grid-column: 1 / -1;
@@ -1203,6 +1204,7 @@
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px 16px;
     border-top: 1px solid var(--market-line);
+    font-variant-numeric: tabular-nums;
 
     > label,
     > button {
@@ -1224,6 +1226,7 @@
 
 .paymentInstructions {
     grid-template-columns: minmax(0, 1fr);
+    font-variant-numeric: tabular-nums;
 
     dl {
         margin: 0;

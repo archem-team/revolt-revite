@@ -1691,7 +1691,7 @@ export default function MarketplaceLogin({
                                             onClick={() => void placeOrder()}>
                                             {checkoutPending
                                                 ? "Creating order…"
-                                                : "Place order and show payment instructions"}
+                                                : "Place order"}
                                         </button>
                                     </div>
                                 ) : null}
