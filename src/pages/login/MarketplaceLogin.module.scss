@@ -276,31 +276,32 @@
 }
 
 /* Hallmark · component: marketplace wordmark · genre: playful · theme: Hum
- * treatment: unboxed lockup · contrast: pass · motion: press feedback only
+ * treatment: quiet light plate · contrast: pass · motion: press feedback only
  */
 .logoPlate {
-    min-height: 32px;
-    padding: 4px 2px;
+    min-height: 40px;
+    padding: 7px 10px;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    border: 0;
-    background: transparent;
+    gap: 9px;
+    border: 1px solid var(--market-line);
+    border-radius: var(--market-radius-input);
+    background: var(--market-paper-2);
     transition: transform 100ms var(--market-ease-snap);
 
     .logoIcon {
-        width: 17px;
-        height: 17px;
+        width: 19px;
+        height: 19px;
         flex: none;
         display: block;
     }
 
     .logoWordmark {
-        width: 88px;
-        max-height: 18px;
+        width: 96px;
+        max-height: 20px;
         display: block;
         filter: brightness(0) saturate(100%);
-        opacity: 0.82;
+        opacity: 0.9;
     }
 }
 
@@ -1571,12 +1572,12 @@
     }
 
     .logoPlate {
-        min-height: 32px;
-        padding-inline: 0;
-        gap: 7px;
+        min-height: 38px;
+        padding: 6px 8px;
+        gap: 8px;
 
         .logoWordmark {
-            width: 84px;
+            width: 90px;
         }
     }
 

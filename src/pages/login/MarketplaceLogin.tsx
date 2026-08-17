@@ -52,26 +52,51 @@ type CartLine = MarketplaceProduct & {
     sellerName: string;
 };
 
+function marketplaceProductImageUrl(
+    imageUrl: string | null | undefined,
+    vendorCode: string,
+) {
+    if (!imageUrl) return null;
+
+    if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
+
+    const storefront = vendorCode.trim().toLowerCase();
+    if (!/^[a-z0-9-]+$/.test(storefront)) return null;
+
+    const relativePath = imageUrl.replace(/^\/+/, "");
+    const assetPath = relativePath.startsWith("assets/")
+        ? relativePath
+        : `assets/${relativePath}`;
+
+    return new URL(
+        assetPath,
+        `https://${storefront}.peptide.chat/`,
+    ).toString();
+}
+
 function ProductVisual({
     imageUrl,
     productName,
     mass,
+    vendorCode,
     vendorName,
     loading,
 }: {
     imageUrl?: string | null;
     productName: string;
     mass?: string | null;
+    vendorCode: string;
     vendorName: string;
     loading?: "eager" | "lazy";
 }) {
     const [failed, setFailed] = useState(false);
+    const resolvedImageUrl = marketplaceProductImageUrl(imageUrl, vendorCode);
 
-    useEffect(() => setFailed(false), [imageUrl]);
+    useEffect(() => setFailed(false), [resolvedImageUrl]);
 
-    return imageUrl && !failed ? (
+    return resolvedImageUrl && !failed ? (
         <img
-            src={imageUrl}
+            src={resolvedImageUrl}
             alt=""
             loading={loading}
             width="640"
@@ -1664,6 +1689,7 @@ export default function MarketplaceLogin({
                                                     product.vendorCode,
                                                 ) ?? product.vendorCode
                                             }
+                                            vendorCode={product.vendorCode}
                                             loading="lazy"
                                         />
                                     </a>
@@ -1830,6 +1856,7 @@ export default function MarketplaceLogin({
                                     ) ??
                                     selectedProduct.vendorCode
                                 }
+                                vendorCode={selectedProduct.vendorCode}
                                 loading="eager"
                             />
                         </div>

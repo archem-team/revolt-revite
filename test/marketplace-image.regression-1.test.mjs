@@ -20,7 +20,12 @@ test("marketplace uses the Uther-style generated bottle when product images are 
         ),
     ]);
 
-    assert.match(source, /imageUrl && !failed \?/);
+    assert.match(source, /resolvedImageUrl && !failed \?/);
+    assert.match(
+        source,
+        /relativePath\.startsWith\("assets\/"\)[\s\S]*?`https:\/\/\$\{storefront\}\.peptide\.chat\/`/,
+    );
+    assert.match(source, /src=\{resolvedImageUrl\}/);
     assert.match(source, /onError=\{\(\) => setFailed\(true\)\}/);
     assert.match(
         source,
@@ -31,6 +36,7 @@ test("marketplace uses the Uther-style generated bottle when product images are 
         source,
         /displayedProducts\.map[\s\S]*?<ProductVisual[\s\S]*?imageUrl=\{product\.imageUrl\}/,
     );
+    assert.equal(source.match(/vendorCode=\{/g)?.length, 2);
     assert.equal(source.match(/<ProductVisual/g)?.length, 2);
     assert.match(
         styles,

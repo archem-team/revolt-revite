@@ -25,7 +25,7 @@ test("Hallmark checkout fixes keep the action concise and prices tabular", async
     );
 });
 
-test("marketplace wordmark uses a lightweight unboxed treatment", async () => {
+test("marketplace wordmark uses a compact light brand plate", async () => {
     const styles = await readFile(
         new URL(
             "../src/pages/login/MarketplaceLogin.module.scss",
@@ -34,8 +34,14 @@ test("marketplace wordmark uses a lightweight unboxed treatment", async () => {
         "utf8",
     );
 
-    assert.match(styles, /treatment: unboxed lockup/);
-    assert.match(styles, /\.logoPlate\s*\{[\s\S]*?border: 0;/);
-    assert.match(styles, /\.logoPlate\s*\{[\s\S]*?background: transparent;/);
-    assert.match(styles, /\.logoWordmark\s*\{[\s\S]*?opacity: 0\.82;/);
+    assert.match(styles, /treatment: quiet light plate/);
+    assert.match(
+        styles,
+        /\.logoPlate\s*\{[\s\S]*?border: 1px solid var\(--market-line\);/,
+    );
+    assert.match(
+        styles,
+        /\.logoPlate\s*\{[\s\S]*?background: var\(--market-paper-2\);/,
+    );
+    assert.match(styles, /\.logoWordmark\s*\{[\s\S]*?opacity: 0\.9;/);
 });
