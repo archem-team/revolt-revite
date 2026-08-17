@@ -884,9 +884,11 @@
 }
 
 .cardQuantity {
+    width: fit-content;
     display: grid;
-    grid-template-columns: 36px minmax(24px, 1fr) 36px;
+    grid-template-columns: repeat(3, 44px);
     align-items: stretch;
+    justify-self: start;
     border: 1px solid var(--market-ink);
     border-radius: var(--market-radius-pill);
     overflow: hidden;
@@ -894,15 +896,20 @@
     strong {
         display: grid;
         place-items: center;
+        font-size: 16px;
+        font-weight: 700;
     }
 
     button {
-        min-width: 0;
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
         padding: 0;
         border: 0;
         border-radius: 0;
+        background: var(--market-paper-2);
         box-shadow: none;
-        font-size: 20px;
+        font-size: 19px;
 
         &:active {
             transform: none;
@@ -1669,6 +1676,12 @@
         aspect-ratio: auto;
         border-right: 1px solid var(--market-line);
         border-bottom: 0;
+
+        .productPhoto {
+            width: auto;
+            max-width: none;
+            height: 100%;
+        }
     }
 
     .authentication {
