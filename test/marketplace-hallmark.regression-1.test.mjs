@@ -24,3 +24,18 @@ test("Hallmark checkout fixes keep the action concise and prices tabular", async
         4,
     );
 });
+
+test("marketplace wordmark uses a lightweight unboxed treatment", async () => {
+    const styles = await readFile(
+        new URL(
+            "../src/pages/login/MarketplaceLogin.module.scss",
+            import.meta.url,
+        ),
+        "utf8",
+    );
+
+    assert.match(styles, /treatment: unboxed lockup/);
+    assert.match(styles, /\.logoPlate\s*\{[\s\S]*?border: 0;/);
+    assert.match(styles, /\.logoPlate\s*\{[\s\S]*?background: transparent;/);
+    assert.match(styles, /\.logoWordmark\s*\{[\s\S]*?opacity: 0\.82;/);
+});
