@@ -363,11 +363,28 @@
 .shell {
     min-width: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 310px);
+    grid-template-columns: minmax(0, 1fr);
 }
 
-.shellAuthenticated {
-    grid-template-columns: minmax(0, 1fr);
+.marketplaceFooter {
+    padding: 18px clamp(16px, 4vw, 48px) 28px;
+    border-top: 1px solid var(--market-line);
+    color: var(--market-muted);
+    background: var(--market-paper);
+
+    :global(nav),
+    :global(.marketplace-legal-links) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+    }
+
+    :global(a) {
+        color: var(--market-muted);
+        font-size: 12px;
+        white-space: nowrap;
+        text-underline-offset: 3px;
+    }
 }
 
 .catalogue {

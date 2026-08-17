@@ -185,11 +185,13 @@ test("marketplace branch keeps signed-in visitors on the root homepage", async (
 });
 
 test("marketplace host never paints the PepChat login during boot", async () => {
-    const [document, main, marketplaceMain, chatMain] =
-        await Promise.all([
+    const [document, main, marketplaceMain, chatMain] = await Promise.all([
         readFile(new URL("../index.html", import.meta.url), "utf8"),
         readFile(new URL("../src/main.tsx", import.meta.url), "utf8"),
-        readFile(new URL("../src/marketplaceMain.tsx", import.meta.url), "utf8"),
+        readFile(
+            new URL("../src/marketplaceMain.tsx", import.meta.url),
+            "utf8",
+        ),
         readFile(new URL("../src/chatMain.tsx", import.meta.url), "utf8"),
     ]);
 
@@ -198,16 +200,25 @@ test("marketplace host never paints the PepChat login during boot", async () => 
     assert.match(document, /\.marketplace-boot\s*\{/);
     assert.match(main, /void import\("\.\/marketplaceMain"\)/);
     assert.match(main, /void import\("\.\/chatMain"\)/);
-    assert.match(main, /window\.setTimeout\(\(\) => void import\("\.\/chatMain"\), 0\)/);
-    assert.match(marketplaceMain, /import MarketplaceLogin/);
-    assert.doesNotMatch(marketplaceMain, /\.\/posthog|\.\/sentry|\.\/updateWorker/);
+    assert.match(
+        main,
+        /window\.setTimeout\(\(\) => void import\("\.\/chatMain"\), 0\)/,
+    );
+    assert.match(marketplaceMain, /import MarketplaceAuthentication/);
+    assert.doesNotMatch(
+        marketplaceMain,
+        /\.\/posthog|\.\/sentry|\.\/updateWorker/,
+    );
     assert.match(chatMain, /import "\.\/posthog"/);
     assert.match(chatMain, /import "\.\/sentry"/);
 });
 
-test("marketplace defers the full PepChat authentication runtime", async () => {
-    const [main, authentication] = await Promise.all([
-        readFile(new URL("../src/marketplaceMain.tsx", import.meta.url), "utf8"),
+test("marketplace owns direct authentication without the PepChat runtime", async () => {
+    const [main, authentication, dialog] = await Promise.all([
+        readFile(
+            new URL("../src/marketplaceMain.tsx", import.meta.url),
+            "utf8",
+        ),
         readFile(
             new URL(
                 "../src/pages/login/MarketplaceAuthentication.tsx",
@@ -215,56 +226,82 @@ test("marketplace defers the full PepChat authentication runtime", async () => {
             ),
             "utf8",
         ),
-    ]);
-
-    assert.match(main, /lazy\(\s*\(\) => import\("\.\/pages\/login\/MarketplaceAuthentication"\)/s);
-    assert.match(main, /if \(!requested\)/);
-    assert.match(main, /Continue to PepChat sign in/);
-    assert.match(authentication, /<AuthenticationCard marketplace \/>/);
-    assert.match(authentication, /clientController\.getActiveSessionToken\(\)/);
-    assert.match(main, /loggedIn=\{Boolean\(pepchatSession\)\}/);
-    assert.match(main, /getPepchatSession=\{\(\) => pepchatSession\}/);
-});
-
-test("marketplace uses one compact PepChat-only account flow", async () => {
-    const [login, page, loginStyles, pageStyles] = await Promise.all([
-        readFile(
-            new URL("../src/pages/login/Login.tsx", import.meta.url),
-            "utf8",
-        ),
-        readFile(
-            new URL("../src/pages/login/MarketplaceLogin.tsx", import.meta.url),
-            "utf8",
-        ),
-        readFile(
-            new URL("../src/pages/login/Login.module.scss", import.meta.url),
-            "utf8",
-        ),
         readFile(
             new URL(
-                "../src/pages/login/MarketplaceLogin.module.scss",
+                "../src/pages/login/MarketplaceAuthDialog.tsx",
                 import.meta.url,
             ),
             "utf8",
         ),
     ]);
 
-    assert.match(login, /<AuthenticationCard marketplace \/>/);
-    assert.match(login, /loggedIn=\{clientController\.isLoggedIn\(\)\}/);
-    assert.match(
-        login,
-        /!marketplace \? \(\s*<div className=\{styles\.appLinks\}>/,
+    assert.match(main, /import MarketplaceAuthentication/);
+    assert.match(authentication, /loadMarketplaceSession/);
+    assert.match(authentication, /validateMarketplaceSession/);
+    assert.match(authentication, /<MarketplaceAuthDialog/);
+    assert.doesNotMatch(
+        authentication,
+        /Context|AuthenticationCard|clientController/,
     );
-    assert.match(page, /Sign in with PepChat/);
-    assert.match(page, /Go to PepChat/);
-    assert.match(
-        page,
-        /loggedIn \|\| buyerToken \? styles\.shellAuthenticated/,
+    assert.match(dialog, /loginMarketplace/);
+    assert.match(dialog, /continueMarketplaceMfa/);
+    assert.match(dialog, /dialog\.showModal\(\)/);
+});
+
+test("marketplace uses one compact PepChat-only account flow", async () => {
+    const [login, page, authentication, dialog, pageStyles] = await Promise.all(
+        [
+            readFile(
+                new URL("../src/pages/login/Login.tsx", import.meta.url),
+                "utf8",
+            ),
+            readFile(
+                new URL(
+                    "../src/pages/login/MarketplaceLogin.tsx",
+                    import.meta.url,
+                ),
+                "utf8",
+            ),
+            readFile(
+                new URL(
+                    "../src/pages/login/MarketplaceAuthentication.tsx",
+                    import.meta.url,
+                ),
+                "utf8",
+            ),
+            readFile(
+                new URL(
+                    "../src/pages/login/MarketplaceAuthDialog.tsx",
+                    import.meta.url,
+                ),
+                "utf8",
+            ),
+            readFile(
+                new URL(
+                    "../src/pages/login/MarketplaceLogin.module.scss",
+                    import.meta.url,
+                ),
+                "utf8",
+            ),
+        ],
     );
-    assert.match(page, /\{!pending && !loggedIn && !buyerToken \? \(/);
+
+    assert.match(login, /<MarketplaceAuthentication/);
+    assert.match(authentication, /requestPepchatSignIn/);
+    assert.match(authentication, /rejectPepchatSession/);
+    assert.match(authentication, /signOutPepchat/);
+    assert.match(dialog, /same email and password as Peptide\.chat/);
+    assert.match(dialog, /METHOD_LABELS/);
+    assert.match(page, /loggedIn \? "Sign out" : "Sign in"/);
+    assert.match(page, /void requestPepchatSignIn\(\)/);
     assert.match(page, /createMarketplaceQuote/);
     assert.match(page, /requestCompoundBayRedirect/);
-    assert.match(page, /session: getPepchatSession\(\)/);
+    assert.match(
+        page,
+        /exchangeMarketplaceIdentity\(code, quote\.quoteToken\)/,
+    );
+    assert.doesNotMatch(page, /window\.location\.assign/);
+    assert.doesNotMatch(page, /https:\/\/peptide\.chat\/compound-bay/);
     assert.match(page, /function invalidateCheckoutForCartChange\(\)/);
     assert.match(
         page,
@@ -273,19 +310,10 @@ test("marketplace uses one compact PepChat-only account flow", async () => {
     assert.match(page, /QUOTE_CART_STORAGE_KEY,\s*cartSignature\(cart\)/);
     assert.match(page, /if \(quoteMatchesCart\) \{\s*if \(storedBuyerToken\)/s);
     assert.match(page, /setShippingQuote\(null\);\s*setAcceptLegal\(false\)/);
-    assert.match(
-        login,
-        /getPepchatSession=\{\(\) =>\s*clientController\.getActiveSessionToken\(\)/,
-    );
     assert.match(page, /exchangeMarketplaceIdentity/);
     assert.doesNotMatch(page, /src=\{product\.imageUrl\}/);
-    assert.match(loginStyles, /\.marketplaceForm\s*\{/);
-    assert.match(loginStyles, /\.marketplaceForm\s*\{[^}]*padding:\s*0/s);
-    assert.match(pageStyles, /minmax\(280px, 310px\)/);
-    assert.doesNotMatch(
-        pageStyles,
-        /\.authentication\s*\{[^}]*min-height:\s*100dvh/s,
-    );
+    assert.match(pageStyles, /\.shell\s*\{[^}]*minmax\(0, 1fr\)/s);
+    assert.match(pageStyles, /\.marketplaceFooter\s*\{/);
 });
 
 test("linked account tasks use task-specific headings", async () => {

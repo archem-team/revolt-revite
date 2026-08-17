@@ -18,7 +18,6 @@ import zekoIcon from "/assets/zeko-icon.png";
 
 import LocaleSelector from "../../components/common/LocaleSelector";
 import { Titlebar } from "../../components/native/Titlebar";
-import { clientController } from "../../controllers/client/ClientController";
 import { useSystemAlert } from "../../updateWorker";
 import { StatusBar } from "../RevoltApp";
 import { FormCreate } from "./forms/FormCreate";
@@ -26,7 +25,9 @@ import { FormLogin } from "./forms/FormLogin";
 import { FormReset, FormSendReset } from "./forms/FormReset";
 import { FormResend, FormVerify } from "./forms/FormVerify";
 
-const MarketplaceLogin = lazy(() => import("./MarketplaceLogin"));
+const MarketplaceAuthentication = lazy(
+    () => import("./MarketplaceAuthentication"),
+);
 
 export function AuthenticationCard({
     marketplace = false,
@@ -239,12 +240,7 @@ export default observer(() => {
                     fallback={
                         marketplaceHost ? <MarketplaceBoot /> : <LegacyLogin />
                     }>
-                    <MarketplaceLogin
-                        authentication={<AuthenticationCard marketplace />}
-                        loggedIn={clientController.isLoggedIn()}
-                        getPepchatSession={() =>
-                            clientController.getActiveSessionToken()
-                        }
+                    <MarketplaceAuthentication
                         locale={<LocaleSelector />}
                         legal={<LegalLinks />}
                         logoSrc={wideSVG}

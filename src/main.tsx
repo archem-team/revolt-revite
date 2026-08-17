@@ -1,6 +1,8 @@
 const marketplaceHost =
     document.documentElement.dataset.marketplaceHost === "true" ||
-    window.location.hostname === "market.peptide.chat";
+    window.location.hostname === "market.peptide.chat" ||
+    (import.meta.env.DEV &&
+        new URLSearchParams(window.location.search).has("marketplace-preview"));
 
 // Keep the public marketplace off the chat application's critical path. The
 // chat entry pulls in the realtime client, stores, error replay, animations,

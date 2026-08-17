@@ -15,7 +15,10 @@ export async function requestCompoundBayRedirect({
     signal,
 }) {
     const token = sessionToken(session);
-    if (!token) throw new Error("Your PepChat session is not ready. Please sign in again.");
+    if (!token)
+        throw new Error(
+            "Your PepChat session is not ready. Please sign in again.",
+        );
 
     const requestedReturn = new URL(returnUrl);
     const response = await fetchImpl(
@@ -32,11 +35,15 @@ export async function requestCompoundBayRedirect({
     );
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || typeof payload.redirect_url !== "string") {
-        throw new Error(
+        const error = new Error(
             typeof payload.error === "string"
                 ? payload.error
                 : "PepChat could not authorize this storefront.",
         );
+        if (response.status === 401 || response.status === 403) {
+            error.code = "SESSION_REJECTED";
+        }
+        throw error;
     }
 
     const redirect = new URL(payload.redirect_url);

@@ -128,20 +128,23 @@ function readCart() {
 }
 
 export default function MarketplaceLogin({
-    authentication,
-    loggedIn,
-    getPepchatSession,
+    pepchatSession,
+    requestPepchatSignIn,
+    rejectPepchatSession,
+    signOutPepchat,
     locale,
     legal,
     logoSrc,
 }: {
-    authentication: ComponentChildren;
-    loggedIn: boolean;
-    getPepchatSession: () => unknown;
+    pepchatSession?: unknown;
+    requestPepchatSignIn: (notice?: string) => Promise<unknown | undefined>;
+    rejectPepchatSession: (notice: string) => Promise<unknown | undefined>;
+    signOutPepchat: () => Promise<void>;
     locale: ComponentChildren;
     legal: ComponentChildren;
     logoSrc: string;
 }) {
+    const loggedIn = Boolean(pepchatSession);
     const [query, setQuery] = useState("");
     const [searchRevision, setSearchRevision] = useState(0);
     const [searchFocused, setSearchFocused] = useState(false);
@@ -190,7 +193,6 @@ export default function MarketplaceLogin({
         countryCode: "US",
         phoneNumber: "",
     });
-    const authRef = useRef<HTMLElement>(null);
     const productDialogRef = useRef<HTMLDialogElement>(null);
     const cartDialogRef = useRef<HTMLDialogElement>(null);
     const cartHydratedRef = useRef(false);
@@ -562,15 +564,6 @@ export default function MarketplaceLogin({
         setHasLabReport(false);
     }
 
-    function focusAuthentication() {
-        authRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        window.setTimeout(() => {
-            authRef.current
-                ?.querySelector<HTMLElement>("input, button, a")
-                ?.focus();
-        }, 180);
-    }
-
     function closeProduct() {
         productDialogRef.current?.close();
         setSelectedProduct(null);
@@ -658,26 +651,85 @@ export default function MarketplaceLogin({
                 cartSignature(cart),
             );
             const returnUrl = `${window.location.origin}${window.location.pathname}`;
-            if (loggedIn) {
+            let activeSession = pepchatSession;
+            if (!activeSession) {
+                setCheckoutNotice("Sign in to continue checkout.");
+                activeSession = await requestPepchatSignIn(
+                    "Your cart is ready. Sign in to continue checkout.",
+                );
+            }
+            if (!activeSession) {
+                setCheckoutNotice(
+                    "Your cart is saved. Sign in when you are ready to continue.",
+                );
+                return;
+            }
+
+            const exchangeIdentity = async (session: unknown) => {
                 const redirect = await requestCompoundBayRedirect({
                     apiBase: BACKEND_API_BASE,
-                    session: getPepchatSession(),
+                    session,
                     returnUrl,
                 });
-                window.location.assign(redirect);
-            } else {
-                const handoff = new URL("https://peptide.chat/compound-bay");
-                handoff.searchParams.set("return_to", returnUrl);
-                window.location.assign(handoff.toString());
+                const code = new URL(redirect).searchParams.get("code");
+                if (!code)
+                    throw new Error(
+                        "PepChat returned an invalid marketplace identity.",
+                    );
+                return exchangeMarketplaceIdentity(code, quote.quoteToken);
+            };
+
+            let identity;
+            try {
+                identity = await exchangeIdentity(activeSession);
+            } catch (caught) {
+                if (
+                    !(caught instanceof Error) ||
+                    (caught as Error & { code?: string }).code !==
+                        "SESSION_REJECTED"
+                ) {
+                    throw caught;
+                }
+                const replacement = await rejectPepchatSession(
+                    "Your PepChat session expired. Sign in again to continue checkout.",
+                );
+                if (!replacement) {
+                    setCheckoutNotice(
+                        "Your cart is saved. Sign in again to continue checkout.",
+                    );
+                    return;
+                }
+                identity = await exchangeIdentity(replacement);
             }
+
+            window.sessionStorage.setItem(
+                BUYER_STORAGE_KEY,
+                identity.buyerToken,
+            );
+            setBuyerToken(identity.buyerToken);
+            setCheckoutNotice(
+                "PepChat identity confirmed. Delivery details are next.",
+            );
         } catch (caught) {
             setCheckoutNotice(
                 caught instanceof Error
                     ? caught.message
                     : "Checkout could not be started. Please try again.",
             );
+        } finally {
             setCheckoutPending(false);
         }
+    }
+
+    async function signOut() {
+        await signOutPepchat();
+        window.sessionStorage.removeItem(BUYER_STORAGE_KEY);
+        window.sessionStorage.removeItem(QUOTE_STORAGE_KEY);
+        window.sessionStorage.removeItem(QUOTE_CART_STORAGE_KEY);
+        setBuyerToken("");
+        setShippingQuote(null);
+        setAcceptLegal(false);
+        setCheckoutNotice("Signed out. Your cart is still here.");
     }
 
     function updateAddress(field: keyof MarketplaceAddress, value: string) {
@@ -824,25 +876,20 @@ export default function MarketplaceLogin({
                         aria-label={`Cart, ${cartCount} items`}>
                         Cart <span>{cartCount}</span>
                     </button>
-                    {loggedIn ? (
-                        <a className={styles.signInButton} href="/home">
-                            Go to PepChat
-                        </a>
-                    ) : (
-                        <button
-                            className={styles.signInButton}
-                            type="button"
-                            onClick={focusAuthentication}>
-                            Sign in
-                        </button>
-                    )}
+                    <button
+                        className={styles.signInButton}
+                        type="button"
+                        onClick={() =>
+                            loggedIn
+                                ? void signOut()
+                                : void requestPepchatSignIn()
+                        }>
+                        {loggedIn ? "Sign out" : "Sign in"}
+                    </button>
                 </div>
             </header>
 
-            <div
-                className={`${styles.shell} ${
-                    loggedIn || buyerToken ? styles.shellAuthenticated : ""
-                }`}>
+            <div className={styles.shell}>
                 <main className={styles.catalogue}>
                     <section className={styles.intro}>
                         <div>
@@ -1378,29 +1425,9 @@ export default function MarketplaceLogin({
                         ) : null}
                     </section>
                 </main>
-
-                {!pending && !loggedIn && !buyerToken ? (
-                    <aside
-                        className={styles.authentication}
-                        ref={authRef}
-                        aria-labelledby="marketplace-auth-title">
-                        <div className={styles.authIntro}>
-                            <h2 id="marketplace-auth-title">
-                                Sign in with PepChat
-                            </h2>
-                            {checkoutNotice ? (
-                                <p
-                                    className={styles.checkoutNotice}
-                                    role="status">
-                                    {checkoutNotice}
-                                </p>
-                            ) : null}
-                            {authentication}
-                        </div>
-                        <div className={styles.legal}>{legal}</div>
-                    </aside>
-                ) : null}
             </div>
+
+            <footer className={styles.marketplaceFooter}>{legal}</footer>
 
             {selectedProduct ? (
                 <dialog

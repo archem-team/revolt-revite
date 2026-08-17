@@ -1,39 +1,7 @@
-import "./styles/marketplace-entry.css";
-
 import { render } from "preact";
-import { lazy, Suspense } from "preact/compat";
-import { useState } from "preact/hooks";
 
-import MarketplaceLogin from "./pages/login/MarketplaceLogin";
-
-const MarketplaceAuthentication = lazy(
-    () => import("./pages/login/MarketplaceAuthentication"),
-);
-
-function Authentication({
-    onAuthenticated,
-}: {
-    onAuthenticated: (session: unknown) => void;
-}) {
-    const [requested, setRequested] = useState(false);
-
-    if (!requested) {
-        return (
-            <button
-                className="marketplace-auth-request"
-                type="button"
-                onClick={() => setRequested(true)}>
-                Continue to PepChat sign in
-            </button>
-        );
-    }
-
-    return (
-        <Suspense fallback={<p role="status">Loading secure sign in…</p>}>
-            <MarketplaceAuthentication onAuthenticated={onAuthenticated} />
-        </Suspense>
-    );
-}
+import MarketplaceAuthentication from "./pages/login/MarketplaceAuthentication";
+import "./styles/marketplace-entry.css";
 
 function MarketplaceLegalLinks() {
     return (
@@ -61,21 +29,10 @@ function MarketplaceLegalLinks() {
 }
 
 function MarketplaceApp() {
-    const [pepchatSession, setPepchatSession] = useState<unknown>();
-
     return (
-        <MarketplaceLogin
-            authentication={
-                <Authentication
-                    onAuthenticated={(session) =>
-                        setPepchatSession(() => session)
-                    }
-                />
-            }
-            loggedIn={Boolean(pepchatSession)}
-            getPepchatSession={() => pepchatSession}
+        <MarketplaceAuthentication
             locale={
-                <select aria-label="Marketplace language" defaultValue="en">
+                <select aria-label="Marketplace language" value="en">
                     <option value="en">English</option>
                 </select>
             }
