@@ -321,7 +321,8 @@
 
 .signInButton,
 .loadMore,
-.checkoutButton {
+.checkoutButton,
+.headerCheckout {
     min-height: 44px;
     padding: 10px 18px;
     border: 0;
@@ -733,7 +734,7 @@
     min-width: 0;
     min-height: 320px;
     display: grid;
-    grid-template-rows: 132px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     border: 1px solid var(--market-line);
     border-radius: var(--market-radius-card);
     background: var(--market-paper);
@@ -748,16 +749,19 @@
 
 .productVisual {
     min-width: 0;
+    aspect-ratio: 520 / 420;
     display: grid;
     place-items: center;
     border-bottom: 1px solid var(--market-line);
     background: var(--market-cyan);
     overflow: clip;
+    text-decoration: none;
 
     img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
+        object-position: center;
     }
 }
 
@@ -775,10 +779,35 @@
         font-style: normal;
         line-height: 1.08;
         overflow-wrap: anywhere;
+
+        a {
+            color: inherit;
+            text-decoration: none;
+
+            &:hover {
+                text-decoration: underline;
+                text-underline-offset: 3px;
+            }
+        }
     }
 
-    > button {
+}
+
+.productActions {
+    margin-top: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+
+    > button,
+    > a,
+    .cardQuantity {
         min-height: 44px;
+    }
+
+    > button,
+    > a,
+    .cardQuantity button {
         margin-top: auto;
         padding: 10px 14px;
         display: inline-flex;
@@ -792,6 +821,7 @@
         font-weight: 800;
         white-space: nowrap;
         cursor: pointer;
+        text-decoration: none;
 
         &:hover {
             background: var(--market-cyan);
@@ -800,6 +830,54 @@
         &:active {
             transform: translateY(2px);
             box-shadow: 0 1px 0 var(--market-cyan-deep);
+        }
+    }
+
+    > .primaryCardAction {
+        background: var(--market-accent);
+        box-shadow: 0 3px 0 var(--market-accent-deep);
+
+        &:hover {
+            background: var(--market-accent);
+        }
+    }
+}
+
+.cardDescription {
+    margin: 2px 0;
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--market-muted);
+    font-size: 12px;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+}
+
+.cardQuantity {
+    display: grid;
+    grid-template-columns: 36px minmax(24px, 1fr) 36px;
+    align-items: stretch;
+    border: 1px solid var(--market-ink);
+    border-radius: var(--market-radius-pill);
+    overflow: hidden;
+
+    strong {
+        display: grid;
+        place-items: center;
+    }
+
+    button {
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        font-size: 20px;
+
+        &:active {
+            transform: none;
+            box-shadow: none;
         }
     }
 }
@@ -1487,7 +1565,8 @@
     }
 
     .signInButton,
-    .cartButton {
+    .cartButton,
+    .headerCheckout {
         padding-inline: 9px;
     }
 
@@ -1552,6 +1631,7 @@
     }
 
     .productVisual {
+        aspect-ratio: auto;
         border-right: 1px solid var(--market-line);
         border-bottom: 0;
     }

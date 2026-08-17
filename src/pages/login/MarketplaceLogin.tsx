@@ -37,6 +37,7 @@ const QUOTE_CART_STORAGE_KEY = "compound-bay-marketplace-quote-cart-v1";
 const BUYER_STORAGE_KEY = "compound-bay-marketplace-buyer-v1";
 const PAYMENT_STORAGE_KEY = "compound-bay-marketplace-payment-v1";
 const PRODUCT_RETURN_STORAGE_KEY = "compound-bay-marketplace-product-return-v1";
+const PRODUCT_HISTORY_STATE_KEY = "compoundBayMarketplaceProduct";
 const SEARCH_EXAMPLES = [
     "Try Reta 15",
     "Try Reta 15 in Australia",
@@ -108,6 +109,13 @@ function money(value: number, currency: string) {
         style: "currency",
         currency,
     }).format(value / 100);
+}
+
+function productSummary(value: string) {
+    return value
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
 }
 
 function regularPriceWithTax(product: MarketplaceProduct) {
@@ -199,6 +207,29 @@ function readProductReturn() {
             : null;
     } catch {
         window.sessionStorage.removeItem(PRODUCT_RETURN_STORAGE_KEY);
+        return null;
+    }
+}
+
+function marketplaceProductPath(product: MarketplaceProduct) {
+    return `/products/${encodeURIComponent(
+        product.vendorCode,
+    )}/${encodeURIComponent(product.productId)}/${encodeURIComponent(
+        product.slug || "product",
+    )}`;
+}
+
+function readMarketplaceProductPath() {
+    const match = window.location.pathname.match(
+        /^\/products\/([^/]+)\/([^/]+)(?:\/[^/]+)?\/?$/,
+    );
+    if (!match) return null;
+    try {
+        return {
+            vendorCode: decodeURIComponent(match[1]),
+            productId: decodeURIComponent(match[2]),
+        };
+    } catch {
         return null;
     }
 }
@@ -322,6 +353,45 @@ export default function MarketplaceLogin({
             window.sessionStorage.removeItem(PAYMENT_STORAGE_KEY);
         }
         cartHydratedRef.current = true;
+    }, []);
+
+    useEffect(() => {
+        let controller: AbortController | undefined;
+        const syncProductRoute = () => {
+            const route = readMarketplaceProductPath();
+            if (!route) {
+                productDialogRef.current?.close();
+                setSelectedProduct(null);
+                setDetail(null);
+                return;
+            }
+            controller?.abort();
+            controller = new AbortController();
+            void getMarketplaceProduct(
+                route.vendorCode,
+                route.productId,
+                controller.signal,
+            )
+                .then((next) => {
+                    const product = next.variants[0];
+                    if (product) setSelectedProduct(product);
+                })
+                .catch((caught) => {
+                    if (
+                        caught instanceof DOMException &&
+                        caught.name === "AbortError"
+                    ) {
+                        return;
+                    }
+                    setError("This shared product could not be loaded.");
+                });
+        };
+        syncProductRoute();
+        window.addEventListener("popstate", syncProductRoute);
+        return () => {
+            controller?.abort();
+            window.removeEventListener("popstate", syncProductRoute);
+        };
     }, []);
 
     useEffect(() => {
@@ -657,6 +727,41 @@ export default function MarketplaceLogin({
         productDialogRef.current?.close();
         setSelectedProduct(null);
         setDetail(null);
+        if (!readMarketplaceProductPath()) return;
+        if (
+            window.history.state?.[PRODUCT_HISTORY_STATE_KEY] === true &&
+            window.history.length > 1
+        ) {
+            window.history.back();
+        } else {
+            window.history.replaceState(null, "", "/");
+        }
+    }
+
+    function openProduct(product: MarketplaceProduct) {
+        const path = marketplaceProductPath(product);
+        if (window.location.pathname !== path) {
+            window.history.pushState(
+                { [PRODUCT_HISTORY_STATE_KEY]: true },
+                "",
+                path,
+            );
+        }
+        setSelectedProduct(product);
+    }
+
+    function followProductLink(event: MouseEvent, product: MarketplaceProduct) {
+        if (
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey
+        ) {
+            return;
+        }
+        event.preventDefault();
+        openProduct(product);
     }
 
     function invalidateCheckoutForCartChange() {
@@ -707,33 +812,57 @@ export default function MarketplaceLogin({
         setCheckoutNotice("Price changed—review your cart before continuing.");
     }
 
-    function addToCart(openCart = false) {
-        if (!selectedVariant) return;
+    function addProductToCart(
+        product: MarketplaceProduct,
+        productQuantity = 1,
+        openCart = false,
+        resolvedSellerName?: string,
+    ) {
         invalidateCheckoutForCartChange();
         const sellerName =
-            detail?.vendor.name ??
-            vendorName.get(selectedVariant.vendorCode) ??
-            selectedVariant.vendorCode;
+            resolvedSellerName ??
+            vendorName.get(product.vendorCode) ??
+            product.vendorCode;
         setCart((lines) => {
             const existing = lines.findIndex(
                 (line) =>
-                    line.id === selectedVariant.id &&
-                    line.vendorCode === selectedVariant.vendorCode,
+                    line.id === product.id &&
+                    line.vendorCode === product.vendorCode,
             );
             if (existing === -1) {
-                return [...lines, { ...selectedVariant, quantity, sellerName }];
+                return [
+                    ...lines,
+                    {
+                        ...product,
+                        quantity: Math.min(99, productQuantity),
+                        sellerName,
+                    },
+                ];
             }
             return lines.map((line, index) =>
                 index === existing
                     ? {
                           ...line,
-                          quantity: Math.min(99, line.quantity + quantity),
+                          quantity: Math.min(
+                              99,
+                              line.quantity + productQuantity,
+                          ),
                       }
                     : line,
             );
         });
-        closeProduct();
         if (openCart) setCartOpen(true);
+    }
+
+    function addToCart(openCart = false) {
+        if (!selectedVariant) return;
+        addProductToCart(
+            selectedVariant,
+            quantity,
+            openCart,
+            detail?.vendor.name,
+        );
+        closeProduct();
     }
 
     function updateCartLine(index: number, nextQuantity: number) {
@@ -1020,6 +1149,18 @@ export default function MarketplaceLogin({
                         aria-label={`Cart, ${cartCount} items`}>
                         Cart <span>{cartCount}</span>
                     </button>
+                    {cartCount ? (
+                        <button
+                            className={styles.headerCheckout}
+                            type="button"
+                            disabled={checkoutPending}
+                            onClick={() => {
+                                setCartOpen(true);
+                                void beginCheckout();
+                            }}>
+                            {checkoutPending ? "Checking…" : "Checkout"}
+                        </button>
+                    ) : null}
                     <button
                         className={styles.signInButton}
                         type="button"
@@ -1494,13 +1635,24 @@ export default function MarketplaceLogin({
                             </div>
                         ) : null}
                         <div className={styles.grid}>
-                            {displayedProducts.map((product) => (
-                                <article
-                                    className={styles.productCard}
-                                    key={`${product.vendorCode}:${product.productId}`}>
-                                    <div
+                            {displayedProducts.map((product) => {
+                                const cartIndex = cart.findIndex(
+                                    (line) =>
+                                        line.id === product.id &&
+                                        line.vendorCode === product.vendorCode,
+                                );
+                                const cartLine = cart[cartIndex];
+                                return (
+                                    <article
+                                        className={styles.productCard}
+                                        key={`${product.vendorCode}:${product.productId}`}>
+                                    <a
                                         className={styles.productVisual}
-                                        aria-hidden="true">
+                                        href={marketplaceProductPath(product)}
+                                        aria-label={`View ${product.productName} details`}
+                                        onClick={(event) =>
+                                            followProductLink(event, product)
+                                        }>
                                         <ProductVisual
                                             imageUrl={product.imageUrl}
                                             productName={product.productName}
@@ -1514,7 +1666,7 @@ export default function MarketplaceLogin({
                                             }
                                             loading="lazy"
                                         />
-                                    </div>
+                                    </a>
                                     <div className={styles.productCopy}>
                                         <p className={styles.vendorBadge}>
                                             <span aria-hidden="true">✓</span>
@@ -1523,10 +1675,33 @@ export default function MarketplaceLogin({
                                                 product.vendorCode,
                                             ) ?? product.vendorCode}
                                         </p>
-                                        <h2>{product.productName}</h2>
+                                        <h2>
+                                            <a
+                                                href={marketplaceProductPath(
+                                                    product,
+                                                )}
+                                                onClick={(event) =>
+                                                    followProductLink(
+                                                        event,
+                                                        product,
+                                                    )
+                                                }>
+                                                {product.productName}
+                                            </a>
+                                        </h2>
                                         <p className={styles.variantName}>
                                             From {product.name}
                                         </p>
+                                        {product.description ? (
+                                            <p
+                                                className={
+                                                    styles.cardDescription
+                                                }>
+                                                {productSummary(
+                                                    product.description,
+                                                )}
+                                            </p>
+                                        ) : null}
                                         <div className={styles.productMeta}>
                                             <PriceDisplay product={product} />
                                             <span>
@@ -1550,16 +1725,58 @@ export default function MarketplaceLogin({
                                                 )}
                                             </p>
                                         ) : null}
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setSelectedProduct(product)
-                                            }>
-                                            View details
-                                        </button>
+                                        <div className={styles.productActions}>
+                                            {cartLine ? (
+                                                <div
+                                                    className={
+                                                        styles.cardQuantity
+                                                    }
+                                                    aria-label={`${product.name} quantity`}>
+                                                    <button
+                                                        type="button"
+                                                        aria-label={`Decrease ${product.name} quantity`}
+                                                        onClick={() =>
+                                                            updateCartLine(
+                                                                cartIndex,
+                                                                cartLine.quantity -
+                                                                    1,
+                                                            )
+                                                        }>
+                                                        −
+                                                    </button>
+                                                    <strong>
+                                                        {cartLine.quantity}
+                                                    </strong>
+                                                    <button
+                                                        type="button"
+                                                        aria-label={`Increase ${product.name} quantity`}
+                                                        onClick={() =>
+                                                            updateCartLine(
+                                                                cartIndex,
+                                                                cartLine.quantity +
+                                                                    1,
+                                                            )
+                                                        }>
+                                                        +
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    className={
+                                                        styles.primaryCardAction
+                                                    }
+                                                    type="button"
+                                                    onClick={() =>
+                                                        addProductToCart(product)
+                                                    }>
+                                                    Add to cart
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                </article>
-                            ))}
+                                    </article>
+                                );
+                            })}
                         </div>
                         {result?.pagination.hasMore ? (
                             <button
