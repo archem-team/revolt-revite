@@ -38,4 +38,28 @@ test("marketplace cards support direct cart quantity and homepage checkout", asy
     );
     assert.match(styles, /\.productActions\s*\{/);
     assert.match(styles, /\.cardQuantity\s*\{/);
+    assert.match(
+        styles,
+        /\.grid\s*\{[^}]*?grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/,
+    );
+    assert.match(
+        styles,
+        /@media \(max-width: 1360px\)[\s\S]*?\.grid\s*\{[^}]*?grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/,
+    );
+    assert.match(
+        styles,
+        /@media \(max-width: 900px\)[\s\S]*?\.grid\s*\{[^}]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+    );
+    assert.match(
+        styles,
+        /\.productVisual\s*\{[^}]*?aspect-ratio:\s*4\s*\/\s*3/,
+    );
+    assert.match(
+        styles,
+        /\.productCopy\s*\{[^}]*?padding:\s*12px[^}]*?gap:\s*6px/,
+    );
+    assert.match(
+        styles,
+        /\.cardDescription\s*\{[^}]*?-webkit-line-clamp:\s*2/,
+    );
 });
