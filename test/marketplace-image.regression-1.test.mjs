@@ -5,7 +5,7 @@ import test from "node:test";
 // Regression: ISSUE-003 — failed seller images showed a broken-image glyph
 // Found by /qa on 2026-08-17
 // Report: .gstack/qa-reports/marketplace-deep-qa-2026-08-16.md
-test("marketplace cards and details replace failed images with product initials", async () => {
+test("marketplace avoids card image failures and keeps detail image fallback", async () => {
     const source = await readFile(
         new URL("../src/pages/login/MarketplaceLogin.tsx", import.meta.url),
         "utf8",
@@ -14,5 +14,9 @@ test("marketplace cards and details replace failed images with product initials"
     assert.match(source, /imageUrl && !failed \?/);
     assert.match(source, /onError=\{\(\) => setFailed\(true\)\}/);
     assert.match(source, /<span>\{productName\.slice\(0, 2\)\.toUpperCase\(\)\}<\/span>/);
-    assert.equal(source.match(/<ProductVisual/g)?.length, 2);
+    assert.match(
+        source,
+        /displayedProducts\.map[\s\S]*?product\.productName[\s\S]*?slice\(0, 2\)[\s\S]*?toUpperCase\(\)/,
+    );
+    assert.equal(source.match(/<ProductVisual/g)?.length, 1);
 });

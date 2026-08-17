@@ -28,7 +28,7 @@ import { FormResend, FormVerify } from "./forms/FormVerify";
 
 const MarketplaceLogin = lazy(() => import("./MarketplaceLogin"));
 
-function AuthenticationCard({
+export function AuthenticationCard({
     marketplace = false,
 }: {
     marketplace?: boolean;

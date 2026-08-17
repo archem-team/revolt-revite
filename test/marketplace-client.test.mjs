@@ -185,32 +185,45 @@ test("marketplace branch keeps signed-in visitors on the root homepage", async (
 });
 
 test("marketplace host never paints the PepChat login during boot", async () => {
-    const [document, context, app, login] = await Promise.all([
+    const [document, main, marketplaceMain, chatMain] =
+        await Promise.all([
         readFile(new URL("../index.html", import.meta.url), "utf8"),
-        readFile(new URL("../src/context/index.tsx", import.meta.url), "utf8"),
-        readFile(new URL("../src/pages/app.tsx", import.meta.url), "utf8"),
-        readFile(
-            new URL("../src/pages/login/Login.tsx", import.meta.url),
-            "utf8",
-        ),
+        readFile(new URL("../src/main.tsx", import.meta.url), "utf8"),
+        readFile(new URL("../src/marketplaceMain.tsx", import.meta.url), "utf8"),
+        readFile(new URL("../src/chatMain.tsx", import.meta.url), "utf8"),
     ]);
 
     assert.match(document, /hostname === "market\.peptide\.chat"/);
     assert.match(document, /data-marketplace-host/);
     assert.match(document, /\.marketplace-boot\s*\{/);
-    assert.match(context, /data-marketplace-boot="true"/);
-    assert.match(context, /isMarketplaceHost\(\) \? \(/);
-    assert.match(app, /void import\("\.\/login\/MarketplaceLogin"\)/);
-    assert.match(app, /isMarketplaceHost\(\) \? \(/);
-    assert.match(login, /useState\(marketplaceHost\)/);
-    assert.match(
-        login,
-        /if \(marketplaceHost\) \{\s*setMarketplaceEnabled\(true\)/s,
-    );
-    assert.match(
-        login,
-        /marketplaceHost \? <MarketplaceBoot \/> : <LegacyLogin \/>/,
-    );
+    assert.match(main, /void import\("\.\/marketplaceMain"\)/);
+    assert.match(main, /void import\("\.\/chatMain"\)/);
+    assert.match(main, /window\.setTimeout\(\(\) => void import\("\.\/chatMain"\), 0\)/);
+    assert.match(marketplaceMain, /import MarketplaceLogin/);
+    assert.doesNotMatch(marketplaceMain, /\.\/posthog|\.\/sentry|\.\/updateWorker/);
+    assert.match(chatMain, /import "\.\/posthog"/);
+    assert.match(chatMain, /import "\.\/sentry"/);
+});
+
+test("marketplace defers the full PepChat authentication runtime", async () => {
+    const [main, authentication] = await Promise.all([
+        readFile(new URL("../src/marketplaceMain.tsx", import.meta.url), "utf8"),
+        readFile(
+            new URL(
+                "../src/pages/login/MarketplaceAuthentication.tsx",
+                import.meta.url,
+            ),
+            "utf8",
+        ),
+    ]);
+
+    assert.match(main, /lazy\(\s*\(\) => import\("\.\/pages\/login\/MarketplaceAuthentication"\)/s);
+    assert.match(main, /if \(!requested\)/);
+    assert.match(main, /Continue to PepChat sign in/);
+    assert.match(authentication, /<AuthenticationCard marketplace \/>/);
+    assert.match(authentication, /clientController\.getActiveSessionToken\(\)/);
+    assert.match(main, /loggedIn=\{Boolean\(pepchatSession\)\}/);
+    assert.match(main, /getPepchatSession=\{\(\) => pepchatSession\}/);
 });
 
 test("marketplace uses one compact PepChat-only account flow", async () => {
@@ -248,7 +261,7 @@ test("marketplace uses one compact PepChat-only account flow", async () => {
         page,
         /loggedIn \|\| buyerToken \? styles\.shellAuthenticated/,
     );
-    assert.match(page, /\{!loggedIn && !buyerToken \? \(/);
+    assert.match(page, /\{!pending && !loggedIn && !buyerToken \? \(/);
     assert.match(page, /createMarketplaceQuote/);
     assert.match(page, /requestCompoundBayRedirect/);
     assert.match(page, /session: getPepchatSession\(\)/);
@@ -265,6 +278,7 @@ test("marketplace uses one compact PepChat-only account flow", async () => {
         /getPepchatSession=\{\(\) =>\s*clientController\.getActiveSessionToken\(\)/,
     );
     assert.match(page, /exchangeMarketplaceIdentity/);
+    assert.doesNotMatch(page, /src=\{product\.imageUrl\}/);
     assert.match(loginStyles, /\.marketplaceForm\s*\{/);
     assert.match(loginStyles, /\.marketplaceForm\s*\{[^}]*padding:\s*0/s);
     assert.match(pageStyles, /minmax\(280px, 310px\)/);
