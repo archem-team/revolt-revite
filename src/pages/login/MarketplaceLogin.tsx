@@ -148,6 +148,20 @@ function money(value: number, currency: string) {
     }).format(value / 100);
 }
 
+function paymentTimeRemaining(expiresAt: string, now: number) {
+    const remaining = Math.max(0, new Date(expiresAt).getTime() - now);
+    const totalSeconds = Math.floor(remaining / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return {
+        expired: remaining === 0,
+        label: [hours, minutes, seconds]
+            .map((part) => String(part).padStart(2, "0"))
+            .join(":"),
+    };
+}
+
 function productSummary(value: string) {
     return value
         .replace(/<[^>]*>/g, " ")
@@ -324,9 +338,14 @@ export default function MarketplaceLogin({
     const [shippingQuote, setShippingQuote] =
         useState<MarketplaceShippingQuote | null>(null);
     const [acceptLegal, setAcceptLegal] = useState(false);
+    const [reviewOpen, setReviewOpen] = useState(false);
+    const [copiedPaymentField, setCopiedPaymentField] = useState<
+        "amount" | "address" | ""
+    >("");
     const [checkoutId, setCheckoutId] = useState("");
     const [orderCode, setOrderCode] = useState("");
     const [payment, setPayment] = useState<MarketplacePayment | null>(null);
+    const [paymentClock, setPaymentClock] = useState(() => Date.now());
     const [address, setAddress] = useState<MarketplaceAddress>({
         fullName: "",
         streetLine1: "",
@@ -476,6 +495,16 @@ export default function MarketplaceLogin({
         if (!cartHydratedRef.current) return;
         window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     }, [cart]);
+
+    useEffect(() => {
+        if (!payment) return;
+        setPaymentClock(Date.now());
+        const interval = window.setInterval(
+            () => setPaymentClock(Date.now()),
+            1000,
+        );
+        return () => window.clearInterval(interval);
+    }, [payment?.id]);
 
     useEffect(() => {
         if (filterError) {
@@ -722,6 +751,9 @@ export default function MarketplaceLogin({
         0,
     );
     const cartCurrency = cart[0]?.currencyCode ?? "USD";
+    const paymentCountdown = payment
+        ? paymentTimeRemaining(payment.expiresAt, paymentClock)
+        : null;
 
     async function loadMore() {
         if (!result?.pagination.hasMore || loadingMore) return;
@@ -808,6 +840,7 @@ export default function MarketplaceLogin({
         setBuyerToken("");
         setShippingQuote(null);
         setAcceptLegal(false);
+        setReviewOpen(false);
         setCheckoutNotice("");
     }
 
@@ -1022,6 +1055,7 @@ export default function MarketplaceLogin({
         setBuyerToken("");
         setShippingQuote(null);
         setAcceptLegal(false);
+        setReviewOpen(false);
         setCheckoutNotice("Signed out. Your cart is still here.");
     }
 
@@ -1097,6 +1131,7 @@ export default function MarketplaceLogin({
             setCheckoutId(checkout.id);
             setOrderCode(checkout.orderCode);
             setPayment(next.payment);
+            setReviewOpen(false);
             setCheckoutNotice(
                 "Order created. Send the exact amount shown below.",
             );
@@ -1143,6 +1178,15 @@ export default function MarketplaceLogin({
         } finally {
             setCheckoutPending(false);
         }
+    }
+
+    async function copyPaymentValue(
+        field: "amount" | "address",
+        value: string,
+    ) {
+        await navigator.clipboard.writeText(value);
+        setCopiedPaymentField(field);
+        window.setTimeout(() => setCopiedPaymentField(""), 1800);
     }
 
     function selectAutocompleteSuggestion(suggestion: string) {
@@ -1995,7 +2039,9 @@ export default function MarketplaceLogin({
             ) : null}
 
             <dialog
-                className={styles.cartDialog}
+                className={`${styles.cartDialog} ${
+                    buyerToken ? styles.checkoutDialog : ""
+                }`}
                 ref={cartDialogRef}
                 aria-labelledby="marketplace-cart-title"
                 onClick={(event) => {
@@ -2011,8 +2057,20 @@ export default function MarketplaceLogin({
                 </button>
                 <div className={styles.cartHeader}>
                     <p className={styles.kicker}>Secure checkout</p>
-                    <h2 id="marketplace-cart-title">Your marketplace cart</h2>
-                    <p>One cart, with fulfillment tracked by seller.</p>
+                    <h2 id="marketplace-cart-title">
+                        {payment
+                            ? "Payment pending"
+                            : buyerToken
+                            ? "Shipping and payment"
+                            : "Your marketplace cart"}
+                    </h2>
+                    <p>
+                        {payment
+                            ? "Send the exact amount on the stated network before the payment window closes."
+                            : buyerToken
+                            ? "Confirm delivery across every seller, then review everything before a payment is created."
+                            : "One cart, with fulfillment tracked by seller."}
+                    </p>
                 </div>
                 {cart.length ? (
                     <div className={styles.cartLines}>
@@ -2089,17 +2147,69 @@ export default function MarketplaceLogin({
                                 className={styles.paymentInstructions}
                                 aria-labelledby="marketplace-payment-title">
                                 <p className={styles.kicker}>
-                                    Order {orderCode}
+                                    SECURE PAYMENT STATUS · ORDER {orderCode}
                                 </p>
                                 <h3 id="marketplace-payment-title">
-                                    Pay {formatExactAmount(payment.payAmount)}{" "}
-                                    {payment.payCurrency}
+                                    Payment pending
                                 </h3>
+                                <p>
+                                    Complete this payment before it expires. We
+                                    will update the order after the network
+                                    confirms it.
+                                </p>
+                                <div
+                                    className={styles.paymentCountdown}
+                                    role="timer"
+                                    aria-label={
+                                        paymentCountdown?.expired
+                                            ? "Payment window ended"
+                                            : "Time left to pay"
+                                    }>
+                                    <span>
+                                        {paymentCountdown?.expired
+                                            ? "PAYMENT WINDOW ENDED"
+                                            : "TIME LEFT TO PAY"}
+                                    </span>
+                                    <strong>{paymentCountdown?.label}</strong>
+                                    <small>Hours · minutes · seconds</small>
+                                </div>
+                                <section
+                                    className={styles.exactPaymentAmount}
+                                    aria-label="Exact amount to send">
+                                    <p>EXACT AMOUNT TO SEND</p>
+                                    <div>
+                                        <strong>
+                                            {formatExactAmount(
+                                                payment.payAmount,
+                                            )}{" "}
+                                            {payment.payCurrency}
+                                        </strong>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                void copyPaymentValue(
+                                                    "amount",
+                                                    payment.payAmount,
+                                                )
+                                            }>
+                                            {copiedPaymentField === "amount"
+                                                ? "Exact amount copied ✓"
+                                                : "Copy exact amount"}
+                                        </button>
+                                    </div>
+                                    <p>
+                                        <strong>
+                                            Send exactly the amount shown.
+                                        </strong>{" "}
+                                        Do not round it; the additional decimals
+                                        identify your order.
+                                    </p>
+                                </section>
                                 <dl>
+                                    <dt>Order</dt>
+                                    <dd>{orderCode}</dd>
                                     <dt>Network</dt>
                                     <dd>{payment.network.toUpperCase()}</dd>
-                                    <dt>Address</dt>
-                                    <dd>{payment.payAddress}</dd>
                                     <dt>Status</dt>
                                     <dd>{payment.status}</dd>
                                     <dt>Confirmations</dt>
@@ -2108,12 +2218,29 @@ export default function MarketplaceLogin({
                                         {payment.requiredConfirmations}
                                     </dd>
                                 </dl>
-                                <p>
+                                <div className={styles.paymentAddress}>
+                                    <span>Payment address</span>
+                                    <code>{payment.payAddress}</code>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            void copyPaymentValue(
+                                                "address",
+                                                payment.payAddress,
+                                            )
+                                        }>
+                                        {copiedPaymentField === "address"
+                                            ? "Address copied ✓"
+                                            : "Copy address"}
+                                    </button>
+                                </div>
+                                <p className={styles.paymentWarning}>
                                     Send only {payment.payCurrency} on the
                                     stated network. A different asset or network
-                                    may be lost.
+                                    may be unrecoverable.
                                 </p>
                                 <button
+                                    className={styles.primaryCheckoutAction}
                                     type="button"
                                     disabled={checkoutPending}
                                     onClick={() => void refreshPayment()}>
@@ -2126,70 +2253,133 @@ export default function MarketplaceLogin({
                             <form
                                 className={styles.checkoutForm}
                                 onSubmit={(event) => void quoteShipping(event)}>
-                                <h3>Delivery details</h3>
-                                {(
-                                    [
-                                        ["fullName", "Full name", "name"],
-                                        [
-                                            "streetLine1",
-                                            "Street address",
-                                            "address-line1",
-                                        ],
-                                        [
-                                            "streetLine2",
-                                            "Apartment, suite, etc. (optional)",
-                                            "address-line2",
-                                        ],
-                                        ["city", "City", "address-level2"],
-                                        [
-                                            "province",
-                                            "State / province",
-                                            "address-level1",
-                                        ],
-                                        [
-                                            "postalCode",
-                                            "Postal code",
-                                            "postal-code",
-                                        ],
-                                        [
-                                            "countryCode",
-                                            "Country code",
-                                            "country",
-                                        ],
-                                        ["phoneNumber", "Phone number", "tel"],
-                                    ] as const
-                                ).map(([field, label, autoComplete]) => (
-                                    <label key={field}>
-                                        {label}
-                                        <input
-                                            required={field !== "streetLine2"}
-                                            value={address[field] ?? ""}
-                                            autoComplete={autoComplete}
-                                            maxLength={
-                                                field === "countryCode"
-                                                    ? undefined
-                                                    : 120
-                                            }
-                                            onInput={(event) =>
-                                                updateAddress(
-                                                    field,
-                                                    (
-                                                        event.currentTarget as HTMLInputElement
-                                                    ).value,
-                                                )
-                                            }
-                                        />
-                                    </label>
-                                ))}
-                                <button
-                                    type="submit"
-                                    disabled={checkoutPending}>
-                                    {checkoutPending
-                                        ? "Checking shipping…"
-                                        : "Calculate shipping"}
-                                </button>
+                                <div className={styles.checkoutTitle}>
+                                    <p className={styles.kicker}>
+                                        ONE-PAGE CHECKOUT
+                                    </p>
+                                    <h3>Delivery details</h3>
+                                    <p>
+                                        Shipping is checked with every seller.
+                                        Exact payment details appear only after
+                                        your final review.
+                                    </p>
+                                </div>
+                                <div className={styles.checkoutMain}>
+                                    <fieldset className={styles.checkoutFields}>
+                                        <legend>Shipping address</legend>
+                                        {(
+                                            [
+                                                ["fullName", "Full name", "name"],
+                                                [
+                                                    "streetLine1",
+                                                    "Street address",
+                                                    "address-line1",
+                                                ],
+                                                [
+                                                    "streetLine2",
+                                                    "Apartment, suite, etc. (optional)",
+                                                    "address-line2",
+                                                ],
+                                                ["city", "City", "address-level2"],
+                                                [
+                                                    "province",
+                                                    "State / province",
+                                                    "address-level1",
+                                                ],
+                                                [
+                                                    "postalCode",
+                                                    "Postal code",
+                                                    "postal-code",
+                                                ],
+                                                [
+                                                    "countryCode",
+                                                    "Country code",
+                                                    "country",
+                                                ],
+                                                ["phoneNumber", "Phone number", "tel"],
+                                            ] as const
+                                        ).map(([field, label, autoComplete]) => (
+                                            <label key={field}>
+                                                <span>
+                                                    {label}
+                                                    {field !== "streetLine2" ? (
+                                                        <b aria-hidden="true"> *</b>
+                                                    ) : null}
+                                                </span>
+                                                <input
+                                                    required={field !== "streetLine2"}
+                                                    value={address[field] ?? ""}
+                                                    autoComplete={autoComplete}
+                                                    maxLength={
+                                                        field === "countryCode"
+                                                            ? undefined
+                                                            : 120
+                                                    }
+                                                    onInput={(event) =>
+                                                        updateAddress(
+                                                            field,
+                                                            (
+                                                                event.currentTarget as HTMLInputElement
+                                                            ).value,
+                                                        )
+                                                    }
+                                                />
+                                            </label>
+                                        ))}
+                                        <button
+                                            className={styles.primaryCheckoutAction}
+                                            type="submit"
+                                            disabled={checkoutPending}>
+                                            {checkoutPending
+                                                ? "Checking shipping…"
+                                                : shippingQuote
+                                                ? "Recalculate shipping"
+                                                : "Calculate shipping"}
+                                        </button>
+                                    </fieldset>
+                                    <aside
+                                        className={styles.checkoutSummary}
+                                        aria-label="Order summary">
+                                        <p className={styles.kicker}>
+                                            ORDER SUMMARY
+                                        </p>
+                                        <ul>
+                                            {cart.map((line) => (
+                                                <li
+                                                    key={`${line.vendorCode}:${line.id}`}>
+                                                    <span>
+                                                        {line.productName} ×{" "}
+                                                        {line.quantity}
+                                                        <small>
+                                                            Sold by {line.sellerName}
+                                                        </small>
+                                                    </span>
+                                                    <strong>
+                                                        {money(
+                                                            line.priceWithTax *
+                                                                line.quantity,
+                                                            line.currencyCode,
+                                                        )}
+                                                    </strong>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <div>
+                                            <span>Total</span>
+                                            <strong>
+                                                {money(
+                                                    shippingQuote?.totalWithTax ??
+                                                        cartSubtotal,
+                                                    shippingQuote?.currencyCode ??
+                                                        cartCurrency,
+                                                )}
+                                            </strong>
+                                        </div>
+                                    </aside>
+                                </div>
                                 {shippingQuote ? (
-                                    <div className={styles.shippingReview}>
+                                    <fieldset className={styles.shippingReview}>
+                                        <legend>Final confirmation</legend>
                                         <span>Items subtotal</span>
                                         <strong>
                                             {money(
@@ -2227,19 +2417,161 @@ export default function MarketplaceLogin({
                                             seller policies.
                                         </label>
                                         <button
+                                            className={styles.primaryCheckoutAction}
                                             type="button"
                                             disabled={
                                                 !acceptLegal || checkoutPending
                                             }
-                                            onClick={() => void placeOrder()}>
-                                            {checkoutPending
-                                                ? "Creating order…"
-                                                : "Place order"}
+                                            onClick={() => setReviewOpen(true)}>
+                                            Review order
                                         </button>
-                                    </div>
+                                        <p>
+                                            No payment is created until you
+                                            confirm the next screen.
+                                        </p>
+                                    </fieldset>
                                 ) : null}
                             </form>
                         )}
+                        {reviewOpen && shippingQuote ? (
+                            <div
+                                className={styles.reviewBackdrop}
+                                role="presentation"
+                                onMouseDown={(event) => {
+                                    if (event.target === event.currentTarget)
+                                        setReviewOpen(false);
+                                }}>
+                                <section
+                                    className={styles.orderReview}
+                                    role="dialog"
+                                    aria-modal="true"
+                                    aria-labelledby="marketplace-review-title">
+                                    <header>
+                                        <div>
+                                            <p className={styles.kicker}>
+                                                FINAL REVIEW
+                                            </p>
+                                            <h3 id="marketplace-review-title">
+                                                Review your order
+                                            </h3>
+                                            <p>
+                                                No payment has been created.
+                                                Confirm the details below before
+                                                continuing.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            aria-label="Close order review"
+                                            disabled={checkoutPending}
+                                            onClick={() => setReviewOpen(false)}>
+                                            ×
+                                        </button>
+                                    </header>
+                                    <dl className={styles.reviewFacts}>
+                                        <div>
+                                            <dt>Contact</dt>
+                                            <dd>
+                                                <strong>{address.fullName}</strong>
+                                                <span>{address.phoneNumber}</span>
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt>Ship to</dt>
+                                            <dd>
+                                                <span>{address.streetLine1}</span>
+                                                {address.streetLine2 ? (
+                                                    <span>{address.streetLine2}</span>
+                                                ) : null}
+                                                <span>
+                                                    {address.city}, {address.province}{" "}
+                                                    {address.postalCode}
+                                                </span>
+                                                <span>{address.countryCode}</span>
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt>Delivery</dt>
+                                            <dd>
+                                                <strong>
+                                                    Every seller confirmed
+                                                </strong>
+                                                <span>
+                                                    Shipping across this marketplace
+                                                    cart
+                                                </span>
+                                                <span>
+                                                    {money(
+                                                        shippingQuote.shippingWithTax,
+                                                        shippingQuote.currencyCode,
+                                                    )}
+                                                </span>
+                                            </dd>
+                                        </div>
+                                        <div className={styles.reviewPaymentFact}>
+                                            <dt>Payment</dt>
+                                            <dd>
+                                                <strong>Secure crypto payment</strong>
+                                                <span>
+                                                    Exact amount, wallet address,
+                                                    network, and expiry appear next.
+                                                </span>
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                    <section className={styles.reviewItems}>
+                                        <h4>Items</h4>
+                                        <ul>
+                                            {cart.map((line) => (
+                                                <li
+                                                    key={`${line.vendorCode}:${line.id}`}>
+                                                    <span>
+                                                        {line.productName} ×{" "}
+                                                        {line.quantity}
+                                                    </span>
+                                                    <strong>
+                                                        {money(
+                                                            line.priceWithTax *
+                                                                line.quantity,
+                                                            line.currencyCode,
+                                                        )}
+                                                    </strong>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <div>
+                                            <span>Total</span>
+                                            <strong>
+                                                {money(
+                                                    shippingQuote.totalWithTax,
+                                                    shippingQuote.currencyCode,
+                                                )}
+                                            </strong>
+                                        </div>
+                                    </section>
+                                    <p className={styles.reviewSuccess}>
+                                        Shipping confirmed and marketplace terms
+                                        accepted.
+                                    </p>
+                                    <div className={styles.reviewActions}>
+                                        <button
+                                            type="button"
+                                            disabled={checkoutPending}
+                                            onClick={() => setReviewOpen(false)}>
+                                            Edit details
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={checkoutPending}
+                                            onClick={() => void placeOrder()}>
+                                            {checkoutPending
+                                                ? "Creating secure payment…"
+                                                : "Create secure payment"}
+                                        </button>
+                                    </div>
+                                </section>
+                            </div>
+                        ) : null}
                     </div>
                 ) : (
                     <div className={styles.emptyCart}>
