@@ -5,7 +5,6 @@ import { API_URL } from "../../lib/apiUrl";
 import {
     clearMarketplaceSession,
     loadMarketplaceSession,
-    logoutMarketplace,
     MarketplaceSession,
     saveMarketplaceSession,
     validateMarketplaceSession,
@@ -84,14 +83,6 @@ export default function MarketplaceAuthentication({
         [],
     );
 
-    const signOutPepchat = useCallback(async () => {
-        if (session) {
-            await logoutMarketplace({ apiBase: API_URL, session });
-        }
-        clearMarketplaceSession(window.localStorage);
-        setSession(undefined);
-    }, [session]);
-
     const rejectPepchatSession = useCallback((notice: string) => {
         clearMarketplaceSession(window.localStorage);
         setSession(undefined);
@@ -109,7 +100,6 @@ export default function MarketplaceAuthentication({
                 pepchatSession={session}
                 requestPepchatSignIn={requestPepchatSignIn}
                 rejectPepchatSession={rejectPepchatSession}
-                signOutPepchat={signOutPepchat}
                 locale={locale}
                 legal={legal}
                 logoSrc={logoSrc}

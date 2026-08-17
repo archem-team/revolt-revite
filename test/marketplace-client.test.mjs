@@ -289,10 +289,12 @@ test("marketplace uses one compact PepChat-only account flow", async () => {
     assert.match(login, /<MarketplaceAuthentication/);
     assert.match(authentication, /requestPepchatSignIn/);
     assert.match(authentication, /rejectPepchatSession/);
-    assert.match(authentication, /signOutPepchat/);
+    assert.doesNotMatch(authentication, /signOutPepchat/);
     assert.match(dialog, /same email and password as Peptide\.chat/);
     assert.match(dialog, /METHOD_LABELS/);
-    assert.match(page, /loggedIn \? "Sign out" : "Sign in"/);
+    assert.match(page, /href="https:\/\/peptide\.chat\/"/);
+    assert.match(page, /Open PepChat/);
+    assert.doesNotMatch(page, /Sign out/);
     assert.match(page, /void requestPepchatSignIn\(\)/);
     assert.match(page, /createMarketplaceQuote/);
     assert.match(page, /requestCompoundBayRedirect/);

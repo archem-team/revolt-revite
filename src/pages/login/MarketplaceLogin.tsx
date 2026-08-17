@@ -278,7 +278,6 @@ export default function MarketplaceLogin({
     pepchatSession,
     requestPepchatSignIn,
     rejectPepchatSession,
-    signOutPepchat,
     locale,
     legal,
     logoSrc,
@@ -286,7 +285,6 @@ export default function MarketplaceLogin({
     pepchatSession?: unknown;
     requestPepchatSignIn: (notice?: string) => Promise<unknown | undefined>;
     rejectPepchatSession: (notice: string) => Promise<unknown | undefined>;
-    signOutPepchat: () => Promise<void>;
     locale: ComponentChildren;
     legal: ComponentChildren;
     logoSrc: string;
@@ -1036,18 +1034,6 @@ export default function MarketplaceLogin({
         }
     }
 
-    async function signOut() {
-        await signOutPepchat();
-        window.sessionStorage.removeItem(BUYER_STORAGE_KEY);
-        window.sessionStorage.removeItem(QUOTE_STORAGE_KEY);
-        window.sessionStorage.removeItem(QUOTE_CART_STORAGE_KEY);
-        setBuyerToken("");
-        setShippingQuote(null);
-        setAcceptLegal(false);
-        setReviewOpen(false);
-        setCheckoutNotice("Signed out. Your cart is still here.");
-    }
-
     function updateAddress(field: keyof MarketplaceAddress, value: string) {
         setAddress((current) => ({
             ...current,
@@ -1231,16 +1217,20 @@ export default function MarketplaceLogin({
                             {checkoutPending ? "Checking…" : "Checkout"}
                         </button>
                     ) : null}
-                    <button
-                        className={styles.signInButton}
-                        type="button"
-                        onClick={() =>
-                            loggedIn
-                                ? void signOut()
-                                : void requestPepchatSignIn()
-                        }>
-                        {loggedIn ? "Sign out" : "Sign in"}
-                    </button>
+                    {loggedIn ? (
+                        <a
+                            className={styles.signInButton}
+                            href="https://peptide.chat/">
+                            Open PepChat
+                        </a>
+                    ) : (
+                        <button
+                            className={styles.signInButton}
+                            type="button"
+                            onClick={() => void requestPepchatSignIn()}>
+                            Sign in
+                        </button>
+                    )}
                 </div>
             </header>
 

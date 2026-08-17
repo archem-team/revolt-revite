@@ -326,6 +326,9 @@
 .headerCheckout {
     min-height: 44px;
     padding: 10px 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: 0;
     border-radius: var(--market-radius-pill);
     color: var(--market-accent-ink);
