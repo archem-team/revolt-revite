@@ -554,7 +554,7 @@ export default function MarketplaceLogin({
             const next = await searchMarketplace({
                 query: query.trim(),
                 vendor: selectedVendor,
-                offset: result.pagination.offset + result.products.length,
+                offset: result.pagination.offset + result.pagination.limit,
                 limit: PAGE_SIZE,
                 sort,
                 minPrice: minPriceMinor,

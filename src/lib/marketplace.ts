@@ -102,6 +102,53 @@ export type MarketplaceSearchResponse = {
     };
 };
 
+export function isMarketplacePaymentTestProduct(
+    product: MarketplaceProduct,
+) {
+    if (product.priceWithTax !== 100) return false;
+
+    const identity = [
+        product.sku,
+        product.slug,
+        product.productName,
+        product.name,
+        product.canonicalName,
+    ]
+        .filter((value): value is string => Boolean(value))
+        .join(" ")
+        .toLowerCase();
+
+    return (
+        identity.includes("payment-test") ||
+        identity.includes("payment test") ||
+        identity.includes("1 usd test item")
+    );
+}
+
+function withoutMarketplacePaymentTestProducts(
+    response: MarketplaceSearchResponse,
+): MarketplaceSearchResponse {
+    const products = response.products.filter(
+        (product) => !isMarketplacePaymentTestProduct(product),
+    );
+    const removedProducts = response.products.length - products.length;
+
+    return {
+        ...response,
+        products,
+        alternativeProducts: response.alternativeProducts.filter(
+            (product) => !isMarketplacePaymentTestProduct(product),
+        ),
+        pagination: {
+            ...response.pagination,
+            totalItems: Math.max(
+                0,
+                response.pagination.totalItems - removedProducts,
+            ),
+        },
+    };
+}
+
 const marketplaceApiUrl = (
     import.meta.env.VITE_COMPOUND_BAY_API_URL || "https://market.peptide.chat"
 ).replace(/\/$/, "");
@@ -299,7 +346,7 @@ export function getMarketplaceConfig(signal?: AbortSignal) {
     );
 }
 
-export function searchMarketplace(
+export async function searchMarketplace(
     input: {
         query?: string;
         vendor?: string;
@@ -328,10 +375,11 @@ export function searchMarketplace(
     if (input.hasLabReport) params.set("hasLabReport", "true");
     params.set("offset", String(input.offset ?? 0));
     params.set("limit", String(input.limit ?? 24));
-    return marketplaceRequest<MarketplaceSearchResponse>(
+    const response = await marketplaceRequest<MarketplaceSearchResponse>(
         `/marketplace/v1/search?${params}`,
         signal,
     );
+    return withoutMarketplacePaymentTestProducts(response);
 }
 
 export function getMarketplaceProduct(
