@@ -878,6 +878,15 @@ export default function MarketplaceLogin({
                 <a className={styles.wordmark} href="#marketplace-results">
                     <span className={styles.logoPlate}>
                         <img
+                            className={styles.logoIcon}
+                            src="/assets/logo.svg"
+                            alt=""
+                            width="17"
+                            height="17"
+                            draggable={false}
+                        />
+                        <img
+                            className={styles.logoWordmark}
                             src={logoSrc}
                             alt="PepChat"
                             width="96"

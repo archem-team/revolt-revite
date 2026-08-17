@@ -273,13 +273,21 @@
 .logoPlate {
     height: 38px;
     padding: 9px 12px;
-    display: inline-grid;
-    place-items: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     border: 2px solid var(--market-ink);
     border-radius: var(--market-radius-input);
     background: var(--color-bg);
 
-    img {
+    .logoIcon {
+        width: 17px;
+        height: 17px;
+        flex: none;
+        display: block;
+    }
+
+    .logoWordmark {
         width: 96px;
         max-height: 20px;
         display: block;
@@ -1424,8 +1432,9 @@
     .logoPlate {
         height: 36px;
         padding-inline: 8px;
+        gap: 7px;
 
-        img {
+        .logoWordmark {
             width: 92px;
         }
     }
