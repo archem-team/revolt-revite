@@ -1,0 +1,14 @@
+# Compound Bay Marketplace
+
+> A marketplace for comparing approved peptide sellers and completing a single, tracked checkout.
+
+## Primary pages
+
+- [Marketplace](https://market.peptide.chat/): Search products, compare sellers, and manage checkout.
+- [PepChat](https://peptide.chat/): Sign in or create the PepChat identity used by marketplace checkout.
+
+## Policies
+
+- [Acceptable Usage Policy](https://copper-mildrid-58.tiiny.site/)
+- [Terms of Service](https://emerald-theresita-57.tiiny.site/)
+- [Privacy Policy](https://crimson-elena-61.tiiny.site/)
