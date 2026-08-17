@@ -1576,10 +1576,16 @@
     }
 
     .detailVisual {
-        min-height: 210px;
+        height: 240px;
+        min-height: 0;
         max-height: 240px;
         border-inline-end: 0;
         border-bottom: 1px solid var(--market-line);
+
+        img {
+            height: 240px;
+            max-height: 240px;
+        }
     }
 
     .detailCopy {
