@@ -28,6 +28,18 @@ export type MarketplaceProduct = {
     description: string;
     price: number;
     priceWithTax: number;
+    regularPrice?: number;
+    regularPriceWithTax?: number;
+    promotion?: {
+        campaignId: string;
+        mode: "percentage" | "fixed-price";
+        discountPercentage: number;
+        salePrice: number;
+        salePriceWithTax: number;
+        publicMessage: string;
+        startsAt: string;
+        endsAt: string;
+    } | null;
     currencyCode: string;
     imageUrl: string | null;
     labReportUrl: string | null;
@@ -153,6 +165,22 @@ const marketplaceApiUrl = (
     import.meta.env.VITE_COMPOUND_BAY_API_URL || "https://market.peptide.chat"
 ).replace(/\/$/, "");
 
+export class MarketplaceRequestError extends Error {
+    constructor(message: string, readonly code?: string) {
+        super(message);
+        this.name = "MarketplaceRequestError";
+    }
+}
+
+export function isMarketplaceQuoteChangedError(error: unknown) {
+    return (
+        error instanceof MarketplaceRequestError &&
+        ["MARKETPLACE_QUOTE_CHANGED", "MARKETPLACE_TOTAL_CHANGED"].includes(
+            error.code ?? "",
+        )
+    );
+}
+
 async function marketplaceRequest<T>(
     path: string,
     signal?: AbortSignal,
@@ -171,12 +199,28 @@ async function marketplaceRequest<T>(
     });
     if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as {
-            message?: unknown;
+            code?: unknown;
+            message?: string | { code?: unknown; message?: unknown } | null;
         } | null;
+        const nested =
+            payload?.message && typeof payload.message === "object"
+                ? (payload.message as { code?: unknown; message?: unknown })
+                : null;
+        const code =
+            typeof payload?.code === "string"
+                ? payload.code
+                : typeof nested?.code === "string"
+                ? nested.code
+                : undefined;
         const detail =
-            typeof payload?.message === "string" ? payload.message.trim() : "";
-        throw new Error(
+            typeof payload?.message === "string"
+                ? payload.message.trim()
+                : typeof nested?.message === "string"
+                ? nested.message.trim()
+                : "";
+        throw new MarketplaceRequestError(
             detail || `Marketplace request failed with HTTP ${response.status}`,
+            code,
         );
     }
     return (await response.json()) as T;

@@ -16,6 +16,7 @@ import {
     exchangeMarketplaceIdentity,
     getMarketplacePaymentStatus,
     getMarketplaceProduct,
+    isMarketplaceQuoteChangedError,
     MarketplaceAddress,
     MarketplacePayment,
     MarketplaceShippingQuote,
@@ -106,6 +107,44 @@ function money(value: number, currency: string) {
         style: "currency",
         currency,
     }).format(value / 100);
+}
+
+function regularPriceWithTax(product: MarketplaceProduct) {
+    return product.regularPriceWithTax ?? product.priceWithTax;
+}
+
+function PriceDisplay({
+    product,
+    quantity = 1,
+}: {
+    product: MarketplaceProduct;
+    quantity?: number;
+}) {
+    const regular = regularPriceWithTax(product) * quantity;
+    const effective = product.priceWithTax * quantity;
+    const discount = Math.round(product.promotion?.discountPercentage ?? 0);
+    const promoted = Boolean(product.promotion && regular > effective);
+    const accessible = promoted
+        ? `Sale price ${money(effective, product.currencyCode)}, regular price ${money(
+              regular,
+              product.currencyCode,
+          )}, ${discount}% off`
+        : money(effective, product.currencyCode);
+    return (
+        <span className={styles.priceDisplay} aria-label={accessible}>
+            <strong>{money(effective, product.currencyCode)}</strong>
+            {promoted ? (
+                <>
+                    <s aria-hidden="true">
+                        {money(regular, product.currencyCode)}
+                    </s>
+                    <span className={styles.discountBadge} aria-hidden="true">
+                        {discount}% off
+                    </span>
+                </>
+            ) : null}
+        </span>
+    );
 }
 
 function priceToMinorUnits(value: string) {
@@ -544,6 +583,10 @@ export default function MarketplaceLogin({
         (sum, line) => sum + line.priceWithTax * line.quantity,
         0,
     );
+    const cartRegularSubtotal = cart.reduce(
+        (sum, line) => sum + regularPriceWithTax(line) * line.quantity,
+        0,
+    );
     const cartCurrency = cart[0]?.currencyCode ?? "USD";
 
     async function loadMore() {
@@ -597,6 +640,44 @@ export default function MarketplaceLogin({
         setShippingQuote(null);
         setAcceptLegal(false);
         setCheckoutNotice("");
+    }
+
+    async function refreshCartAfterPriceChange() {
+        invalidateCheckoutForCartChange();
+        setCartOpen(true);
+        let details: MarketplaceProductDetail[];
+        try {
+            details = await Promise.all(
+                [...new Map(cart.map((line) => [
+                    `${line.vendorCode}:${line.productId}`,
+                    line,
+                ])).values()].map((line) =>
+                    getMarketplaceProduct(line.vendorCode, line.productId),
+                ),
+            );
+        } catch {
+            setCheckoutNotice(
+                "Price changed—refresh the marketplace and review your cart before continuing.",
+            );
+            return;
+        }
+        const current = new Map(
+            details.flatMap((detail) =>
+                detail.variants.map((variant) => [
+                    `${variant.vendorCode}:${variant.id}`,
+                    variant,
+                ] as const),
+            ),
+        );
+        setCart((lines) =>
+            lines.flatMap((line) => {
+                const product = current.get(`${line.vendorCode}:${line.id}`);
+                return product
+                    ? [{ ...line, ...product, quantity: line.quantity }]
+                    : [];
+            }),
+        );
+        setCheckoutNotice("Price changed—review your cart before continuing.");
     }
 
     function addToCart(openCart = false) {
@@ -782,7 +863,11 @@ export default function MarketplaceLogin({
             );
             setShippingQuote(next);
             setCheckoutNotice("Shipping confirmed for every seller.");
-        } catch {
+        } catch (caught) {
+            if (isMarketplaceQuoteChangedError(caught)) {
+                await refreshCartAfterPriceChange();
+                return;
+            }
             setCheckoutNotice(
                 "This address is incomplete or one seller cannot ship there. Check the details and try again.",
             );
@@ -823,6 +908,10 @@ export default function MarketplaceLogin({
                 "Order created. Send the exact amount shown below.",
             );
         } catch (caught) {
+            if (isMarketplaceQuoteChangedError(caught)) {
+                await refreshCartAfterPriceChange();
+                return;
+            }
             setCheckoutNotice(
                 `${
                     caught instanceof Error
@@ -1412,12 +1501,7 @@ export default function MarketplaceLogin({
                                             From {product.name}
                                         </p>
                                         <div className={styles.productMeta}>
-                                            <strong>
-                                                {money(
-                                                    product.priceWithTax,
-                                                    product.currencyCode,
-                                                )}
-                                            </strong>
+                                            <PriceDisplay product={product} />
                                             <span>
                                                 {product.warehouse ||
                                                     "Warehouse confirmed at checkout"}
@@ -1557,15 +1641,15 @@ export default function MarketplaceLogin({
                                             <strong>{variant.name}</strong>
                                             <small>{variant.sku}</small>
                                         </span>
-                                        <b>
-                                            {money(
-                                                variant.priceWithTax,
-                                                variant.currencyCode,
-                                            )}
-                                        </b>
+                                        <PriceDisplay product={variant} />
                                     </label>
                                 ))}
                             </fieldset>
+                            {selectedVariant?.promotion?.publicMessage ? (
+                                <p className={styles.promotionMessage}>
+                                    {selectedVariant.promotion.publicMessage}
+                                </p>
+                            ) : null}
                             <div className={styles.purchaseRow}>
                                 <label>
                                     Quantity
@@ -1678,12 +1762,10 @@ export default function MarketplaceLogin({
                                         +
                                     </button>
                                 </div>
-                                <strong>
-                                    {money(
-                                        line.priceWithTax * line.quantity,
-                                        line.currencyCode,
-                                    )}
-                                </strong>
+                                <PriceDisplay
+                                    product={line}
+                                    quantity={line.quantity}
+                                />
                                 <button
                                     className={styles.removeLine}
                                     type="button"
@@ -1694,7 +1776,12 @@ export default function MarketplaceLogin({
                         ))}
                         <div className={styles.cartTotal}>
                             <span>Items subtotal</span>
-                            <strong>{money(cartSubtotal, cartCurrency)}</strong>
+                            <span className={styles.cartSubtotalPrice}>
+                                <strong>{money(cartSubtotal, cartCurrency)}</strong>
+                                {cartRegularSubtotal > cartSubtotal ? (
+                                    <s>{money(cartRegularSubtotal, cartCurrency)}</s>
+                                ) : null}
+                            </span>
                             <small>Shipping is calculated at checkout.</small>
                         </div>
                         {!buyerToken ? (
@@ -1814,6 +1901,13 @@ export default function MarketplaceLogin({
                                 </button>
                                 {shippingQuote ? (
                                     <div className={styles.shippingReview}>
+                                        <span>Items subtotal</span>
+                                        <strong>
+                                            {money(
+                                                shippingQuote.subtotal,
+                                                shippingQuote.currencyCode,
+                                            )}
+                                        </strong>
                                         <span>Shipping</span>
                                         <strong>
                                             {money(

@@ -903,6 +903,15 @@
     overflow-wrap: anywhere;
 }
 
+.promotionMessage {
+    margin: 0;
+    padding: 10px 12px;
+    border-left: 3px solid var(--market-accent);
+    color: var(--market-ink);
+    background: var(--market-paper-2);
+    font-size: 13px;
+}
+
 .detailStatus {
     padding: 10px 12px;
     border: 1px dashed var(--market-muted);
@@ -1133,6 +1142,17 @@
     }
 }
 
+.cartSubtotalPrice {
+    display: grid;
+    justify-items: end;
+    gap: 2px;
+
+    s {
+        color: var(--market-muted);
+        font-size: 12px;
+    }
+}
+
 .checkoutButton {
     width: 100%;
 }
@@ -1306,6 +1326,37 @@
         font-size: 11px;
         overflow-wrap: anywhere;
     }
+}
+
+.priceDisplay {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px 7px;
+    color: var(--market-ink);
+
+    strong {
+        color: var(--market-ink);
+        font-size: 17px;
+        white-space: nowrap;
+    }
+
+    s {
+        color: var(--market-muted);
+        font-size: 12px;
+        white-space: nowrap;
+    }
+}
+
+.discountBadge {
+    padding: 2px 6px;
+    border-radius: var(--market-radius-pill);
+    color: var(--market-ink) !important;
+    background: var(--market-accent);
+    font-size: 10px !important;
+    font-weight: 800;
+    line-height: 1.4;
+    white-space: nowrap;
 }
 
 .notice {
