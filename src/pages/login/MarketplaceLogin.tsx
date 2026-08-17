@@ -5,6 +5,10 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { API_URL as BACKEND_API_BASE } from "../../lib/apiUrl";
 import { requestCompoundBayRedirect } from "../../lib/compoundBaySso";
 import {
+    compoundBottleDataUrl,
+    compoundBottleLabel,
+} from "../../lib/compoundBottle";
+import {
     createMarketplaceCheckout,
     createMarketplacePayment,
     createMarketplaceQuote,
@@ -48,10 +52,14 @@ type CartLine = MarketplaceProduct & {
 function ProductVisual({
     imageUrl,
     productName,
+    mass,
+    vendorName,
     loading,
 }: {
     imageUrl?: string | null;
     productName: string;
+    mass?: string | null;
+    vendorName: string;
     loading?: "eager" | "lazy";
 }) {
     const [failed, setFailed] = useState(false);
@@ -68,7 +76,18 @@ function ProductVisual({
             onError={() => setFailed(true)}
         />
     ) : (
-        <span>{productName.slice(0, 2).toUpperCase()}</span>
+        <img
+            src={compoundBottleDataUrl({
+                name: productName,
+                mass,
+                vendorName,
+            })}
+            alt={compoundBottleLabel(productName, mass)}
+            loading={loading}
+            width="520"
+            height="420"
+            data-generated-product-image="true"
+        />
     );
 }
 
@@ -1357,11 +1376,19 @@ export default function MarketplaceLogin({
                                     <div
                                         className={styles.productVisual}
                                         aria-hidden="true">
-                                        <span>
-                                            {product.productName
-                                                .slice(0, 2)
-                                                .toUpperCase()}
-                                        </span>
+                                        <ProductVisual
+                                            imageUrl={product.imageUrl}
+                                            productName={product.productName}
+                                            mass={
+                                                product.dosage ?? product.name
+                                            }
+                                            vendorName={
+                                                vendorName.get(
+                                                    product.vendorCode,
+                                                ) ?? product.vendorCode
+                                            }
+                                            loading="lazy"
+                                        />
                                     </div>
                                     <div className={styles.productCopy}>
                                         <p className={styles.vendorBadge}>
@@ -1453,6 +1480,19 @@ export default function MarketplaceLogin({
                                     selectedProduct.imageUrl
                                 }
                                 productName={selectedProduct.productName}
+                                mass={
+                                    selectedVariant?.dosage ??
+                                    selectedVariant?.name ??
+                                    selectedProduct.dosage ??
+                                    selectedProduct.name
+                                }
+                                vendorName={
+                                    detail?.vendor.name ??
+                                    vendorName.get(
+                                        selectedProduct.vendorCode,
+                                    ) ??
+                                    selectedProduct.vendorCode
+                                }
                                 loading="eager"
                             />
                         </div>
