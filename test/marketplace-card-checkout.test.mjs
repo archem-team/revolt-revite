@@ -48,6 +48,10 @@ test("marketplace cards support direct cart quantity and homepage checkout", asy
     );
     assert.match(
         styles,
+        /\.productActions \.cardQuantity button\s*\{[^}]*?border-radius:\s*0;[^}]*?box-shadow:\s*none;/,
+    );
+    assert.match(
+        styles,
         /\.grid\s*\{[^}]*?grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)[^}]*?align-items:\s*start/,
     );
     assert.match(

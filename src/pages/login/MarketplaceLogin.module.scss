@@ -918,6 +918,20 @@
     }
 }
 
+.productActions .cardQuantity button {
+    margin-top: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: var(--market-paper-2);
+    box-shadow: none;
+
+    &:active {
+        transform: none;
+        box-shadow: none;
+    }
+}
+
 .matchReasons {
     margin: 0;
     color: var(--market-muted);
@@ -1678,9 +1692,13 @@
         border-bottom: 0;
 
         .productPhoto {
+            position: absolute;
+            inset-block: 0;
+            inset-inline-start: 50%;
             width: auto;
             max-width: none;
             height: 100%;
+            transform: translateX(-50%);
         }
     }
 

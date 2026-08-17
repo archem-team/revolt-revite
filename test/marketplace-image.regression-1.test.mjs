@@ -60,7 +60,7 @@ test("marketplace uses the Uther-style generated bottle when product images are 
     );
     assert.match(
         styles,
-        /@media \(max-width: 560px\)[\s\S]*?\.productVisual\s*\{[\s\S]*?\.productPhoto\s*\{[^}]*?width:\s*auto;[^}]*?max-width:\s*none;[^}]*?height:\s*100%;/,
+        /@media \(max-width: 560px\)[\s\S]*?\.productVisual\s*\{[\s\S]*?\.productPhoto\s*\{[^}]*?position:\s*absolute;[^}]*?inset-block:\s*0;[^}]*?width:\s*auto;[^}]*?max-width:\s*none;[^}]*?height:\s*100%;/,
     );
     assert.match(
         styles,
