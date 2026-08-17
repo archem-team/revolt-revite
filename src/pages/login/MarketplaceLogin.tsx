@@ -95,14 +95,26 @@ function ProductVisual({
     useEffect(() => setFailed(false), [resolvedImageUrl]);
 
     return resolvedImageUrl && !failed ? (
-        <img
-            src={resolvedImageUrl}
-            alt=""
-            loading={loading}
-            width="640"
-            height="480"
-            onError={() => setFailed(true)}
-        />
+        <>
+            <img
+                className={styles.productPhotoBackdrop}
+                src={resolvedImageUrl}
+                alt=""
+                aria-hidden="true"
+                loading={loading}
+                width="640"
+                height="480"
+            />
+            <img
+                className={styles.productPhoto}
+                src={resolvedImageUrl}
+                alt=""
+                loading={loading}
+                width="640"
+                height="480"
+                onError={() => setFailed(true)}
+            />
+        </>
     ) : (
         <img
             src={compoundBottleDataUrl({

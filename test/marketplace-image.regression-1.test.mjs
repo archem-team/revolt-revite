@@ -34,6 +34,10 @@ test("marketplace uses the Uther-style generated bottle when product images are 
     assert.match(source, /data-generated-product-image="true"/);
     assert.match(
         source,
+        /className=\{styles\.productPhotoBackdrop\}[\s\S]*?aria-hidden="true"[\s\S]*?className=\{styles\.productPhoto\}/,
+    );
+    assert.match(
+        source,
         /displayedProducts\.map[\s\S]*?<ProductVisual[\s\S]*?imageUrl=\{product\.imageUrl\}/,
     );
     assert.equal(source.match(/vendorCode=\{/g)?.length, 2);
@@ -49,6 +53,10 @@ test("marketplace uses the Uther-style generated bottle when product images are 
     assert.match(
         styles,
         /\.productVisual\s*\{[^}]*?min-height:\s*0;[^}]*?aspect-ratio:\s*4\s*\/\s*3;[\s\S]*?img\s*\{[^}]*?min-height:\s*0;/,
+    );
+    assert.match(
+        styles,
+        /\.productVisual\s*\{[\s\S]*?\.productPhotoBackdrop\s*\{[\s\S]*?filter:\s*blur\(16px\)[^;]*;[\s\S]*?object-fit:\s*cover;/,
     );
     assert.match(
         styles,
