@@ -727,6 +727,7 @@
 .grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: start;
     gap: 14px;
     transition: opacity 150ms var(--market-ease-snap);
 }
