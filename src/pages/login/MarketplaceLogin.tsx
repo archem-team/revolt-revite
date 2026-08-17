@@ -36,6 +36,7 @@ const QUOTE_STORAGE_KEY = "compound-bay-marketplace-quote-v1";
 const QUOTE_CART_STORAGE_KEY = "compound-bay-marketplace-quote-cart-v1";
 const BUYER_STORAGE_KEY = "compound-bay-marketplace-buyer-v1";
 const PAYMENT_STORAGE_KEY = "compound-bay-marketplace-payment-v1";
+const PRODUCT_RETURN_STORAGE_KEY = "compound-bay-marketplace-product-return-v1";
 const SEARCH_EXAMPLES = [
     "Try Reta 15",
     "Try Reta 15 in Australia",
@@ -185,6 +186,23 @@ function readCart() {
     }
 }
 
+function readProductReturn() {
+    try {
+        const saved = window.sessionStorage.getItem(PRODUCT_RETURN_STORAGE_KEY);
+        window.sessionStorage.removeItem(PRODUCT_RETURN_STORAGE_KEY);
+        if (!saved) return null;
+        const product = JSON.parse(saved) as Partial<MarketplaceProduct>;
+        return typeof product.id === "string" &&
+            typeof product.productId === "string" &&
+            typeof product.vendorCode === "string"
+            ? (product as MarketplaceProduct)
+            : null;
+    } catch {
+        window.sessionStorage.removeItem(PRODUCT_RETURN_STORAGE_KEY);
+        return null;
+    }
+}
+
 export default function MarketplaceLogin({
     pepchatSession,
     requestPepchatSignIn,
@@ -224,7 +242,7 @@ export default function MarketplaceLogin({
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState("");
     const [selectedProduct, setSelectedProduct] =
-        useState<MarketplaceProduct | null>(null);
+        useState<MarketplaceProduct | null>(readProductReturn);
     const [detail, setDetail] = useState<MarketplaceProductDetail | null>(null);
     const [detailPending, setDetailPending] = useState(false);
     const [detailError, setDetailError] = useState("");
@@ -457,6 +475,15 @@ export default function MarketplaceLogin({
             dialog?.removeEventListener("cancel", handleCancel);
         };
     }, [selectedProduct]);
+
+    useEffect(() => {
+        const restoreProduct = () => {
+            const product = readProductReturn();
+            if (product) setSelectedProduct(product);
+        };
+        window.addEventListener("pageshow", restoreProduct);
+        return () => window.removeEventListener("pageshow", restoreProduct);
+    }, []);
 
     useEffect(() => {
         const dialog = cartDialogRef.current;
@@ -1695,8 +1722,14 @@ export default function MarketplaceLogin({
                                         selectedProduct.labReportUrl ??
                                         ""
                                     }
-                                    target="_blank"
-                                    rel="noreferrer">
+                                    target="_self"
+                                    rel="noreferrer"
+                                    onClick={() =>
+                                        window.sessionStorage.setItem(
+                                            PRODUCT_RETURN_STORAGE_KEY,
+                                            JSON.stringify(selectedProduct),
+                                        )
+                                    }>
                                     View lab report
                                 </a>
                             ) : null}
