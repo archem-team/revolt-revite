@@ -32,10 +32,8 @@ test("marketplace uses the Uther-style generated bottle when product images are 
         /compoundBottleDataUrl\(\{[\s\S]*?name: productName,[\s\S]*?mass,[\s\S]*?vendorName/,
     );
     assert.match(source, /data-generated-product-image="true"/);
-    assert.match(
-        source,
-        /className=\{styles\.productPhotoBackdrop\}[\s\S]*?aria-hidden="true"[\s\S]*?className=\{styles\.productPhoto\}/,
-    );
+    assert.doesNotMatch(source, /productPhotoBackdrop/);
+    assert.match(source, /className=\{styles\.productPhoto\}/);
     assert.match(
         source,
         /displayedProducts\.map[\s\S]*?<ProductVisual[\s\S]*?imageUrl=\{product\.imageUrl\}/,
@@ -48,7 +46,7 @@ test("marketplace uses the Uther-style generated bottle when product images are 
     );
     assert.match(
         styles,
-        /\.productVisual\s*\{[\s\S]*?img\s*\{[\s\S]*?object-fit: contain;/,
+        /\.productVisual\s*\{[\s\S]*?img\s*\{[\s\S]*?object-fit: cover;/,
     );
     assert.match(
         styles,
@@ -56,11 +54,11 @@ test("marketplace uses the Uther-style generated bottle when product images are 
     );
     assert.match(
         styles,
-        /\.productVisual\s*\{[\s\S]*?\.productPhotoBackdrop\s*\{[\s\S]*?filter:\s*blur\(16px\)[^;]*;[\s\S]*?object-fit:\s*cover;/,
+        /img\[data-generated-product-image="true"\]\s*\{[^}]*?object-fit:\s*contain;/,
     );
-    assert.match(
+    assert.doesNotMatch(
         styles,
-        /@media \(max-width: 560px\)[\s\S]*?\.productVisual\s*\{[\s\S]*?\.productPhoto\s*\{[^}]*?position:\s*absolute;[^}]*?inset-block:\s*0;[^}]*?width:\s*auto;[^}]*?max-width:\s*none;[^}]*?height:\s*100%;/,
+        /@media \(max-width: 560px\)[\s\S]*?\.productVisual\s*\{[\s\S]*?\.productPhoto\s*\{/,
     );
     assert.match(
         styles,

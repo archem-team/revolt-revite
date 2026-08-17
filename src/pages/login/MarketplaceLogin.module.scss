@@ -767,31 +767,17 @@
         min-height: 0;
         width: 100%;
         height: 100%;
-        object-fit: contain;
+        object-fit: cover;
         object-position: center;
     }
 
-    .productPhotoBackdrop {
-        position: absolute;
-        inset: -18px;
-        z-index: 0;
-        width: calc(100% + 36px);
-        height: calc(100% + 36px);
-        display: block;
-        filter: blur(16px) saturate(0.8);
-        object-fit: cover;
-        opacity: 0.58;
-        transform: scale(1.04);
-    }
-
     .productPhoto {
-        position: relative;
-        z-index: 1;
+        display: block;
     }
-}
 
-.productPhotoBackdrop {
-    display: none;
+    img[data-generated-product-image="true"] {
+        object-fit: contain;
+    }
 }
 
 .productCopy {
@@ -2116,16 +2102,6 @@
         aspect-ratio: auto;
         border-right: 1px solid var(--market-line);
         border-bottom: 0;
-
-        .productPhoto {
-            position: absolute;
-            inset-block: 0;
-            inset-inline-start: 50%;
-            width: auto;
-            max-width: none;
-            height: 100%;
-            transform: translateX(-50%);
-        }
     }
 
     .authentication {
