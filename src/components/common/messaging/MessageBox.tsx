@@ -1,5 +1,10 @@
 import { Block } from "@styled-icons/boxicons-regular";
-import { HappyBeaming, Send } from "@styled-icons/boxicons-solid";
+import { User } from "@styled-icons/boxicons-regular";
+import {
+    FileGif as GifIcon,
+    HappyBeaming,
+    Send,
+} from "@styled-icons/boxicons-solid";
 import Axios, { CancelTokenSource } from "axios";
 import { observer } from "mobx-react-lite";
 import { Channel } from "revolt.js";
@@ -20,6 +25,7 @@ import { defer, chainedDefer } from "../../../lib/defer";
 import { internalEmit, internalSubscribe } from "../../../lib/eventEmitter";
 import { useTranslation } from "../../../lib/i18n";
 import { isTouchscreenDevice } from "../../../lib/isTouchscreenDevice";
+import { Gif, MediaKind, gifShare, klipyEnabled } from "../../../lib/klipy";
 import {
     getRenderer,
     SMOOTH_SCROLL_ON_RECEIVE,
@@ -47,6 +53,7 @@ import { RenderEmoji } from "../../markdown/plugins/emoji";
 import AutoComplete, { useAutoComplete } from "../AutoComplete";
 import { PermissionTooltip } from "../Tooltip";
 import ComposerOverlay from "./ComposerOverlay";
+import MediaPicker, { MediaTab } from "./MediaPicker";
 import FilePreview from "./bars/FilePreview";
 import ReplyBar from "./bars/ReplyBar";
 
@@ -208,9 +215,11 @@ export const HackAlertThisFileWillBeReplaced = observer(
     ({
         onSelect,
         onClose,
+        embedded,
     }: {
         onSelect: (emoji: string) => void;
         onClose: () => void;
+        embedded?: boolean;
     }) => {
         const renderEmoji = useMemo(
             () =>
@@ -260,6 +269,7 @@ export const HackAlertThisFileWillBeReplaced = observer(
                 renderEmoji={renderEmoji}
                 onSelect={onSelect}
                 onClose={onClose}
+                embedded={embedded}
             />
         );
     },
@@ -277,6 +287,7 @@ export default observer(({ channel }: Props) => {
     const [typing, setTyping] = useState<boolean | number>(false);
     const [replies, setReplies] = useState<Reply[]>([]);
     const [picker, setPicker] = useState(false);
+    const [pickerTab, setPickerTab] = useState<MediaTab>("emoji");
     const [sendFailure, setSendFailure] = useState<{
         error: string;
         retryAt?: number;
@@ -296,6 +307,18 @@ export default observer(({ channel }: Props) => {
     useEffect(() => setSendFailure(undefined), [channel._id]);
 
     const closePicker = useCallback(() => setPicker(false), []);
+
+    /**
+     * Open the media panel on a given tab, or close it if that tab is
+     * already showing — so each button toggles its own section.
+     */
+    const openPicker = useCallback(
+        (tab: MediaTab) => {
+            setPicker((open) => !(open && pickerTab === tab));
+            setPickerTab(tab);
+        },
+        [pickerTab],
+    );
 
     const renderer = getRenderer(channel);
 
@@ -513,6 +536,42 @@ export default observer(({ channel }: Props) => {
                 state.queue.fail(nonce, failure.error, failure.retryAt);
                 setSendFailure(failure);
             }
+        }
+    }
+
+    /**
+     * Send a picked GIF or sticker as its own message.
+     *
+     * The direct media URL is the content: january embeds that as an
+     * image, where the provider's page URL yields no embed at all. Any
+     * draft the user is part-way through typing is left untouched —
+     * the GIF is a separate message, as it is elsewhere.
+     */
+    async function sendGif(gif: Gif, kind: MediaKind, searchQuery?: string) {
+        const nonce = ulid();
+        state.settings.sounds.playSound("outbound");
+        setReplies([]);
+
+        // KLIPY personalise results from what actually gets sent; this is
+        // fire-and-forget and never blocks the message.
+        gifShare(kind, gif.slug, searchQuery);
+
+        state.queue.add(nonce, channel._id, {
+            _id: nonce,
+            channel: channel._id,
+            author: client.user!._id,
+
+            content: gif.url,
+            replies,
+        });
+
+        chainedDefer(() => renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE));
+
+        try {
+            await channel.sendMessage({ content: gif.url, nonce, replies });
+            chainedDefer(() => renderer.jumpToBottom(SMOOTH_SCROLL_ON_RECEIVE));
+        } catch (error) {
+            state.queue.fail(nonce, takeError(error));
         }
     }
 
@@ -747,28 +806,38 @@ export default observer(({ channel }: Props) => {
             )}
             <FloatingLayer>
                 {picker && (
-                    <HackAlertThisFileWillBeReplaced
-                        onSelect={(emoji) => {
-                            const v = state.draft.get(channel._id);
-                            // Standard emoji go in as the unicode character
-                            // (rendered as the same Twemoji image in composer
-                            // and message); custom emoji have no unicode
-                            // form and stay :ULID:.
-                            const inserted =
-                                emoji in emojiDictionary
-                                    ? emojiDictionary[
-                                          emoji as keyof typeof emojiDictionary
-                                      ]
-                                    : `:${emoji}:`;
-                            const cnt: DraftObject = {
-                                content:
-                                    (v?.content ? `${v.content} ` : "") +
-                                    inserted,
-                            };
-                            state.draft.set(channel._id, cnt);
-                        }}
-                        onClose={closePicker}
-                    />
+                    <MediaPicker
+                        tab={pickerTab}
+                        setTab={setPickerTab}
+                        onSelectGif={sendGif}
+                        onClose={closePicker}>
+                        {({ embedded }) => (
+                            <HackAlertThisFileWillBeReplaced
+                                embedded={embedded}
+                                onSelect={(emoji) => {
+                                    const v = state.draft.get(channel._id);
+                                    // Standard emoji go in as the unicode character
+                                    // (rendered as the same Twemoji image in composer
+                                    // and message); custom emoji have no unicode
+                                    // form and stay :ULID:.
+                                    const inserted =
+                                        emoji in emojiDictionary
+                                            ? emojiDictionary[
+                                                  emoji as keyof typeof emojiDictionary
+                                              ]
+                                            : `:${emoji}:`;
+                                    const cnt: DraftObject = {
+                                        content:
+                                            (v?.content
+                                                ? `${v.content} `
+                                                : "") + inserted,
+                                    };
+                                    state.draft.set(channel._id, cnt);
+                                }}
+                                onClose={closePicker}
+                            />
+                        )}
+                    </MediaPicker>
                 )}
             </FloatingLayer>
             <Base>
@@ -892,13 +961,20 @@ export default observer(({ channel }: Props) => {
                     onFocus={onFocus}
                     onBlur={onBlur}
                 />
+                {klipyEnabled && (
+                    <Action>
+                        <IconButton onClick={() => openPicker("gif")}>
+                            <GifIcon size={24} />
+                        </IconButton>
+                    </Action>
+                )}
                 <Action>
                     <IconButton
                         aria-label={translate(
                             "app.main.channel.accessibility.open_emoji_picker",
                         )}
                         aria-expanded={picker}
-                        onClick={() => setPicker(!picker)}>
+                        onClick={() => openPicker("emoji")}>
                         <HappyBeaming size={24} aria-hidden="true" />
                     </IconButton>
                 </Action>
