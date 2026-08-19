@@ -1,0 +1,148 @@
+// The v4 login artwork — the artist's layered SVG delivery, placed with her
+// exact Illustrator transforms (2560x1440 reference frame, converted to
+// percentages). Everything is vector, and every gradient lives inside the
+// SVG files themselves: background.svg carries the street-glow ramp, and
+// each cityscape's fill carries HER gradient for that layer, sampled
+// pixel-for-pixel from her composite and anchored to her gradient notes
+// (c1: #13061c plateau into #592780 street; c2: #662d91 -> #100518;
+// c3: linear #331549 fade-out). Layering follows her notes: the flyer's
+// trail sits above cityscapes 2 and 3 but below cityscape 1.
+
+.art {
+    position: fixed;
+    inset: -12px;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    // Pre-paint matching the ramp's sky colour, so nothing flashes while
+    // background.svg loads.
+    background: #100518;
+
+    img {
+        position: absolute;
+        height: auto;
+    }
+}
+
+// The street glow itself (background.svg carries the sampled ramp);
+// stretched full-bleed — it is pure gradient, distortion-free. Nested
+// under .art so it outranks the shared `img { height: auto }`.
+.art img.bg {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+// Sky strip: "occupies the top of the screen, but should not sit or go
+// past the edges".
+.stars {
+    left: 2%;
+    top: 1.2%;
+    width: 94.1%;
+}
+
+// ——— the city (all three share the bottom edge) ———
+.city3 {
+    left: -1.5%;
+    bottom: -0.3%;
+    width: 102.3%;
+}
+.city2 {
+    left: -0.9%;
+    bottom: -0.3%;
+    width: 101.8%;
+}
+// Above cityscapes 2/3, below cityscape 1, per the artist's layering note.
+.flyerPath {
+    left: 72.7%;
+    top: 40.5%;
+    width: 15.4%;
+}
+.city1 {
+    left: -0.9%;
+    bottom: -0.3%;
+    width: 101.8%;
+}
+
+// ——— sky cast ———
+.plane {
+    left: 15.7%;
+    top: 9%;
+    width: 20.4%;
+}
+.flyer {
+    left: 65.1%;
+    top: 27.9%;
+    width: 9.2%;
+    transform: rotate(-5.381deg);
+}
+
+// ——— street cast ———
+.charsLeft {
+    left: 6.9%;
+    bottom: 0;
+    width: 23.5%;
+}
+.charsRight {
+    right: 3%;
+    bottom: 0;
+    width: 29.4%;
+}
+
+// Artist's shrink rules: "leave out either one if the screen is too
+// small; if it still doesn't work, leave both out, with only the plane
+// and flying persons remaining".
+@media only screen and (max-width: 900px) {
+    .charsLeft {
+        display: none;
+    }
+}
+
+@media only screen and (max-width: 768px) {
+    // Portrait: the city shows its center slice at a scale where the
+    // skyline silhouette stays recognizable instead of fragmenting.
+    // Seated low so the busy building tops sit below the Get Zeko row
+    // and store buttons instead of behind them.
+    .city1,
+    .city2,
+    .city3 {
+        width: 170%;
+        left: -35%;
+        bottom: -16%;
+    }
+
+    // The sky cast lives in the clear strip between the centered brand
+    // lockup and the card: plane on the left, flyer on the right.
+    .plane {
+        left: 4%;
+        top: 10.5%;
+        width: 30%;
+    }
+    .flyer {
+        left: auto;
+        right: 5%;
+        top: 9.5%;
+        width: 17%;
+    }
+    // The trail rides the open margin to the right of the card.
+    .flyerPath {
+        left: auto;
+        right: 2%;
+        top: 19%;
+        width: 20%;
+    }
+}
+
+// Phones: the card runs edge to edge, so there is no margin for the
+// trail to live in.
+@media only screen and (max-width: 480px) {
+    .flyerPath {
+        display: none;
+    }
+}
+
+@media only screen and (max-width: 600px) {
+    .charsRight {
+        display: none;
+    }
+}

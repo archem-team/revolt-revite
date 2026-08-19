@@ -1,0 +1,77 @@
+// Field chrome for the login forms: sentence-case labels with an optional
+// inline action ("Forgot?"), the password reveal toggle, and inline
+// validation styling.
+
+// Doubled class: the Category atom's runtime-injected styles land later in
+// the cascade, so a single class name loses the tie.
+.label.label {
+    // The Category atom is an uppercase overline; these labels read as
+    // ordinary words sitting close to their input, clearly stronger than
+    // the placeholders below them.
+    padding: 0;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--foreground);
+    margin: 16px 0 2px;
+
+    &:first-child {
+        margin-top: 0;
+    }
+}
+
+// Nested for specificity: the page-wide `.login a` rule paints links white.
+// Yellow, like every other actionable link on the card.
+.label .action a {
+    font-size: 13px;
+    font-weight: 500;
+    color: #ffde17;
+}
+
+// The reveal toggle's room (padding-right) is set inline on the input:
+// the login card's own `form input` rules outrank anything written here.
+.inputWrap {
+    position: relative;
+}
+
+.eye {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    display: flex;
+    padding: 8px;
+    border: none;
+    background: none;
+    color: var(--secondary-foreground);
+    cursor: pointer;
+
+    &:hover {
+        color: var(--foreground);
+    }
+}
+
+// Tripled class to outrank the card's `form input` border rules.
+.invalid.invalid.invalid {
+    border-color: var(--error);
+
+    &:focus {
+        // The focus ring takes over; a red border underneath reads muddy.
+        border-color: transparent;
+    }
+}
+
+.fieldError {
+    font-size: 12.5px;
+
+    // The Error atom sizes itself for settings pages; compact here.
+    span {
+        font-size: 12.5px;
+    }
+}
+
+.hint {
+    font-size: 12.5px;
+    color: var(--secondary-foreground);
+}

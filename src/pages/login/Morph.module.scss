@@ -1,0 +1,110 @@
+// Motion for the login card. The card is meant to read as one continuous
+// surface: it resizes into its next shape instead of snapping to it, and its
+// contents cross-fade instead of cutting.
+
+// The stock CSS easings are too weak to read as intentional.
+$ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+.box {
+    position: relative;
+    transition: height 280ms $ease-out;
+
+    // Only clip mid-morph. At rest the box measures exactly its contents, and
+    // clipping would eat the focus ring of the full-width inputs.
+    &[data-animating] {
+        overflow: hidden;
+    }
+}
+
+// The outgoing contents, frozen as a detached copy so they can leave on their
+// own while the live ones arrive underneath.
+.ghost {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+}
+
+// Incoming contents. The blur bridges the two states so the eye reads one
+// surface changing rather than two swapping.
+@keyframes morph-in {
+    from {
+        opacity: 0;
+        filter: blur(3px);
+    }
+    to {
+        opacity: 1;
+        filter: none;
+    }
+}
+
+@keyframes morph-fade {
+    from {
+        opacity: 0;
+    }
+}
+
+.enter {
+    // No fill mode: the element must not keep a filter once it has landed.
+    animation: morph-in 220ms $ease-out;
+}
+
+// Submitting used to swap the whole form out for a page-sized spinner, which
+// collapsed the card to a fraction of its height. The button reports progress
+// in place instead, so nothing moves.
+.cta {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ctaLabel {
+    transition: opacity 140ms $ease-out, filter 140ms $ease-out;
+}
+
+.ctaSpinner {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    opacity: 0;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    transition: opacity 140ms $ease-out;
+}
+
+// The button is busy, not forbidden - `not-allowed` reads as a rejection.
+button:has(> .cta[data-loading]) {
+    cursor: progress;
+}
+
+.cta[data-loading] {
+    .ctaLabel {
+        opacity: 0;
+        filter: blur(2px);
+    }
+
+    .ctaSpinner {
+        opacity: 1;
+        animation: cta-spin 600ms linear infinite;
+    }
+}
+
+@keyframes cta-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .box {
+        transition: none;
+    }
+
+    // Keep the fade - it explains the change - but drop the blur.
+    .enter {
+        animation-name: morph-fade;
+    }
+}

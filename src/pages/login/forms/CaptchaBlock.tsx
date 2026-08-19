@@ -2,6 +2,7 @@ import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { observer } from "mobx-react-lite";
 
 import styles from "../Login.module.scss";
+import morph from "../Morph.module.scss";
 import { Text } from "preact-i18n";
 import { useEffect } from "preact/hooks";
 
@@ -27,7 +28,7 @@ export const CaptchaBlock = observer((props: CaptchaProps) => {
         return <Preloader type="spinner" />;
 
     return (
-        <div className={styles.captcha}>
+        <div className={`${styles.captcha} ${morph.enter}`}>
             <div className={styles.title}>Are you human?</div>
             <div className={styles.checkbox}>
                 <HCaptcha

@@ -156,7 +156,14 @@ function transformLanguage(source: Dictionary) {
 export function I18nError({ error, children }: { error: any; children?: any }) {
     return (
         <Error
-            error={error ? <Text id={error} children={error} /> : undefined}
+            error={
+                error ? (
+                    // Error copy lives under `error.*`; without the prefix
+                    // every message fell back to its raw code, so a bad login
+                    // read "INVALIDCREDENTIALS" instead of a sentence.
+                    <Text id={`error.${error}`} children={error} />
+                ) : undefined
+            }
             children={children}
         />
     );

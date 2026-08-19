@@ -1,0 +1,79 @@
+// The app hand-off row that sits under the login card, on the canvas.
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    // Flush with the card edges, like the mock.
+    padding: 0;
+}
+
+.tile {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.copy {
+    // Pushes the store buttons to the far edge; when the row wraps on a
+    // narrow phone they fall to their own line instead of squeezing.
+    margin-right: auto;
+
+    .name {
+        font-size: 14.5px;
+        font-weight: 600;
+        color: #fffffd;
+    }
+
+    .sub {
+        font-size: 12.5px;
+        color: #bab8be;
+    }
+}
+
+.stores {
+    display: flex;
+    gap: 8px;
+}
+
+.row .store {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 11px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 10px;
+    color: #fffffd;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s ease;
+
+    svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+    }
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        text-decoration: none;
+    }
+}
+
+// Once the row wraps, half-hearted left-aligned buttons read as an accident;
+// stretched evenly they read as a deliberate second row.
+@media only screen and (max-width: 480px) {
+    .stores {
+        width: 100%;
+    }
+
+    .row .store {
+        flex: 1;
+        justify-content: center;
+    }
+}

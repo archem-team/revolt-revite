@@ -1,22 +1,23 @@
 import { observer } from "mobx-react-lite";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
+import styled from "styled-components/macro";
 
 import styles from "../Login.module.scss";
+import morph from "../Morph.module.scss";
 import { Text } from "preact-i18n";
-import { useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
 
-import { Button, Category, Preloader } from "@revoltchat/ui";
+import { Button, Category } from "@revoltchat/ui";
 
 import { I18nError } from "../../../context/Locale";
-
-import WaveSVG from "../../settings/assets/wave.svg";
 
 import { clientController } from "../../../controllers/client/ClientController";
 import { takeError } from "../../../controllers/client/jsx/error";
 import FormField from "../FormField";
+import { useMorph } from "../Morph";
 import { CaptchaBlock, CaptchaProps } from "./CaptchaBlock";
-import { MailProvider } from "./MailProvider";
+import { CheckMail } from "./CheckMail";
 
 interface Props {
     page: "create" | "login" | "send_reset" | "reset" | "resend";
@@ -42,8 +43,29 @@ interface FormInputs {
     invite: string;
 }
 
+/**
+ * A whole sentence rather than an overline: it has to wrap (the stock label
+ * is `nowrap`, and a translated message runs past the card) and it should not
+ * shout.
+ */
+const ErrorLine = styled(Category)`
+    font-weight: 600;
+    white-space: normal;
+    text-transform: none;
+`;
+
+/** What the submit button says, per page. */
+const ACTIONS: Record<Props["page"], string> = {
+    create: "login.register",
+    login: "login.title",
+    reset: "login.set_password",
+    resend: "login.resend",
+    send_reset: "login.reset",
+};
+
 export const Form = observer(({ page, callback }: Props) => {
     const configuration = clientController.getServerConfig();
+    const card = useMorph();
 
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState<string | undefined>(undefined);
@@ -58,12 +80,35 @@ export const Form = observer(({ page, callback }: Props) => {
         },
     });
 
+    /** Swap the card's contents through the morph, never in a hard cut. */
+    function swapTo(change: () => void) {
+        card.swap();
+        change();
+    }
+
+    // react-hook-form 6 has no invalid-submit callback, so watch whether our
+    // handler ran at all: if it did not, validation turned the submit away.
+    const accepted = useRef(false);
+    const submit = handleSubmit(onSubmit);
+
+    async function trySubmit(event: Event) {
+        accepted.current = false;
+        await submit(event as never);
+        if (!accepted.current) card.reject();
+    }
+
     async function onSubmit(data: FormInputs) {
+        accepted.current = true;
+
+        // The fields stay live while submitting, so Enter can still reach us.
+        if (loading) return;
+
         setGlobalError(undefined);
         setLoading(true);
 
         function onError(err: unknown) {
             setLoading(false);
+            card.reject();
 
             const error = takeError(err);
             switch (error) {
@@ -84,24 +129,33 @@ export const Form = observer(({ page, callback }: Props) => {
                 page !== "reset" &&
                 page !== "login"
             ) {
-                setCaptcha({
-                    onSuccess: async (captcha) => {
-                        setCaptcha(undefined);
-                        try {
-                            await callback({ ...data, captcha });
-                            setSuccess(data.email);
-                        } catch (err) {
-                            onError(err);
-                        }
-                    },
-                    onCancel: () => {
-                        setCaptcha(undefined);
-                        setLoading(false);
-                    },
-                });
+                swapTo(() =>
+                    setCaptcha({
+                        onSuccess: async (captcha) => {
+                            swapTo(() => setCaptcha(undefined));
+                            try {
+                                await callback({ ...data, captcha });
+                                swapTo(() => setSuccess(data.email));
+                            } catch (err) {
+                                onError(err);
+                            }
+                        },
+                        onCancel: () =>
+                            swapTo(() => {
+                                setCaptcha(undefined);
+                                setLoading(false);
+                            }),
+                    }),
+                );
             } else {
                 await callback(data);
-                setSuccess(data.email);
+                // Logging in sends no email — it establishes a session and
+                // CheckAuth redirects away. Setting success here raced that
+                // redirect and, when it won, left the user on the "check your
+                // mail" screen with no way back.
+                if (page !== "login") {
+                    swapTo(() => setSuccess(data.email));
+                }
             }
         } catch (err) {
             onError(err);
@@ -110,43 +164,16 @@ export const Form = observer(({ page, callback }: Props) => {
 
     if (typeof success !== "undefined") {
         return (
-            <div className={styles.success}>
-                {configuration?.features.email ? (
-                    <>
-                        <div>
-                            <div className={styles.title}>
-                                <Text id="login.check_mail" />
-                            </div>
-                            <div className={styles.subtitle}>
-                                <Text id="login.email_delay" />
-                            </div>
-                        </div>
-                        <MailProvider email={success} />
-                    </>
-                ) : (
-                    <>
-                        <div className={styles.title}>
-                            <Text id="login.successful_registration" />
-                        </div>
-                    </>
-                )}
-                <Link to="/login">
-                    <a>
-                        <Text id="login.remembered" />
-                    </a>
-                </Link>
-            </div>
+            <CheckMail email={success} onReturn={() => setSuccess(undefined)} />
         );
     }
 
     if (captcha) return <CaptchaBlock {...captcha} />;
-    if (loading) return <Preloader type="spinner" />;
 
     return (
-        <div className={styles.formModal}>
+        <div className={`${styles.formModal} ${morph.enter}`}>
             <div className={styles.welcome}>
                 <div className={styles.title}>
-                    <img src={WaveSVG} draggable={false} />
                     <Text
                         id={
                             page === "create"
@@ -169,9 +196,7 @@ export const Form = observer(({ page, callback }: Props) => {
             {/* Preact / React typing incompatabilities */}
             <form
                 onSubmit={
-                    handleSubmit(
-                        onSubmit,
-                    ) as unknown as JSX.GenericEventHandler<HTMLFormElement>
+                    trySubmit as unknown as JSX.GenericEventHandler<HTMLFormElement>
                 }>
                 {page !== "reset" && (
                     <FormField
@@ -189,6 +214,20 @@ export const Form = observer(({ page, callback }: Props) => {
                         register={register}
                         showOverline
                         error={errors.password?.message}
+                        action={
+                            // Lives on the label row, where the eye
+                            // lands right before typing a password.
+                            page === "login" ? (
+                                <Link to="/login/reset">Forgot?</Link>
+                            ) : undefined
+                        }
+                        hint={
+                            // Surface the rule where a password is being
+                            // chosen, not after it gets rejected.
+                            page !== "login" ? (
+                                <Text id="login.password_hint" />
+                            ) : undefined
+                        }
                     />
                 )}
                 {configuration?.features.invite_only && page === "create" && (
@@ -199,27 +238,24 @@ export const Form = observer(({ page, callback }: Props) => {
                         error={errors.invite?.message}
                     />
                 )}
+                {/* Says what went wrong on its own - pairing it with
+                    "Failed to login!" only said it twice. */}
                 {error && (
-                    <Category>
-                        <I18nError error={error}>
-                            <Text id={`login.error.${page}`} />
-                        </I18nError>
-                    </Category>
+                    <ErrorLine>
+                        <I18nError error={error} />
+                    </ErrorLine>
                 )}
-                <Button>
-                    <Text
-                        id={
-                            page === "create"
-                                ? "login.register"
-                                : page === "login"
-                                ? "login.title"
-                                : page === "reset"
-                                ? "login.set_password"
-                                : page === "resend"
-                                ? "login.resend"
-                                : "login.reset"
-                        }
-                    />
+                <Button disabled={loading}>
+                    {/* Progress reports inside the button: swapping the whole
+                        form out for a spinner collapsed the card. */}
+                    <span
+                        className={morph.cta}
+                        data-loading={loading ? "true" : undefined}>
+                        <span className={morph.ctaLabel}>
+                            <Text id={ACTIONS[page]} />
+                        </span>
+                        <span className={morph.ctaSpinner} aria-hidden="true" />
+                    </span>
                 </Button>
             </form>
             {page === "create" && (
@@ -236,18 +272,6 @@ export const Form = observer(({ page, callback }: Props) => {
                         <Text id="login.new" />{" "}
                         <Link to="/login/create">
                             <Text id="login.create" />
-                        </Link>
-                    </span>
-                    <span className={styles.create}>
-                        <Text id="login.forgot" />{" "}
-                        <Link to="/login/reset">
-                            <Text id="login.reset" />
-                        </Link>
-                    </span>
-                    <span className={styles.create}>
-                        <Text id="login.missing_verification" />{" "}
-                        <Link to="/login/resend">
-                            <Text id="login.resend" />
                         </Link>
                     </span>
                 </>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2560 1440" preserveAspectRatio="none">
+  <defs><linearGradient id="glow" x1="0" y1="1440" x2="0" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#592780"/><stop offset="0.06" stop-color="#56267c"/><stop offset="0.11" stop-color="#4b216c"/><stop offset="0.17" stop-color="#3e1b59"/><stop offset="0.23" stop-color="#301445"/><stop offset="0.29" stop-color="#250f36"/><stop offset="0.34" stop-color="#1c0a29"/><stop offset="0.42" stop-color="#13061c"/><stop offset="0.55" stop-color="#100518"/><stop offset="1" stop-color="#100518"/></linearGradient></defs>
+  <rect width="2560" height="1440" fill="url(#glow)"/>
+</svg>

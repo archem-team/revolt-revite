@@ -1,0 +1,55 @@
+// The signature moment of the login page: the brand mark assembles
+// pixel-by-pixel on load. Smile first, then cheeks, then eyes — the two
+// purple blocks land last as the wink. Runs once, settles in ~560ms.
+
+@keyframes pop {
+    from {
+        opacity: 0;
+        transform: scale(0.4);
+    }
+}
+
+.mark {
+    height: 30px;
+    width: auto;
+    overflow: visible;
+
+    path {
+        // `backwards` keeps each block invisible until its turn.
+        animation: pop 240ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+        // Scale each block from its own centre, not the SVG origin.
+        transform-box: fill-box;
+        transform-origin: center;
+    }
+
+    // Delays follow assembly order, not document order.
+    // Document order: smile, eye-L yellow, eye-L purple, eye-R purple,
+    // eye-R yellow, cheek-R, cheek-L.
+    path:nth-child(1) {
+        animation-delay: 0ms; // smile
+    }
+    path:nth-child(7) {
+        animation-delay: 60ms; // cheek, left
+    }
+    path:nth-child(6) {
+        animation-delay: 100ms; // cheek, right
+    }
+    path:nth-child(2) {
+        animation-delay: 160ms; // eye left, yellow
+    }
+    path:nth-child(5) {
+        animation-delay: 200ms; // eye right, yellow
+    }
+    path:nth-child(3) {
+        animation-delay: 280ms; // eye left, purple
+    }
+    path:nth-child(4) {
+        animation-delay: 320ms; // eye right, purple
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mark path {
+        animation: none;
+    }
+}
