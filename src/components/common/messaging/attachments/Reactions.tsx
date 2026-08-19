@@ -12,7 +12,7 @@ import styled, { css } from "styled-components";
 import { createPortal } from "preact/compat";
 import { useCallback, useRef, useState } from "preact/hooks";
 
-import { IconButton } from "@revoltchat/ui";
+import { useTranslation } from "../../../../lib/i18n";
 
 import { emojiDictionary } from "../../../../assets/emojis";
 import { useClient } from "../../../../controllers/client/ClientController";
@@ -34,14 +34,6 @@ const List = styled.div`
     flex-wrap: wrap;
     margin-top: 0.2em;
     align-items: center;
-
-    .add {
-        display: none;
-    }
-
-    &:hover .add {
-        display: grid;
-    }
 `;
 
 /**
@@ -56,7 +48,7 @@ const Divider = styled.div`
 /**
  * Reaction styling
  */
-const Reaction = styled.div<{ active: boolean }>`
+const Reaction = styled.button<{ active: boolean }>`
     padding: 0.4em;
     cursor: pointer;
     user-select: none;
@@ -67,6 +59,7 @@ const Reaction = styled.div<{ active: boolean }>`
     /* Translucent chip: a quiet foreground wash that tints whatever surface
        it sits on (panel or row hover) instead of a solid fill. */
     background: rgba(var(--foreground-rgb), 0.07);
+    font: inherit;
 
     img {
         width: 1.2em;
@@ -80,6 +73,16 @@ const Reaction = styled.div<{ active: boolean }>`
 
     &:active {
         filter: brightness(0.75);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+    }
+
+    &:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
     }
 
     ${(props) =>
@@ -96,6 +99,7 @@ const Reaction = styled.div<{ active: boolean }>`
  */
 export const Reactions = observer(({ message }: Props) => {
     const client = useClient();
+    const translate = useTranslation();
     const [showPicker, setPicker] = useState(false);
 
     /**
@@ -122,31 +126,46 @@ export const Reactions = observer(({ message }: Props) => {
                     // Keep hover list readable/clickable even with many reactors.
                     interactive
                     placement="top"
-                    content={(
-                        <div
-                            style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "4px",
-                                maxHeight: "220px",
-                                overflowY: "auto",
-                                padding: "6px",
-                            }}>
-                            {reactingUserIds.map((uid) => (
-                                <UserShort
-                                    // UserShort is resilient to missing user objects.
-                                    key={uid}
-                                    user={client.users.get(uid) ?? undefined}
-                                />
-                            ))}
-                        </div>
-                    ) as any}>
+                    content={
+                        (
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "4px",
+                                    maxHeight: "220px",
+                                    overflowY: "auto",
+                                    padding: "6px",
+                                }}>
+                                {reactingUserIds.map((uid) => (
+                                    <UserShort
+                                        // UserShort is resilient to missing user objects.
+                                        key={uid}
+                                        user={
+                                            client.users.get(uid) ?? undefined
+                                        }
+                                    />
+                                ))}
+                            </div>
+                        ) as any
+                    }>
                     <Reaction
+                        type="button"
                         active={active}
+                        aria-pressed={active}
+                        aria-label={translate(
+                            "app.main.channel.accessibility.reaction",
+                            {
+                                emoji: id,
+                                count: String(user_ids?.size || 0),
+                            },
+                        )}
                         onClick={() =>
                             active ? message.unreact(id) : message.react(id)
                         }>
-                        <RenderEmoji match={id} /> {user_ids?.size || 0}
+                        <span>
+                            <RenderEmoji match={id} /> {user_ids?.size || 0}
+                        </span>
                     </Reaction>
                 </Tooltip>
             );
@@ -195,10 +214,9 @@ export const Reactions = observer(({ message }: Props) => {
                 <ReactionWrapper
                     message={message}
                     open={showPicker}
-                    setOpen={setPicker}>
-                    <IconButton className={showPicker ? "" : "add"}>
-                        <Plus size={20} />
-                    </IconButton>
+                    setOpen={setPicker}
+                    className={showPicker ? "" : "add"}>
+                    <Plus size={20} aria-hidden="true" />
                 </ReactionWrapper>
             )}
         </List>
@@ -211,14 +229,63 @@ const Base = styled.div`
     }
 `;
 
+const ReactionTrigger = styled.button`
+    display: grid;
+    place-items: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    color: var(--secondary-foreground);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+    }
+
+    &:active:not(:disabled) {
+        color: var(--foreground);
+        background: var(--tertiary-background);
+    }
+
+    &:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover:not(:disabled) {
+            color: var(--foreground);
+            background: var(--tertiary-background);
+        }
+    }
+`;
+
 /**
  * ! FIXME: rewrite
  */
-export const ReactionWrapper: React.FC<{
+interface ReactionWrapperProps {
     message: Message;
     open: boolean;
     setOpen: (v: boolean) => void;
-}> = ({ open, setOpen, message, children }) => {
+    className?: string;
+    label?: string;
+    children?: Children;
+}
+
+export const ReactionWrapper = ({
+    open,
+    setOpen,
+    message,
+    className,
+    label,
+    children,
+}: ReactionWrapperProps) => {
+    const translate = useTranslation();
     const { x, y, reference, floating, strategy } = useFloating({
         open,
         middleware: [
@@ -244,12 +311,19 @@ export const ReactionWrapper: React.FC<{
 
     return (
         <>
-            <div
+            <ReactionTrigger
+                type="button"
                 ref={reference}
                 onClick={toggle}
-                style={{ width: "fit-content" }}>
+                className={className}
+                aria-expanded={open}
+                aria-haspopup="dialog"
+                aria-label={
+                    label ??
+                    translate("app.main.channel.accessibility.add_emoji")
+                }>
                 {children}
-            </div>
+            </ReactionTrigger>
 
             {createPortal(
                 <div id="reaction">

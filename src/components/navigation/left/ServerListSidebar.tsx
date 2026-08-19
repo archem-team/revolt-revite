@@ -19,9 +19,24 @@ import { isTouchscreenDevice } from "../../../lib/isTouchscreenDevice";
 const RailBase = styled.div`
     display: flex;
     height: 100%;
+    min-height: 0;
     flex-shrink: 0;
     background: var(--nav-rail);
     position: relative;
+
+    /* ServerList contains a Virtuoso scroller followed by the fixed settings
+       button. Give that nested flex column a definite, shrinkable viewport.
+       Without this boundary iOS WebKit can lose the virtual list while the
+       compact panel grid moves the rail off-screen and back, leaving only the
+       non-virtualized settings button visible. */
+    > div {
+        height: 100%;
+        min-height: 0;
+    }
+
+    .list {
+        min-height: 0;
+    }
 
     /* The list's bottom fade (above the settings button) must fade into the
        rail surface, not the canvas colour it defaults to. */

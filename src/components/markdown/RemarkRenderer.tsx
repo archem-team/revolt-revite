@@ -29,7 +29,14 @@ import {
     RenderUnicodeEmoji,
 } from "./plugins/emoji";
 import { remarkHtmlToText } from "./plugins/htmlToText";
-import { remarkMention, RenderMention, remarkEveryone, RenderEveryoneMention, remarkRoleMention, RenderRoleMention } from "./plugins/mentions";
+import {
+    remarkMention,
+    RenderMention,
+    remarkEveryone,
+    RenderEveryoneMention,
+    remarkRoleMention,
+    RenderRoleMention,
+} from "./plugins/mentions";
 import { remarkSpoiler, RenderSpoiler } from "./plugins/spoiler";
 import { remarkTimestamps } from "./plugins/timestamps";
 import "./prism";
@@ -55,31 +62,43 @@ const components = {
         margin: 0;
 
         > code {
-            padding: 1px 4px;
-            flex-shrink: 0;
+            padding: 0.1em 0.35em;
         }
     `,
     h1: styled.h1`
-        margin: 0.2em 0;
+        margin: 0;
+        font-size: 1.4em;
+        line-height: 1.25;
     `,
     h2: styled.h2`
-        margin: 0.2em 0;
+        margin: 0;
+        font-size: 1.3em;
+        line-height: 1.3;
     `,
     h3: styled.h3`
-        margin: 0.2em 0;
+        margin: 0;
+        font-size: 1.2em;
+        line-height: 1.35;
     `,
     h4: styled.h4`
-        margin: 0.2em 0;
+        margin: 0;
+        font-size: 1.1em;
+        line-height: 1.4;
     `,
     h5: styled.h5`
-        margin: 0.2em 0;
+        margin: 0;
+        font-size: 1em;
+        line-height: 1.4;
     `,
     h6: styled.h6`
-        margin: 0.2em 0;
+        margin: 0;
+        color: var(--tertiary-foreground);
+        font-size: 1em;
+        line-height: 1.4;
     `,
     pre: RenderCodeblock,
     code: styled.code`
-        color: white;
+        color: var(--foreground);
         background: var(--block);
 
         font-size: 90%;
@@ -87,42 +106,66 @@ const components = {
 
         border-radius: 3px;
         box-decoration-break: clone;
+        overflow-wrap: anywhere;
     `,
     table: styled.table`
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
         border-collapse: collapse;
 
         th,
         td {
-            padding: 6px;
-            border: 1px solid var(--tertiary-foreground);
+            min-width: 7em;
+            padding: 0.4em 0.6em;
+            border: 1px solid var(--tertiary-background);
+            text-align: start;
+            vertical-align: top;
+        }
+
+        th {
+            background: var(--hover);
         }
     `,
     ul: styled.ul`
-        list-style-position: inside;
-        padding-left: 10px;
-        margin: 0.2em 0;
+        padding-inline-start: 1.5em;
+        margin: 0;
     `,
     ol: styled.ol`
-        list-style-position: inside;
-        padding-left: 10px;
-        margin: 0.2em 0;
+        padding-inline-start: 1.5em;
+        margin: 0;
     `,
-    li: styled.li`
+    li: styled.li<{ class?: string }>`
+        padding-inline-start: 0.15em;
+
+        & + & {
+            margin-top: 0.15em;
+        }
+
+        > ul,
+        > ol {
+            margin-top: 0.15em;
+        }
+
         ${(props) =>
             props.class === "task-list-item" &&
             css`
                 list-style-type: none;
+
+                > input[type="checkbox"] {
+                    margin: 0 0.45em 0 -1.35em;
+                    vertical-align: -0.05em;
+                }
             `}
     `,
     blockquote: styled.blockquote`
-        margin: 2px 0;
-        padding: 2px 0;
-        background: var(--hover);
-        border-radius: var(--border-radius);
-        border-inline-start: 4px solid var(--tertiary-background);
+        margin: 0;
+        padding: 0.1em 0 0.1em 0.75em;
+        color: var(--tertiary-foreground);
+        border-inline-start: 3px solid var(--tertiary-background);
 
         > * {
-            margin: 0 8px;
+            margin: 0;
         }
     `,
     // Block image elements
@@ -182,17 +225,50 @@ const render = unified()
  * Markdown parent container
  */
 const Container = styled.div<{ largeEmoji: boolean }>`
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+
+    > * + * {
+        margin-top: 0.65em;
+    }
+
+    > :is(h1, h2, h3, h4, h5, h6) + * {
+        margin-top: 0.3em;
+    }
+
+    > * + :is(h1, h2, h3, h4, h5, h6) {
+        margin-top: 0.85em;
+    }
+
+    hr {
+        height: 1px;
+        margin-inline: 0;
+        border: 0;
+        background: var(--tertiary-background);
+    }
+
     // Allow scrolling block math
     .math-display {
+        max-width: 100%;
         overflow-x: auto;
     }
 
     // Set emoji size
     --emoji-size: ${(props) => (props.largeEmoji ? "3em" : "1.25em")};
 
-    // Underline link hover
-    a:hover {
-        text-decoration: underline;
+    a {
+        overflow-wrap: anywhere;
+
+        &:hover {
+            text-decoration: underline;
+        }
+
+        &:focus-visible {
+            border-radius: 2px;
+            outline: 2px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
     }
 `;
 
@@ -202,24 +278,9 @@ const Container = styled.div<{ largeEmoji: boolean }>`
 const RE_RECURSIVE = /(^(?:[>*+-][^\S\r\n]*){5})(?:[>*+-][^\S\r\n]*)+(.*$)/gm;
 
 /**
- * Regex for matching multi-line blockquotes
- */
-const RE_BLOCKQUOTE = /^([^\S\r\n]*>[^\n]+\n?)+/gm;
-
-/**
  * Regex for matching HTML tags
  */
 const RE_HTML_TAGS = /^(<\/?[a-zA-Z0-9]+>)(.*$)/gm;
-
-/**
- * Regex for matching empty lines
- */
-const RE_EMPTY_LINE = /^\s*?$/gm;
-
-/**
- * Regex for matching line starting with plus
- */
-const RE_PLUS = /^\s*\+(?:$|[^+])/gm;
 
 /**
  * Sanitise Markdown input before rendering
@@ -227,28 +288,9 @@ const RE_PLUS = /^\s*\+(?:$|[^+])/gm;
  * @returns Sanitised string
  */
 function sanitise(content: string) {
-    return (
-        content
-            // Strip excessive blockquote or list indentation
-            .replace(RE_RECURSIVE, (_, m0, m1) => m0 + m1)
-
-            // Append empty character if string starts with html tag
-            // This is to avoid inconsistencies in rendering Markdown inside/after HTML tags
-            .replace(RE_HTML_TAGS, (match) => `\u200E${match}`)
-
-            // Append empty character if line starts with a plus
-            // which would usually open a new list but we want
-            // to avoid that behaviour in our case.
-            .replace(RE_PLUS, (match) => `\u200E${match}`)
-
-            // Replace empty lines with non-breaking space
-            // because remark renderer is collapsing empty
-            // or otherwise whitespace-only lines of text
-            .replace(RE_EMPTY_LINE, "‎")
-
-            // Ensure empty line after blockquotes for correct rendering
-            .replace(RE_BLOCKQUOTE, (match) => `${match}\n`)
-    );
+    return content
+        .replace(RE_RECURSIVE, (_, m0, m1) => m0 + m1)
+        .replace(RE_HTML_TAGS, (match) => `\u200E${match}`);
 }
 
 /**
@@ -276,9 +318,7 @@ export default memo(({ content, disallowBigEmoji }: MarkdownProps) => {
         }
     }, [sanitisedContent]);
 
-    const [asyncContent, setAsyncContent] = useState<React.ReactElement>(
-        null!,
-    );
+    const [asyncContent, setAsyncContent] = useState<React.ReactElement>(null!);
 
     useLayoutEffect(() => {
         if (syncContent) return;

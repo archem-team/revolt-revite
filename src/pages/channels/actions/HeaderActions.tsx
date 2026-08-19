@@ -20,7 +20,6 @@ import { isTouchscreenDevice } from "../../../lib/isTouchscreenDevice";
 import { useApplicationState } from "../../../mobx/State";
 import { SIDEBAR_MEMBERS } from "../../../mobx/stores/Layout";
 
-import UpdateIndicator from "../../../components/common/UpdateIndicator";
 import { modalController } from "../../../controllers/modals/ModalController";
 import { ChannelHeaderProps } from "../ChannelHeader";
 import { SearchBar } from "../../../components/navigation/SearchBar";
@@ -80,7 +79,6 @@ export default function HeaderActions({ channel }: ChannelHeaderProps) {
     return (
         <>
             <Container>
-                <UpdateIndicator style="channel" />
                 {channel.channel_type === "Group" && (
                     <>
                         <IconButton

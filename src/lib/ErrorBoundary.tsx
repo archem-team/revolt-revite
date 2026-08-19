@@ -37,6 +37,16 @@ interface Props {
     section: "client" | "renderer";
 }
 
+const DYNAMIC_IMPORT_FAILURE =
+    /chunkloaderror|loading chunk|dynamically imported module|importing a module script failed/i;
+
+export function isDynamicImportFailure(error: unknown) {
+    const candidate = error as { message?: string; name?: string } | undefined;
+    return DYNAMIC_IMPORT_FAILURE.test(
+        String(candidate?.message || candidate?.name || error || ""),
+    );
+}
+
 export function reportError(error: Error, section: string) {
     console.error(`PepChat ${section} error`, error);
 }
@@ -56,9 +66,20 @@ export default function ErrorBoundary({ children, section }: Props) {
 
     useEffect(() => {
         if (error) {
+            if (isDynamicImportFailure(error)) {
+                const recover = (
+                    window as typeof window & {
+                        __pepchatRecoverBoot?: () => void;
+                    }
+                ).__pepchatRecoverBoot;
+                if (recover) {
+                    recover();
+                    return;
+                }
+            }
             reportError(error, section);
         }
-    }, [error]);
+    }, [error, section]);
 
     if (error) {
         return (

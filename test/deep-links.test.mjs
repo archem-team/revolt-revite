@@ -51,7 +51,7 @@ test("publishes the current Zeko app associations", async () => {
     ]);
     assert.deepEqual(
         aasa.applinks.details[0].components.map((item) => item["/"]),
-        ["/invite/*", "/channel/*", "/server/*"],
+        ["/open-app", "/invite/*", "/channel/*", "/server/*"],
     );
     assert.equal(assetLinks[0].target.package_name, "com.zekochat");
     assert.ok(assetLinks[0].target.sha256_cert_fingerprints.length > 0);

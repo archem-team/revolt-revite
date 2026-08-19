@@ -3,14 +3,15 @@ import { API } from "revolt.js";
 
 import styles from "./Embed.module.scss";
 
-import { IconButton } from "@revoltchat/ui";
+import { useTranslation } from "../../../../lib/i18n";
 
 interface Props {
     embed: API.Image;
 }
 
 export default function EmbedMediaActions({ embed }: Props) {
-    const filename = embed.url.split("/").pop();
+    const translate = useTranslation();
+    const filename = embed.url.split("/").pop() ?? embed.url;
 
     return (
         <div className={styles.actions}>
@@ -21,11 +22,13 @@ export default function EmbedMediaActions({ embed }: Props) {
             <a
                 href={embed.url}
                 className={styles.openIcon}
+                aria-label={translate(
+                    "app.main.channel.media.open_attachment",
+                    { filename },
+                )}
                 target="_blank"
                 rel="noreferrer">
-                <IconButton>
-                    <LinkExternal size={24} />
-                </IconButton>
+                <LinkExternal size={24} aria-hidden="true" />
             </a>
         </div>
     );

@@ -1,9 +1,11 @@
+import { ChevronRight } from "@styled-icons/boxicons-regular";
 import { API } from "revolt.js";
 
 import styles from "./Embed.module.scss";
 import classNames from "classnames";
 import { useContext } from "preact/hooks";
 
+import { useTranslation } from "../../../../lib/i18n";
 import { proxyUnlessKlipy } from "../../../../lib/klipy";
 
 import { useClient } from "../../../../controllers/client/ClientController";
@@ -17,13 +19,42 @@ interface Props {
     embed: API.Embed;
 }
 
-const MAX_EMBED_WIDTH = 480;
-const MAX_EMBED_HEIGHT = 640;
+const MAX_EMBED_WIDTH = 400;
+// Match the iOS preview ceiling so one rich preview cannot become the chat.
+const MAX_EMBED_HEIGHT = 300;
 const CONTAINER_PADDING = 24;
 const MAX_PREVIEW_SIZE = 150;
 
+function telegramHandle(url?: string | null) {
+    if (!url) return;
+
+    try {
+        const parsed = new URL(url);
+        if (!["t.me", "telegram.me"].includes(parsed.hostname)) return;
+
+        const handle = parsed.pathname.split("/").filter(Boolean)[0];
+        return handle ? `@${handle}` : undefined;
+    } catch {
+        return;
+    }
+}
+
+export function isRenderableEmbed(embed: API.Embed) {
+    if (embed.type !== "Website") return true;
+    if (telegramHandle(embed.url)) return true;
+
+    return Boolean(
+        embed.site_name ||
+            embed.title ||
+            embed.image ||
+            embed.video ||
+            (embed.special && embed.special.type !== "None"),
+    );
+}
+
 export default function Embed({ embed }: Props) {
     const client = useClient();
+    const translate = useTranslation();
 
     const maxWidth = Math.min(
         useContext(MessageAreaWidthContext) - CONTAINER_PADDING,
@@ -34,14 +65,22 @@ export default function Embed({ embed }: Props) {
         w: number,
         h: number,
     ): { width: number; height: number } {
-        const limitingWidth = Math.min(maxWidth, w);
+        const safeWidth = Number.isFinite(w) && w > 0 ? w : 16;
+        const safeHeight = Number.isFinite(h) && h > 0 ? h : 9;
+        const limitingWidth = Math.min(maxWidth, safeWidth);
 
-        const limitingHeight = Math.min(MAX_EMBED_HEIGHT, h);
+        const limitingHeight = Math.min(MAX_EMBED_HEIGHT, safeHeight);
 
         // Calculate smallest possible WxH.
-        const width = Math.min(limitingWidth, limitingHeight * (w / h));
+        const width = Math.min(
+            limitingWidth,
+            limitingHeight * (safeWidth / safeHeight),
+        );
 
-        const height = Math.min(limitingHeight, limitingWidth * (h / w));
+        const height = Math.min(
+            limitingHeight,
+            limitingWidth * (safeHeight / safeWidth),
+        );
 
         return { width, height };
     }
@@ -105,6 +144,64 @@ export default function Embed({ embed }: Props) {
                 );
             }
 
+            if (embed.type === "Website") {
+                if (!isRenderableEmbed(embed)) return null;
+                const handle = telegramHandle(embed.url);
+                if (handle) {
+                    const imageUrl = embed.image?.url ?? embed.icon_url;
+                    return (
+                        <button
+                            type="button"
+                            className={classNames(
+                                styles.embed,
+                                styles.telegram,
+                            )}
+                            onClick={() =>
+                                modalController.openLink(
+                                    embed.url!,
+                                    undefined,
+                                    true,
+                                )
+                            }>
+                            <span
+                                className={styles.telegramIcon}
+                                aria-hidden="true">
+                                {imageUrl && (
+                                    <img
+                                        src={client.proxyFile(imageUrl)}
+                                        alt=""
+                                        loading="lazy"
+                                        decoding="async"
+                                        onError={(event) =>
+                                            (event.currentTarget.style.display =
+                                                "none")
+                                        }
+                                    />
+                                )}
+                            </span>
+                            <span className={styles.telegramContent}>
+                                <span className={styles.telegramSite}>
+                                    {translate(
+                                        "app.main.channel.media.telegram",
+                                    )}
+                                </span>
+                                <strong className={styles.telegramTitle}>
+                                    {embed.title ?? handle}
+                                </strong>
+                                <span className={styles.telegramHandle}>
+                                    {handle}
+                                </span>
+                            </span>
+                            <ChevronRight
+                                className={styles.telegramArrow}
+                                size={22}
+                                aria-hidden="true"
+                            />
+                        </button>
+                    );
+                }
+            }
+
             return (
                 <div
                     className={classNames(styles.embed, styles.website)}
@@ -145,14 +242,17 @@ export default function Embed({ embed }: Props) {
                         {embed.type === "Website" && embed.title && (
                             <span>
                                 <a
-                                    onMouseDown={(ev) =>
-                                        (ev.button === 0 || ev.button === 1) &&
+                                    href={embed.url ?? undefined}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(event) => {
+                                        event.preventDefault();
                                         modalController.openLink(
                                             embed.url!,
                                             undefined,
                                             true,
-                                        )
-                                    }
+                                        );
+                                    }}
                                     className={styles.title}>
                                     {embed.title}
                                 </a>
@@ -196,21 +296,28 @@ export default function Embed({ embed }: Props) {
         }
         case "Image": {
             return (
-                <img
-                    className={classNames(styles.embed, styles.image)}
+                <button
+                    type="button"
+                    className={classNames(styles.embed, styles.imageButton)}
                     style={calculateSize(embed.width, embed.height)}
-                    src={proxyUnlessKlipy(embed.url, client.proxyFile)}
-                    type="text/html"
-                    frameBorder="0"
-                    loading="lazy"
+                    aria-label={translate(
+                        "app.main.channel.media.open_link_image",
+                    )}
                     onClick={() =>
                         modalController.push({ type: "image_viewer", embed })
                     }
                     onMouseDown={(ev) =>
                         ev.button === 1 &&
                         modalController.openLink(embed.url, undefined, true)
-                    }
-                />
+                    }>
+                    <img
+                        className={styles.image}
+                        src={proxyUnlessKlipy(embed.url, client.proxyFile)}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                    />
+                </button>
             );
         }
         case "Video": {

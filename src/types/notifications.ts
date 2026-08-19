@@ -38,3 +38,15 @@ export interface NotificationPage {
     nextCursor?: string;
     unreadCount: number;
 }
+
+export function isNotificationTargetSupported(target?: NotificationTarget) {
+    if (!target) return true;
+    if (target.type === "channel" || target.type === "channel_message") {
+        return Boolean(target.server_id);
+    }
+    return true;
+}
+
+export function isNotificationItemSupported(item: NotificationItem) {
+    return isNotificationTargetSupported(item.target);
+}

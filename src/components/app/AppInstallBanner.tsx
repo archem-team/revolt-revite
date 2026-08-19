@@ -18,11 +18,13 @@ const DISMISS_DURATION = 24 * 60 * 60 * 1000; // 1 day
 const DISMISS_KEY = "appInstallBannerDismissedAt";
 
 /**
- * Store links (locale-neutral; the stores resolve the visitor's storefront).
+ * Use the cross-origin HTTPS app-link route on both platforms so the installed
+ * app gets first chance to open it. The web endpoint selects the appropriate
+ * store fallback when Zeko is not installed.
  */
-const IOS_URL = "https://apps.apple.com/app/id6756353165";
-const ANDROID_URL =
-    "https://play.google.com/store/apps/details?id=com.zekochat";
+const APP_LINK_URL = "https://app.peptide.chat/open-app";
+const IOS_URL = APP_LINK_URL;
+const ANDROID_URL = APP_LINK_URL;
 
 /**
  * iPadOS 13+ Safari reports a desktop (macOS) user-agent, so react-device-detect
@@ -157,17 +159,10 @@ export default function AppInstallBanner() {
         <Banner>
             <div className="inner">
                 <span className="icon">{"⚡"}</span>
-                <div className="text">
-                    {"Faster, with reply notifications"}
-                </div>
-                {/* Opening the store does NOT dismiss — a user who bounces off the
-                    store without installing should keep seeing the nudge. Only the
+                <div className="text">{"Faster, with reply notifications"}</div>
+                {/* Opening the app/store does NOT dismiss the banner. Only the
                     explicit × below persists a dismissal. */}
-                <a
-                    className="open"
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer">
+                <a className="open" href={url}>
                     {"Open App"}
                 </a>
                 <div className="dismiss" onClick={dismiss} aria-label="Dismiss">
